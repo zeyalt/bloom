@@ -10,7 +10,7 @@ interface ActivityCardProps {
   date: string;
   duration?: string;
   status?: "attended" | "absent" | "pending";
-  notes?: string;
+  notes?: string | null;
   className?: string;
 }
 
