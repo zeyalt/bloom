@@ -1,17 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // HMR configuration for dev server
-  webpackDevMiddleware: {
-    watchOptions: {
-      poll: 1000,
-      aggregateTimeout: 300,
-    },
-  },
-  onDemandEntries: {
-    maxInactiveAge: 25000,
-    pagesBufferLength: 5,
-  },
   // Allow cross-origin requests from the Google Fonts CDN in dev
   async headers() {
     return [
