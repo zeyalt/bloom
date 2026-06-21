@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Child {
+  id             String    @id @default(cuid())
+  name           String    @db.VarChar(255)
+  nickname       String?   @db.VarChar(255)
+  dateOfBirth    DateTime? @map("date_of_birth") @db.Date
+  school         String?   @db.VarChar(255)
+  colorCode      String    @map("color_code") @db.VarChar(7)
+  avatarEmoji    String    @map("avatar_emoji") @db.Char(2)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+
+  activities      Activity[]
+  attendanceLogs  AttendanceLog[]
+  expenses        Expense[]
+  milestones      Milestone[]
+
+  @@map("children")
+}
+
+model ActivityCategory {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(255)
+  colorCode String   @map("color_code") @db.VarChar(7)
+  icon      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  activities Activity[]
+  expenses   Expense[]
+
+  @@map("activity_categories")
+}
+
+model Activity {
+  id               String   @id @default(cuid())
+  childId          String   @map("child_id")
+  categoryId       String   @map("category_id")
+  institution      String   @db.VarChar(255)
+  instructorName   String?  @map("instructor_name") @db.VarChar(255)
+  status           String   @default("active") @db.VarChar(50)
+  startDate        DateTime @map("start_date") @db.Date
+  endDate          DateTime @map("end_date") @db.Date
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamp()
+
+  child           Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
+  category        ActivityCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  schedules       Schedule[]
+  attendanceLogs  AttendanceLog[]
+  expenses        Expense[]
+  milestones      Milestone[]
+
+  @@map("activities")
+}
+
+model Schedule {
+  id              String    @id @default(cuid())
+  activityId      String    @map("activity_id")
+  dayOfWeek       Int       @map("day_of_week")
+  startTime       String    @map("start_time") @db.VarChar(5)
+  endTime         String    @map("end_time") @db.VarChar(5)
+  durationMinutes Int       @map("duration_minutes")
+  location        String    @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  effectiveFrom   DateTime? @map("effective_from") @db.Date
+  effectiveUntil  DateTime? @map("effective_until") @db.Date
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp()
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
+}
+
+model AttendanceLog {
+  id              String   @id @default(cuid())
+  activityId      String   @map("activity_id")
+  childId         String   @map("child_id")
+  date            DateTime @db.Date
+  startTime       String   @map("start_time") @db.VarChar(5)
+  durationMinutes Int      @map("duration_minutes")
+  status          String   @db.VarChar(50)
+  sentBy          String?  @map("sent_by") @db.VarChar(255)
+  instructorName  String?  @map("instructor_name") @db.VarChar(255)
+  lessonNumber    Int?     @map("lesson_number")
+  level           String?  @db.VarChar(50)
+  location        String?  @db.VarChar(255)
+  diaryNotes      String?  @map("diary_notes") @db.Text
+  absenceReason   String?  @map("absence_reason") @db.Text
+  remarks         String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_logs")
+}
+
+model Expense {
+  id             String   @id @default(cuid())
+  childId        String   @map("child_id")
+  categoryId     String   @map("category_id")
+  activityId     String?  @map("activity_id")
+  institution    String   @db.VarChar(255)
+  description    String   @db.VarChar(500)
+  amount         Float
+  paymentDate    DateTime @map("payment_date") @db.Date
+  paidBy         String   @map("paid_by") @db.VarChar(100)
+  year           Int
+  receiptNotes   String?  @map("receipt_notes") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp()
+
+  child        Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
+  category     ActivityCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  activity     Activity?          @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@map("expenses")
+}
+
+model Milestone {
+  id             String   @id @default(cuid())
+  activityId     String   @map("activity_id")
+  childId        String   @map("child_id")
+  date           DateTime @db.Date
+  milestoneType  String   @map("milestone_type") @db.VarChar(50)
+  title          String   @db.VarChar(255)
+  description    String?  @db.Text
+  result         String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+model Sender {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(255)
+  relationship  String   @db.VarChar(100)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  @@map("senders")
+}
