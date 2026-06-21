@@ -6,7 +6,7 @@ interface ActivityCardProps {
   childColor: string;
   institution: string;
   category: string;
-  categoryIcon?: string;
+  categoryIcon?: string | null;
   date: string;
   duration?: string;
   status?: "attended" | "absent" | "pending";
