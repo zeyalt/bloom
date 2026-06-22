@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { formatTime } from "@/lib/utils";
+import { formatTime, cn } from "@/lib/utils";
 import { DAYS_OF_WEEK } from "@/lib/constants";
 import type { Schedule, Activity, ActivityCategory, Child } from "@/lib/types";
 
@@ -39,8 +39,12 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<Schedule | null>(null);
+  const [filterChildId, setFilterChildId] = useState("");
 
   const childActivities = activities.filter(a => a.child_id === childId);
+
+  // Pill filter: which child's schedules to show in the list
+  const activeFilterChildId = filterChildId || children[0]?.id || "";
 
   function openAdd() {
     const firstChild = children[0]?.id ?? "";
@@ -100,12 +104,22 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       });
 
       if (editing) {
+        // First valid row updates the existing slot; any extra rows are created
+        const [head, ...rest] = validSlots;
         const res = await fetch(`/api/schedules/${editing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(toPayload(validSlots[0])),
+          body: JSON.stringify(toPayload(head)),
         });
         if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
+        for (const s of rest) {
+          const r = await fetch("/api/schedules", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(toPayload(s)),
+          });
+          if (!r.ok) { const j = await r.json(); throw new Error(j.error || "Save failed"); }
+        }
       } else {
         for (const s of validSlots) {
           const res = await fetch("/api/schedules", {
@@ -126,8 +140,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     setConfirmDelete(null); onRefresh();
   }
 
-  // Group schedules by activity
+  // Group schedules by activity, limited to the selected child
   const byActivity = activities
+    .filter(act => act.child_id === activeFilterChildId)
     .map(act => ({
       activity: act,
       schedules: schedules.filter(s => s.activity_id === act.id),
@@ -142,6 +157,42 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         <p className="text-sm text-[var(--text-secondary)]">{schedules.length} schedule slots</p>
         <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Slot</Button>
       </div>
+
+      {/* Child filter pills */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {children.map(child => {
+          const count = schedules.filter(s => {
+            const act = activities.find(a => a.id === s.activity_id);
+            return act?.child_id === child.id;
+          }).length;
+          const active = activeFilterChildId === child.id;
+          return (
+            <button
+              key={child.id}
+              onClick={() => setFilterChildId(child.id)}
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                active
+                  ? "bg-[var(--accent-primary)] text-white border-transparent"
+                  : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+              )}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: active ? "rgba(255,255,255,0.85)" : child.color_code }}
+              />
+              {child.avatar_emoji} {child.name}
+              <span className={cn("text-xs", active ? "text-white/80" : "text-[var(--text-muted)]")}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {byActivity.length === 0 && (
+        <p className="text-sm text-[var(--text-muted)] text-center py-6 border border-[var(--border)] rounded-xl">
+          No schedules yet.
+        </p>
+      )}
 
       {byActivity.map(({ activity: act, schedules: slots }) => {
         const child = act.child as Child | undefined;
@@ -235,7 +286,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           <div className="space-y-3">
             {slots.map((slot, i) => (
               <div key={i} className="border border-[var(--border)] rounded-lg p-3 space-y-2 relative">
-                {!editing && slots.length > 1 && (
+                {((!editing && slots.length > 1) || (editing && i > 0)) && (
                   <button
                     onClick={() => setSlots(prev => prev.filter((_, idx) => idx !== i))}
                     className="absolute top-2 right-2 p-1 rounded text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -288,14 +339,12 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             ))}
           </div>
 
-          {!editing && (
-            <button
-              onClick={() => setSlots(prev => [...prev, emptySlot()])}
-              className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
-            >
-              <Plus size={14} /> Add another day
-            </button>
-          )}
+          <button
+            onClick={() => setSlots(prev => [...prev, emptySlot()])}
+            className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
+          >
+            <Plus size={14} /> Add another day
+          </button>
 
           <div className="flex items-center gap-2">
             <input
