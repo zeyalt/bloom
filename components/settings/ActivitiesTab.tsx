@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Archive, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -33,14 +33,12 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [expandedChild, setExpandedChild] = useState<string | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState<Activity | null>(null);
 
-  // Group by child
-  const byChild = children.map(child => ({
-    child,
-    activities: activities.filter(a => a.child_id === child.id),
-  }));
+  // Filter activities by selected child (pill filter)
+  const activeChildId = selectedChildId || children[0]?.id || "";
+  const visibleActivities = activities.filter(a => a.child_id === activeChildId);
 
   function openAdd() {
     setForm(EMPTY_FORM);
@@ -56,8 +54,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       institution: a.institution,
       instructor_name: a.instructor_name ?? "",
       status: a.status,
-      start_date: a.start_date ?? "",
-      end_date: a.end_date ?? "",
+      start_date: a.start_date ? a.start_date.slice(0, 10) : "",
+      end_date: a.end_date ? a.end_date.slice(0, 10) : "",
       notes: a.notes ?? "",
     });
     setEditing(a);
@@ -124,85 +122,87 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         </Button>
       </div>
 
-      {byChild.map(({ child, activities: acts }) => (
-        <div key={child.id} className="mb-4 border border-[var(--border)] rounded-xl overflow-hidden">
-          {/* Child header */}
-          <button
-            className="w-full flex items-center justify-between px-4 py-3 bg-[var(--bg-secondary)] hover:bg-stone-200 transition-colors"
-            onClick={() => setExpandedChild(expandedChild === child.id ? null : child.id)}
-          >
-            <div className="flex items-center gap-2">
+      {/* Child filter pills */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {children.map(child => {
+          const count = activities.filter(a => a.child_id === child.id && a.status === "active").length;
+          const active = activeChildId === child.id;
+          return (
+            <button
+              key={child.id}
+              onClick={() => setSelectedChildId(child.id)}
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                active
+                  ? "bg-[var(--accent-primary)] text-white border-transparent"
+                  : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+              )}
+            >
               <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: child.color_code }}
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: active ? "rgba(255,255,255,0.85)" : child.color_code }}
               />
-              <span className="text-sm font-medium text-[var(--text-primary)]">
-                {child.avatar_emoji} {child.name}
-              </span>
-              <span className="text-xs text-[var(--text-muted)]">
-                {acts.filter(a => a.status === "active").length} active
-              </span>
-            </div>
-            {expandedChild === child.id ? <ChevronUp size={15} className="text-[var(--text-muted)]" /> : <ChevronDown size={15} className="text-[var(--text-muted)]" />}
-          </button>
+              {child.avatar_emoji} {child.name}
+              <span className={cn("text-xs", active ? "text-white/80" : "text-[var(--text-muted)]")}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
-          {expandedChild === child.id && (
-            <div className="divide-y divide-[var(--border)]">
-              {acts.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-[var(--text-muted)]">No activities yet.</p>
-              ) : acts.map(a => (
-                <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: (a.category as ActivityCategory)?.color_code ?? "#ccc" }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                        {a.institution}
-                      </span>
-                      <Badge
-                        label={STATUS_LABELS[a.status]}
-                        variant={STATUS_VARIANTS[a.status]}
-                      />
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      {(a.category as ActivityCategory)?.name}
-                      {a.instructor_name && ` · ${a.instructor_name}`}
-                      {a.start_date && ` · from ${formatDate(a.start_date)}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => openEdit(a)}
-                      className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                      title="Edit"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    {a.status === "active" && (
-                      <button
-                        onClick={() => archive(a)}
-                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-amber-600 transition-colors"
-                        title="Archive (mark completed)"
-                      >
-                        <Archive size={14} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setConfirmDelete(a)}
-                      className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+      {/* Activities for selected child */}
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)]">
+        {visibleActivities.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-[var(--text-muted)] text-center">No activities yet.</p>
+        ) : visibleActivities.map(a => (
+          <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: (a.category as ActivityCategory)?.color_code ?? "#ccc" }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+                  {a.institution}
+                </span>
+                <Badge
+                  label={STATUS_LABELS[a.status]}
+                  variant={STATUS_VARIANTS[a.status]}
+                />
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                {(a.category as ActivityCategory)?.name}
+                {a.instructor_name && ` · ${a.instructor_name}`}
+                {a.start_date && ` · from ${formatDate(a.start_date)}`}
+              </p>
             </div>
-          )}
-        </div>
-      ))}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => openEdit(a)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </button>
+              {a.status === "active" && (
+                <button
+                  onClick={() => archive(a)}
+                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-amber-600 transition-colors"
+                  title="Archive (mark completed)"
+                >
+                  <Archive size={14} />
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmDelete(a)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+                title="Delete"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Add/Edit modal */}
       <Modal
@@ -260,17 +260,18 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status</label>
-              <select
-                value={form.status}
-                onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              >
-                {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status</label>
+            <select
+              value={form.status}
+              onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+            >
+              {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start date</label>
               <input
@@ -289,17 +290,6 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                 className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              rows={2}
-              placeholder="Any notes about this activity"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 resize-none"
-            />
           </div>
 
           <div className="flex gap-2 pt-1">
