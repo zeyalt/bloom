@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Disable static generation for all routes - everything is dynamic
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
   // Allow cross-origin requests from the Google Fonts CDN in dev
   async headers() {
     return [

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "DATABASE_URL=$(grep DATABASE_URL .env.local | cut -d= -f2-) node -r ts-node/register prisma/seed.ts",
