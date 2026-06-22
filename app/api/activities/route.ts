@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       data: {
         childId: body.child_id || body.childId,
         categoryId: body.category_id || body.categoryId,
+        activityName: body.activity_name || body.activityName || null,
         institution: body.institution,
         instructorName: body.instructor_name || body.instructorName,
         status: body.status || "active",

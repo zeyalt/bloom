@@ -5,6 +5,7 @@ import { Plus, Download } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { Avatar } from "@/components/ui/Avatar";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
@@ -157,7 +158,7 @@ export default function ExpensesPage() {
               <option value="">All children</option>
               {children.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.avatar_emoji} {c.name}
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -228,12 +229,9 @@ export default function ExpensesPage() {
                       <div className="flex items-center gap-2">
                         {exp.child && (
                           <>
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: exp.child.color_code }}
-                            />
+                            <Avatar avatarKey={exp.child.avatar_key} fallbackEmoji={exp.child.avatar_emoji} size={20} />
                             <span className="text-[var(--text-primary)]">
-                              {exp.child.avatar_emoji} {exp.child.name}
+                              {exp.child.name}
                             </span>
                           </>
                         )}
@@ -283,7 +281,7 @@ export default function ExpensesPage() {
                   <option value="">Select child</option>
                   {children.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.avatar_emoji} {c.name}
+                      {c.name}
                     </option>
                   ))}
                 </select>

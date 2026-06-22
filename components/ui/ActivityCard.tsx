@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/Avatar";
 
 interface ActivityCardProps {
   childName: string;
   childEmoji: string;
+  childAvatarKey?: string | null;
   childColor: string;
   institution: string;
   category: string;
@@ -32,6 +34,7 @@ const statusStyles = {
 export function ActivityCard({
   childName,
   childEmoji,
+  childAvatarKey,
   childColor,
   institution,
   category,
@@ -52,7 +55,7 @@ export function ActivityCard({
       )}
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="text-xl">{childEmoji}</div>
+        <Avatar avatarKey={childAvatarKey} fallbackEmoji={childEmoji} size={32} className="shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-[var(--text-primary)]">
             {institution}

@@ -26,6 +26,16 @@ export const AVATARS: AvatarConfig[] = [
   { key: "a8", bg: "#E0F2FE", skin: "#F4C9A8", hair: "#A45A2A", hairStyle: "bangs", glasses: true },
   { key: "a9", bg: "#F0FDF4", skin: "#D89A6E", hair: "#1F1A17", hairStyle: "ponytail" },
   { key: "a10", bg: "#FAE8FF", skin: "#F1B98E", hair: "#4A2F1B", hairStyle: "curly" },
+  { key: "a11", bg: "#DBEAFE", skin: "#C8895E", hair: "#0E0A08", hairStyle: "bun" },
+  { key: "a12", bg: "#FEF9C3", skin: "#F4C9A8", hair: "#C77C2E", hairStyle: "ponytail" },
+  { key: "a13", bg: "#DCFCE7", skin: "#F1B98E", hair: "#3F2A1D", hairStyle: "buzz", glasses: true },
+  { key: "a14", bg: "#FCE7F3", skin: "#D89A6E", hair: "#5A3A22", hairStyle: "short" },
+  { key: "a15", bg: "#E0E7FF", skin: "#E8B48C", hair: "#1F1A17", hairStyle: "curly", glasses: true },
+  { key: "a16", bg: "#FFEDD5", skin: "#C8895E", hair: "#241712", hairStyle: "bangs" },
+  { key: "a17", bg: "#CCFBF1", skin: "#F4C9A8", hair: "#8B5A2B", hairStyle: "bun" },
+  { key: "a18", bg: "#F3E8FF", skin: "#E8B48C", hair: "#6B4423", hairStyle: "short" },
+  { key: "a19", bg: "#FFE4E6", skin: "#D89A6E", hair: "#0E0A08", hairStyle: "ponytail" },
+  { key: "a20", bg: "#ECFCCB", skin: "#F1B98E", hair: "#A45A2A", hairStyle: "buzz" },
 ];
 
 function Hair({ style, color }: { style: AvatarConfig["hairStyle"]; color: string }) {

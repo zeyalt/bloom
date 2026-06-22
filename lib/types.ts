@@ -52,6 +52,7 @@ export interface Activity {
   id: string;
   child_id: string;
   category_id: string;
+  activity_name?: string | null;
   institution: string;
   instructor_name: string | null;
   status: ActivityStatus;

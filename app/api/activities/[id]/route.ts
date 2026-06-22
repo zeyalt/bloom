@@ -15,6 +15,7 @@ export async function PATCH(req: Request, { params }: Params) {
       data: {
         childId: body.child_id || body.childId,
         categoryId: body.category_id || body.categoryId,
+        activityName: body.activity_name ?? body.activityName ?? null,
         institution: body.institution,
         instructorName: body.instructor_name || body.instructorName,
         status: body.status,

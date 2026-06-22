@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const children = await prisma.child.findMany({
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "asc" },
     });
     return NextResponse.json(serialize(children));
   } catch (err) {

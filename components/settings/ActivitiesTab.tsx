@@ -5,6 +5,7 @@ import { Plus, Pencil, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Avatar } from "@/components/ui/Avatar";
 import { cn, formatDate } from "@/lib/utils";
 import type { Activity, ActivityCategory, Child, ActivityStatus } from "@/lib/types";
 
@@ -23,7 +24,7 @@ const STATUS_VARIANTS: Record<string, "success" | "warning" | "muted" | "danger"
 };
 
 const EMPTY_FORM = {
-  child_id: "", category_id: "", institution: "", instructor_name: "",
+  child_id: "", category_id: "", activity_name: "", institution: "", instructor_name: "",
   status: "active" as ActivityStatus, start_date: "", end_date: "", notes: "",
 };
 
@@ -51,6 +52,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
     setForm({
       child_id: a.child_id,
       category_id: a.category_id,
+      activity_name: a.activity_name ?? "",
       institution: a.institution,
       instructor_name: a.instructor_name ?? "",
       status: a.status,
@@ -64,8 +66,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   }
 
   async function save() {
-    if (!form.child_id || !form.category_id || !form.institution.trim()) {
-      setError("Child, category and institution are required.");
+    if (!form.child_id || !form.category_id || !form.activity_name.trim()) {
+      setError("Child, category and activity are required.");
       return;
     }
     setSaving(true);
@@ -73,6 +75,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
     try {
       const payload = {
         ...form,
+        activity_name: form.activity_name.trim(),
+        institution: form.institution.trim(),
         instructor_name: form.instructor_name || null,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
@@ -138,11 +142,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                   : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
               )}
             >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: active ? "rgba(255,255,255,0.85)" : child.color_code }}
-              />
-              {child.avatar_emoji} {child.name}
+              <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
+              {child.name}
               <span className={cn("text-xs", active ? "text-white/80" : "text-[var(--text-muted)]")}>{count}</span>
             </button>
           );
@@ -160,7 +161,12 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               ? `since ${formatDate(a.start_date)}`
               : `${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
             : "";
-          const meta = [a.instructor_name, dateText].filter(Boolean).join(" · ");
+          const title = a.activity_name || a.institution;
+          const meta = [
+            a.activity_name && a.institution ? a.institution : "",
+            a.instructor_name,
+            dateText,
+          ].filter(Boolean).join(" · ");
           return (
           <div key={a.id} className="flex items-center gap-3 px-4 py-3">
             <span
@@ -170,7 +176,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                  {a.institution}
+                  {title}
                 </span>
                 <Badge
                   label={STATUS_LABELS[a.status]}
@@ -241,7 +247,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                 className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               >
                 <option value="">Select child</option>
-                {children.map(c => <option key={c.id} value={c.id}>{c.avatar_emoji} {c.name}</option>)}
+                {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
@@ -258,7 +264,18 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution / Name *</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
+            <input
+              type="text"
+              value={form.activity_name}
+              onChange={e => setForm(f => ({ ...f, activity_name: e.target.value }))}
+              placeholder="e.g. Taekwondo Class"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution</label>
             <input
               type="text"
               value={form.institution}

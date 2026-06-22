@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Avatar } from "@/components/ui/Avatar";
 import { formatTime, cn } from "@/lib/utils";
 import { DAYS_OF_WEEK } from "@/lib/constants";
 import type { Schedule, Activity, ActivityCategory, Child } from "@/lib/types";
@@ -177,11 +178,8 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                   : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
               )}
             >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: active ? "rgba(255,255,255,0.85)" : child.color_code }}
-              />
-              {child.avatar_emoji} {child.name}
+              <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
+              {child.name}
               <span className={cn("text-xs", active ? "text-white/80" : "text-[var(--text-muted)]")}>{count}</span>
             </button>
           );
@@ -265,7 +263,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select child</option>
-                {children.map(c => <option key={c.id} value={c.id}>{c.avatar_emoji} {c.name}</option>)}
+                {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>

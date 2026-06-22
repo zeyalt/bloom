@@ -171,6 +171,7 @@ export default function DashboardPage() {
                         key={log.id}
                         childName={log.child.name}
                         childEmoji={log.child.avatar_emoji}
+                        childAvatarKey={log.child.avatar_key}
                         childColor={log.child.color_code}
                         institution={log.activity?.institution || "Unknown"}
                         category={log.activity?.category?.name || "Activity"}

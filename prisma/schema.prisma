@@ -44,6 +44,7 @@ model Activity {
   id               String   @id @default(cuid())
   childId          String   @map("child_id")
   categoryId       String   @map("category_id")
+  activityName     String?  @map("activity_name") @db.VarChar(255)
   institution      String   @db.VarChar(255)
   instructorName   String?  @map("instructor_name") @db.VarChar(255)
   status           String   @default("active") @db.VarChar(50)

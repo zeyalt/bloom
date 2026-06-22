@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Avatar } from "@/components/ui/Avatar";
 import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, SENDERS } from "@/lib/constants";
@@ -130,7 +131,7 @@ export default function AttendancePage() {
               <option value="">All children</option>
               {children.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.avatar_emoji} {c.name}
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -186,14 +187,9 @@ export default function AttendancePage() {
                         {formatDate(log.date)}
                       </span>
                       {log.child && (
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: log.child.color_code }}
-                        />
-                      )}
-                      {log.child && (
-                        <span className="text-sm text-[var(--text-secondary)]">
-                          {log.child.avatar_emoji} {log.child.name}
+                        <span className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+                          <Avatar avatarKey={log.child.avatar_key} fallbackEmoji={log.child.avatar_emoji} size={18} />
+                          {log.child.name}
                         </span>
                       )}
                     </div>
@@ -256,7 +252,7 @@ export default function AttendancePage() {
                   <option value="">Select child</option>
                   {children.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.avatar_emoji} {c.name}
+                      {c.name}
                     </option>
                   ))}
                 </select>
