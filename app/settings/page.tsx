@@ -51,22 +51,24 @@ export default function SettingsPage() {
       <Header title="Settings" subtitle="Manage children, activities and schedules" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Tab bar */}
-        <div className="flex gap-1 p-1.5 bg-[var(--bg-secondary)]/50 rounded-xl mb-8 w-fit border border-[var(--border)]/30">
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-150",
-                activeTab === tab.key
-                  ? "bg-white text-[var(--text-primary)] shadow-sm"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab bar — scrollable on mobile so tabs never truncate */}
+        <div className="overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 mb-8">
+          <div className="flex gap-1 p-1.5 bg-[var(--bg-secondary)]/50 rounded-xl w-fit border border-[var(--border)]/30">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-150",
+                  activeTab === tab.key
+                    ? "bg-white text-[var(--text-primary)] shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}

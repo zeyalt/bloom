@@ -118,9 +118,9 @@ export default function AttendancePage() {
       <Header title="Attendance" subtitle="All sessions logged" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Filters and actions - all in one row */}
-        <div className="flex flex-row gap-2 mb-8 items-end">
-          <div className="flex-1 min-w-0">
+        {/* Filters and actions - single row on desktop, wraps on mobile */}
+        <div className="flex flex-wrap gap-2 mb-8 items-end">
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Child</label>
             <select
               value={filterChild}
@@ -135,7 +135,7 @@ export default function AttendancePage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Activity</label>
             <select
               value={filterActivity}
