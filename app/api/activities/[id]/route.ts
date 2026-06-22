@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function PATCH(req: Request, { params }: Params) {
         child: true,
       },
     });
-    return NextResponse.json(activity);
+    return NextResponse.json(serialize(activity));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to update activity" },

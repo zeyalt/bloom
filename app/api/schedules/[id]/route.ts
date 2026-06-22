@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function PATCH(req: Request, { params }: Params) {
         notes: body.notes,
       },
     });
-    return NextResponse.json(schedule);
+    return NextResponse.json(serialize(schedule));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to update schedule" },

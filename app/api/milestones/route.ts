@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json(milestones || []);
+    return NextResponse.json(serialize(milestones || []));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to fetch milestones" },
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
         child: true,
       },
     });
-    return NextResponse.json(milestone, { status: 201 });
+    return NextResponse.json(serialize(milestone), { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to create milestone" },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         icon: body.icon,
       },
     });
-    return NextResponse.json(category);
+    return NextResponse.json(serialize(category));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to update category" },

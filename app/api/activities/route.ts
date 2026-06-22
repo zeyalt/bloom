@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
       orderBy: [{ status: "asc" }, { institution: "asc" }],
     });
 
-    return NextResponse.json(activities);
+    return NextResponse.json(serialize(activities));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to fetch activities" },
@@ -41,8 +42,8 @@ export async function POST(req: Request) {
         institution: body.institution,
         instructorName: body.instructor_name || body.instructorName,
         status: body.status || "active",
-        startDate: new Date(body.start_date || body.startDate),
-        endDate: new Date(body.end_date || body.endDate),
+        startDate: body.start_date || body.startDate ? new Date(body.start_date || body.startDate) : null,
+        endDate: body.end_date || body.endDate ? new Date(body.end_date || body.endDate) : null,
         notes: body.notes,
       },
       include: {
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
         child: true,
       },
     });
-    return NextResponse.json(activity, { status: 201 });
+    return NextResponse.json(serialize(activity), { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to create activity" },

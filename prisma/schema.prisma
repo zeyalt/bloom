@@ -15,6 +15,7 @@ model Child {
   school         String?   @db.VarChar(255)
   colorCode      String    @map("color_code") @db.VarChar(7)
   avatarEmoji    String    @map("avatar_emoji") @db.Char(2)
+  avatarKey      String?   @map("avatar_key") @db.VarChar(50)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
@@ -46,8 +47,8 @@ model Activity {
   institution      String   @db.VarChar(255)
   instructorName   String?  @map("instructor_name") @db.VarChar(255)
   status           String   @default("active") @db.VarChar(50)
-  startDate        DateTime @map("start_date") @db.Date
-  endDate          DateTime @map("end_date") @db.Date
+  startDate        DateTime? @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
   notes            String?  @db.Text
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp()
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamp()
@@ -67,9 +68,9 @@ model Schedule {
   activityId      String    @map("activity_id")
   dayOfWeek       Int       @map("day_of_week")
   startTime       String    @map("start_time") @db.VarChar(5)
-  endTime         String    @map("end_time") @db.VarChar(5)
-  durationMinutes Int       @map("duration_minutes")
-  location        String    @db.VarChar(255)
+  endTime         String?   @map("end_time") @db.VarChar(5)
+  durationMinutes Int?      @map("duration_minutes")
+  location        String?   @db.VarChar(255)
   isActive        Boolean   @default(true) @map("is_active")
   effectiveFrom   DateTime? @map("effective_from") @db.Date
   effectiveUntil  DateTime? @map("effective_until") @db.Date

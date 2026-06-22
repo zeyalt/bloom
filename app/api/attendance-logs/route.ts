@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
       prisma.attendanceLog.count({ where }),
     ]);
 
-    return NextResponse.json({ data, count });
+    return NextResponse.json(serialize({ data, count }));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to fetch attendance logs", data: [], count: 0 },
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
         child: true,
       },
     });
-    return NextResponse.json(log, { status: 201 });
+    return NextResponse.json(serialize(log), { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to create attendance log" },

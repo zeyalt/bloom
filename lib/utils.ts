@@ -70,3 +70,23 @@ export function calcAttendanceRate(attended: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((attended / total) * 100);
 }
+
+// Calculate age from a date-of-birth string → "8 yrs 3 mos" (or "5 mos" under 1 year)
+export function calcAge(dobStr: string): string {
+  try {
+    const dob = parseISO(dobStr);
+    const now = new Date();
+    let years = now.getFullYear() - dob.getFullYear();
+    let months = now.getMonth() - dob.getMonth();
+    if (now.getDate() < dob.getDate()) months -= 1;
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    if (years < 0) return "";
+    if (years === 0) return `${months} mo${months === 1 ? "" : "s"}`;
+    return `${years} yr${years === 1 ? "" : "s"} ${months} mo${months === 1 ? "" : "s"}`;
+  } catch {
+    return "";
+  }
+}

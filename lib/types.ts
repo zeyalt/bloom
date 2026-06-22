@@ -35,6 +35,7 @@ export interface Child {
   school: string | null;
   color_code: string;
   avatar_emoji: string;
+  avatar_key: string | null;
   created_at: string;
   updated_at: string;
 }

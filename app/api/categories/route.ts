@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ export async function GET() {
     const categories = await prisma.activityCategory.findMany({
       orderBy: { name: "asc" },
     });
-    return NextResponse.json(categories);
+    return NextResponse.json(serialize(categories));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to fetch categories" },
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
         icon: body.icon,
       },
     });
-    return NextResponse.json(category, { status: 201 });
+    return NextResponse.json(serialize(category), { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to create category" },

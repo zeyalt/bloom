@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { formatDate } from "@/lib/utils";
+import { Avatar, AvatarPicker } from "@/components/ui/Avatar";
+import { formatDate, calcAge } from "@/lib/utils";
 import type { Child } from "@/lib/types";
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
 
 const EMPTY_FORM = {
   name: "", nickname: "", date_of_birth: "",
-  school: "", color_code: "#1C1917", avatar_emoji: "🌱",
+  school: "", color_code: "#1C1917", avatar_emoji: "🌱", avatar_key: null as string | null,
 };
 
 export function ChildrenTab({ children, onRefresh }: Props) {
@@ -31,6 +32,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
       school: c.school ?? "",
       color_code: c.color_code,
       avatar_emoji: c.avatar_emoji,
+      avatar_key: c.avatar_key,
     });
     setEditing(c);
     setError("");
@@ -68,12 +70,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
         {children.map(c => (
           <div key={c.id} className="flex items-center gap-4 p-4 border border-[var(--border)] rounded-xl bg-[var(--bg-card)]">
             {/* Avatar */}
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
-              style={{ backgroundColor: `${c.color_code}18` }}
-            >
-              {c.avatar_emoji}
-            </div>
+            <Avatar avatarKey={c.avatar_key} fallbackEmoji={c.avatar_emoji} size={48} className="shrink-0" />
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -88,7 +85,8 @@ export function ChildrenTab({ children, onRefresh }: Props) {
                 />
               </div>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                {c.school && <span>{c.school}</span>}
+                {c.date_of_birth && <span className="font-medium text-[var(--text-primary)]">{calcAge(c.date_of_birth)}</span>}
+                {c.school && <span>{c.date_of_birth ? " · " : ""}{c.school}</span>}
                 {c.date_of_birth && <span> · Born {formatDate(c.date_of_birth)}</span>}
               </p>
             </div>
@@ -151,9 +149,17 @@ export function ChildrenTab({ children, onRefresh }: Props) {
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Avatar</label>
+            <AvatarPicker
+              value={form.avatar_key}
+              onChange={key => setForm(f => ({ ...f, avatar_key: key }))}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Avatar emoji</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Emoji (for lists)</label>
               <input
                 type="text"
                 value={form.avatar_emoji}

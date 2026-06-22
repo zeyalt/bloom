@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/serialize";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
       prisma.expense.count({ where }),
     ]);
 
-    return NextResponse.json({ data, count });
+    return NextResponse.json(serialize({ data, count }));
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to fetch expenses", data: [], count: 0 },
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
         category: true,
       },
     });
-    return NextResponse.json(expense, { status: 201 });
+    return NextResponse.json(serialize(expense), { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to create expense" },
