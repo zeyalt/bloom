@@ -153,11 +153,19 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)]">
         {visibleActivities.length === 0 ? (
           <p className="px-4 py-6 text-sm text-[var(--text-muted)] text-center">No activities yet.</p>
-        ) : visibleActivities.map(a => (
+        ) : visibleActivities.map(a => {
+          const category = a.category as ActivityCategory | undefined;
+          const dateText = a.start_date
+            ? a.status === "active"
+              ? `since ${formatDate(a.start_date)}`
+              : `${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
+            : "";
+          const meta = [a.instructor_name, dateText].filter(Boolean).join(" · ");
+          return (
           <div key={a.id} className="flex items-center gap-3 px-4 py-3">
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: (a.category as ActivityCategory)?.color_code ?? "#ccc" }}
+              style={{ backgroundColor: category?.color_code ?? "#ccc" }}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -168,16 +176,22 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                   label={STATUS_LABELS[a.status]}
                   variant={STATUS_VARIANTS[a.status]}
                 />
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                {(a.category as ActivityCategory)?.name}
-                {a.instructor_name && ` · ${a.instructor_name}`}
-                {a.start_date && (
-                  a.status === "active"
-                    ? ` · since ${formatDate(a.start_date)}`
-                    : ` · ${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
+                {category && (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: `${category.color_code}15`,
+                      color: category.color_code,
+                    }}
+                  >
+                    {category.icon && <span className="mr-1">{category.icon}</span>}
+                    {category.name}
+                  </span>
                 )}
-              </p>
+              </div>
+              {meta && (
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{meta}</p>
+              )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button
@@ -205,7 +219,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Add/Edit modal */}
