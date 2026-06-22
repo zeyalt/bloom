@@ -26,8 +26,8 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const [ch, ac, sc, cat] = await Promise.all([
         fetch("/api/children").then(r => r.json()),
@@ -40,11 +40,14 @@ export default function SettingsPage() {
       setSchedules(Array.isArray(sc) ? sc : []);
       setCategories(Array.isArray(cat) ? cat : []);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Refresh after edits without unmounting the active tab (preserves filters/selection)
+  const silentRefresh = useCallback(() => fetchAll({ silent: true }), [fetchAll]);
 
   return (
     <div className="max-w-[860px] mx-auto w-full">
@@ -81,25 +84,26 @@ export default function SettingsPage() {
         ) : (
           <>
             {activeTab === "children" && (
-              <ChildrenTab children={children} onRefresh={fetchAll} />
+              <ChildrenTab children={children} onRefresh={silentRefresh} />
             )}
             {activeTab === "activities" && (
               <ActivitiesTab
                 activities={activities}
                 categories={categories}
                 children={children}
-                onRefresh={fetchAll}
+                onRefresh={silentRefresh}
               />
             )}
             {activeTab === "schedules" && (
               <SchedulesTab
                 schedules={schedules}
                 activities={activities}
-                onRefresh={fetchAll}
+                children={children}
+                onRefresh={silentRefresh}
               />
             )}
             {activeTab === "categories" && (
-              <CategoriesTab categories={categories} onRefresh={fetchAll} />
+              <CategoriesTab categories={categories} onRefresh={silentRefresh} />
             )}
           </>
         )}

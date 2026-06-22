@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -12,70 +12,110 @@ import type { Schedule, Activity, ActivityCategory, Child } from "@/lib/types";
 interface Props {
   schedules: Schedule[];
   activities: Activity[];
+  children: Child[];
   onRefresh: () => void;
 }
 
-const EMPTY_FORM = {
-  activity_id: "",
-  day_of_week: 1 as number,
-  start_time: "",
-  end_time: "",
-  location: "",
-  is_active: true,
-  notes: "",
-};
+interface SlotRow {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  location: string;
+}
+
+const emptySlot = (): SlotRow => ({ day_of_week: 1, start_time: "", end_time: "", location: "" });
 
 function dayLabel(n: number) {
   return DAYS_OF_WEEK.find(d => d.value === n)?.label ?? String(n);
 }
 
-export function SchedulesTab({ schedules, activities, onRefresh }: Props) {
+export function SchedulesTab({ schedules, activities, children, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [childId, setChildId] = useState("");
+  const [activityId, setActivityId] = useState("");
+  const [slots, setSlots] = useState<SlotRow[]>([emptySlot()]);
+  const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<Schedule | null>(null);
 
-  // Only show active activities in the dropdown (but show all in existing schedule rows)
-  const activeActivities = activities.filter(a => a.status === "active");
+  const childActivities = activities.filter(a => a.child_id === childId);
 
   function openAdd() {
-    setForm({ ...EMPTY_FORM, activity_id: activeActivities[0]?.id ?? "" });
-    setEditing(null); setError(""); setShowForm(true);
+    const firstChild = children[0]?.id ?? "";
+    const firstAct =
+      activities.find(a => a.child_id === firstChild && a.status === "active") ??
+      activities.find(a => a.child_id === firstChild);
+    setChildId(firstChild);
+    setActivityId(firstAct?.id ?? "");
+    setSlots([emptySlot()]);
+    setIsActive(true);
+    setEditing(null);
+    setError("");
+    setShowForm(true);
   }
 
   function openEdit(s: Schedule) {
-    setForm({
-      activity_id: s.activity_id,
+    const act = activities.find(a => a.id === s.activity_id);
+    setChildId(act?.child_id ?? "");
+    setActivityId(s.activity_id);
+    setSlots([{
       day_of_week: s.day_of_week,
       start_time: s.start_time,
       end_time: s.end_time ?? "",
       location: s.location ?? "",
-      is_active: s.is_active,
-      notes: s.notes ?? "",
-    });
-    setEditing(s); setError(""); setShowForm(true);
+    }]);
+    setIsActive(s.is_active);
+    setEditing(s);
+    setError("");
+    setShowForm(true);
+  }
+
+  function onChildChange(v: string) {
+    setChildId(v);
+    const fa =
+      activities.find(a => a.child_id === v && a.status === "active") ??
+      activities.find(a => a.child_id === v);
+    setActivityId(fa?.id ?? "");
+  }
+
+  function updateSlot(i: number, patch: Partial<SlotRow>) {
+    setSlots(prev => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   }
 
   async function save() {
-    if (!form.activity_id) { setError("Activity is required."); return; }
-    if (!form.start_time) { setError("Start time is required."); return; }
+    if (!activityId) { setError("Activity is required."); return; }
+    const validSlots = slots.filter(s => s.start_time);
+    if (validSlots.length === 0) { setError("Add at least one day with a start time."); return; }
     setSaving(true); setError("");
     try {
-      const payload = {
-        activity_id: form.activity_id,
-        day_of_week: form.day_of_week,
-        start_time: form.start_time,
-        end_time: form.end_time || null,
-        location: form.location || null,
-        is_active: form.is_active,
-        notes: form.notes || null,
-      };
-      const url = editing ? `/api/schedules/${editing.id}` : "/api/schedules";
-      const method = editing ? "PATCH" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
+      const toPayload = (s: SlotRow) => ({
+        activity_id: activityId,
+        day_of_week: s.day_of_week,
+        start_time: s.start_time,
+        end_time: s.end_time || null,
+        location: s.location || null,
+        is_active: isActive,
+      });
+
+      if (editing) {
+        const res = await fetch(`/api/schedules/${editing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(toPayload(validSlots[0])),
+        });
+        if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
+      } else {
+        for (const s of validSlots) {
+          const res = await fetch("/api/schedules", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(toPayload(s)),
+          });
+          if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
+        }
+      }
       setShowForm(false); onRefresh();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -159,95 +199,120 @@ export function SchedulesTab({ schedules, activities, onRefresh }: Props) {
       )}
 
       {/* Add/Edit modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule Slot"}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule Slots"}>
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
-            <select
-              value={form.activity_id}
-              onChange={e => setForm(f => ({ ...f, activity_id: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-            >
-              <option value="">Select activity</option>
-              {activities.map(a => {
-                const child = a.child as Child | undefined;
-                return (
-                  <option key={a.id} value={a.id}>
-                    {child?.avatar_emoji} {a.institution} ({a.status})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
+          {/* Child filter */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Day *</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
               <select
-                value={form.day_of_week}
-                onChange={e => setForm(f => ({ ...f, day_of_week: Number(e.target.value) }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                value={childId}
+                onChange={e => onChildChange(e.target.value)}
+                disabled={!!editing}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
-                {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
+                <option value="">Select child</option>
+                {children.map(c => <option key={c.id} value={c.id}>{c.avatar_emoji} {c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start time *</label>
-              <input
-                type="time"
-                value={form.start_time}
-                onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End time</label>
-              <input
-                type="time"
-                value={form.end_time}
-                onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              />
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
+              <select
+                value={activityId}
+                onChange={e => setActivityId(e.target.value)}
+                disabled={!!editing}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+              >
+                <option value="">Select activity</option>
+                {childActivities.map(a => <option key={a.id} value={a.id}>{a.institution}</option>)}
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              placeholder="e.g. Compass One"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-            />
+          {/* Slot rows */}
+          <div className="space-y-3">
+            {slots.map((slot, i) => (
+              <div key={i} className="border border-[var(--border)] rounded-lg p-3 space-y-2 relative">
+                {!editing && slots.length > 1 && (
+                  <button
+                    onClick={() => setSlots(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-2 right-2 p-1 rounded text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="Remove day"
+                  ><X size={14} /></button>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Day *</label>
+                    <select
+                      value={slot.day_of_week}
+                      onChange={e => updateSlot(i, { day_of_week: Number(e.target.value) })}
+                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                    >
+                      {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={slot.location}
+                      onChange={e => updateSlot(i, { location: e.target.value })}
+                      placeholder="e.g. Compass One"
+                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start time *</label>
+                    <input
+                      type="time"
+                      value={slot.start_time}
+                      onChange={e => updateSlot(i, { start_time: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End time</label>
+                    <input
+                      type="time"
+                      value={slot.end_time}
+                      onChange={e => updateSlot(i, { end_time: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Notes</label>
-            <input
-              type="text"
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-            />
-          </div>
+          {!editing && (
+            <button
+              onClick={() => setSlots(prev => [...prev, emptySlot()])}
+              className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
+            >
+              <Plus size={14} /> Add another day
+            </button>
+          )}
 
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="is_active"
-              checked={form.is_active}
-              onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
+              checked={isActive}
+              onChange={e => setIsActive(e.target.checked)}
               className="rounded"
             />
-            <label htmlFor="is_active" className="text-sm text-[var(--text-primary)]">Active slot</label>
+            <label htmlFor="is_active" className="text-sm text-[var(--text-primary)]">Active slot{editing ? "" : "s"}</label>
           </div>
 
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button className="flex-1" onClick={save} loading={saving}>{editing ? "Save changes" : "Add slot"}</Button>
+            <Button className="flex-1" onClick={save} loading={saving}>
+              {editing ? "Save changes" : `Add ${slots.filter(s => s.start_time).length || ""} slot${slots.filter(s => s.start_time).length === 1 ? "" : "s"}`.trim()}
+            </Button>
           </div>
         </div>
       </Modal>

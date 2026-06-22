@@ -172,7 +172,11 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                 {(a.category as ActivityCategory)?.name}
                 {a.instructor_name && ` · ${a.instructor_name}`}
-                {a.start_date && ` · from ${formatDate(a.start_date)}`}
+                {a.start_date && (
+                  a.status === "active"
+                    ? ` · since ${formatDate(a.start_date)}`
+                    : ` · ${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
+                )}
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
