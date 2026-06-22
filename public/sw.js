@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bloom-v1';
+const CACHE_NAME = 'bloom-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -62,7 +62,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache first, network second
+  // Page navigations: network first so app code stays fresh (avoids
+  // installed PWAs running stale bundles after a deploy)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((r) => r || caches.match('/offline.html'))
+        )
+    );
+    return;
+  }
+
+  // Static assets (hashed, immutable): cache first, network second
   event.respondWith(
     caches.match(request).then((response) => {
       if (response) {
