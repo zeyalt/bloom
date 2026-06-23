@@ -117,6 +117,9 @@ export interface Expense {
   payment_date: string;
   paid_by: string;
   year: number;
+  term_start_date?: string | null;
+  term_end_date?: string | null;
+  num_lessons?: number | null;
   receipt_notes: string | null;
   created_at: string;
   updated_at: string;

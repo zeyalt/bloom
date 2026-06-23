@@ -19,6 +19,7 @@ interface ExpenseWithDetails extends Expense {
 
 interface Activity {
   id: string;
+  activity_name?: string | null;
   institution: string;
   child_id: string;
   category_id: string;
@@ -26,14 +27,15 @@ interface Activity {
 
 const EMPTY_FORM = {
   child_id: "",
-  category_id: "",
-  activity_id: "",
+  activity_name: "",
   institution: "",
   description: "",
   amount: "",
   payment_date: new Date().toISOString().split('T')[0],
   paid_by: "",
-  receipt_notes: "",
+  term_start_date: "",
+  term_end_date: "",
+  num_lessons: "",
 };
 
 export default function ExpensesPage() {
@@ -80,15 +82,28 @@ export default function ExpensesPage() {
     setShowForm(true);
   }
 
-  // Get activities matching selected child and category
-  const matchingActivities = activities.filter(
-    a => (!form.child_id || a.child_id === form.child_id) &&
-         (!form.category_id || a.category_id === form.category_id)
+  // Activity → Institution resolution (institution is mapped from the activity)
+  const actName = (a: Activity) => a.activity_name || a.institution;
+  const childActivities = activities.filter(a => a.child_id === form.child_id);
+  const activityNames = [...new Set(childActivities.map(actName))];
+  const institutionsForName = [
+    ...new Set(childActivities.filter(a => actName(a) === form.activity_name).map(a => a.institution)),
+  ];
+  const resolvedActivity = childActivities.find(
+    a => actName(a) === form.activity_name && a.institution === form.institution
   );
 
+  function onChildChange(v: string) {
+    setForm(f => ({ ...f, child_id: v, activity_name: "", institution: "" }));
+  }
+  function onActivityChange(name: string) {
+    const insts = childActivities.filter(a => actName(a) === name).map(a => a.institution);
+    setForm(f => ({ ...f, activity_name: name, institution: insts[0] ?? "" }));
+  }
+
   async function save() {
-    if (!form.child_id || !form.category_id || !form.institution.trim() || !form.amount || !form.payment_date) {
-      setError("Child, category, institution, amount, and date are required.");
+    if (!form.child_id || !resolvedActivity || !form.amount || !form.payment_date) {
+      setError("Child, activity, amount and date are required.");
       return;
     }
     setSaving(true);
@@ -97,15 +112,17 @@ export default function ExpensesPage() {
       const year = new Date(form.payment_date).getFullYear();
       const payload = {
         child_id: form.child_id,
-        category_id: form.category_id,
-        activity_id: form.activity_id || null,
-        institution: form.institution.trim(),
+        category_id: resolvedActivity.category_id,
+        activity_id: resolvedActivity.id,
+        institution: resolvedActivity.institution,
         description: form.description || null,
         amount: parseFloat(form.amount),
         payment_date: form.payment_date,
         paid_by: form.paid_by || null,
         year: year,
-        receipt_notes: form.receipt_notes || null,
+        term_start_date: form.term_start_date || null,
+        term_end_date: form.term_end_date || null,
+        num_lessons: form.num_lessons || null,
       };
       const res = await fetch("/api/expenses", {
         method: "POST",
@@ -267,7 +284,7 @@ export default function ExpensesPage() {
           <div className="space-y-5">
             {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-            {/* Child & Category */}
+            {/* Child & Activity */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
@@ -275,51 +292,47 @@ export default function ExpensesPage() {
                 </label>
                 <select
                   value={form.child_id}
-                  onChange={e => setForm(f => ({ ...f, child_id: e.target.value, institution: "" }))}
+                  onChange={e => onChildChange(e.target.value)}
                   className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   <option value="">Select child</option>
                   {children.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Category <span className="text-red-500">*</span>
+                  Activity <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={form.category_id}
-                  onChange={e => setForm(f => ({ ...f, category_id: e.target.value, institution: "" }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  value={form.activity_name}
+                  onChange={e => onActivityChange(e.target.value)}
+                  disabled={!form.child_id}
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
                 >
-                  <option value="">Select category</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
+                  <option value="">Select activity</option>
+                  {activityNames.map(n => (
+                    <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Institution */}
+            {/* Institution — filtered to the selected activity */}
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                Institution <span className="text-red-500">*</span>
+                Institution
               </label>
               <select
                 value={form.institution}
                 onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                disabled={!form.activity_name}
+                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
               >
                 <option value="">Select institution</option>
-                {matchingActivities.map(a => (
-                  <option key={a.id} value={a.institution}>
-                    {a.institution}
-                  </option>
+                {institutionsForName.map(inst => (
+                  <option key={inst} value={inst}>{inst}</option>
                 ))}
               </select>
             </div>
@@ -333,7 +346,7 @@ export default function ExpensesPage() {
                 type="text"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="e.g. Monthly fee, Registration"
+                placeholder="e.g. Term 2 fees, Registration"
                 className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
               />
             </div>
@@ -355,7 +368,7 @@ export default function ExpensesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Date <span className="text-red-500">*</span>
+                  Payment date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -366,37 +379,62 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {/* Paid by */}
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                Paid by
-              </label>
-              <select
-                value={form.paid_by}
-                onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
-              >
-                <option value="">—</option>
-                {PAYERS.map(p => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+            {/* Term dates (optional) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  Term start <span className="text-[var(--text-muted)]">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.term_start_date}
+                  onChange={e => setForm(f => ({ ...f, term_start_date: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  Term end <span className="text-[var(--text-muted)]">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.term_end_date}
+                  onChange={e => setForm(f => ({ ...f, term_end_date: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                />
+              </div>
             </div>
 
-            {/* Receipt notes */}
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                Receipt notes
-              </label>
-              <textarea
-                value={form.receipt_notes}
-                onChange={e => setForm(f => ({ ...f, receipt_notes: e.target.value }))}
-                placeholder="Any notes about the payment..."
-                rows={2}
-                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all resize-none"
-              />
+            {/* Number of lessons & Paid by */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  No. of lessons <span className="text-[var(--text-muted)]">(optional)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.num_lessons}
+                  onChange={e => setForm(f => ({ ...f, num_lessons: e.target.value }))}
+                  placeholder="e.g. 10"
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  Paid by
+                </label>
+                <select
+                  value={form.paid_by}
+                  onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                >
+                  <option value="">—</option>
+                  {PAYERS.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-1">

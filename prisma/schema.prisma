@@ -119,6 +119,9 @@ model Expense {
   paymentDate    DateTime @map("payment_date") @db.Date
   paidBy         String   @map("paid_by") @db.VarChar(100)
   year           Int
+  termStartDate  DateTime? @map("term_start_date") @db.Date
+  termEndDate    DateTime? @map("term_end_date") @db.Date
+  numLessons     Int?      @map("num_lessons")
   receiptNotes   String?  @map("receipt_notes") @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp()
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp()

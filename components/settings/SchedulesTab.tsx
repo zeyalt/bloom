@@ -34,7 +34,8 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [childId, setChildId] = useState("");
-  const [activityId, setActivityId] = useState("");
+  const [activityName, setActivityName] = useState("");
+  const [institution, setInstitution] = useState("");
   const [slots, setSlots] = useState<SlotRow[]>([emptySlot()]);
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,8 +45,22 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
   const childActivities = activities.filter(a => a.child_id === childId);
 
+  // Activity is selected via name + institution (which resolves to one record)
+  const actName = (a: Activity) => a.activity_name || a.institution;
+  const activityNames = [...new Set(childActivities.map(actName))];
+  const institutionsForName = [
+    ...new Set(childActivities.filter(a => actName(a) === activityName).map(a => a.institution)),
+  ];
+  const resolvedActivityId =
+    childActivities.find(a => actName(a) === activityName && a.institution === institution)?.id ?? "";
+
   // Pill filter: which child's schedules to show in the list
   const activeFilterChildId = filterChildId || children[0]?.id || "";
+
+  function selectActivity(a: Activity | undefined) {
+    setActivityName(a ? (a.activity_name || a.institution) : "");
+    setInstitution(a?.institution ?? "");
+  }
 
   function openAdd() {
     const firstChild = children[0]?.id ?? "";
@@ -53,7 +68,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       activities.find(a => a.child_id === firstChild && a.status === "active") ??
       activities.find(a => a.child_id === firstChild);
     setChildId(firstChild);
-    setActivityId(firstAct?.id ?? "");
+    selectActivity(firstAct);
     setSlots([emptySlot()]);
     setIsActive(true);
     setEditing(null);
@@ -64,7 +79,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   function openEdit(s: Schedule) {
     const act = activities.find(a => a.id === s.activity_id);
     setChildId(act?.child_id ?? "");
-    setActivityId(s.activity_id);
+    selectActivity(act);
     setSlots([{
       day_of_week: s.day_of_week,
       start_time: s.start_time,
@@ -82,7 +97,13 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     const fa =
       activities.find(a => a.child_id === v && a.status === "active") ??
       activities.find(a => a.child_id === v);
-    setActivityId(fa?.id ?? "");
+    selectActivity(fa);
+  }
+
+  function onActivityNameChange(name: string) {
+    setActivityName(name);
+    const insts = childActivities.filter(a => actName(a) === name).map(a => a.institution);
+    setInstitution(insts[0] ?? "");
   }
 
   function updateSlot(i: number, patch: Partial<SlotRow>) {
@@ -90,13 +111,13 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   }
 
   async function save() {
-    if (!activityId) { setError("Activity is required."); return; }
+    if (!resolvedActivityId) { setError("Activity is required."); return; }
     const validSlots = slots.filter(s => s.start_time);
     if (validSlots.length === 0) { setError("Add at least one day with a start time."); return; }
     setSaving(true); setError("");
     try {
       const toPayload = (s: SlotRow) => ({
-        activity_id: activityId,
+        activity_id: resolvedActivityId,
         day_of_week: s.day_of_week,
         start_time: s.start_time,
         end_time: s.end_time || null,
@@ -253,7 +274,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-          {/* Child filter */}
+          {/* Child + Activity */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
@@ -270,19 +291,29 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
               <select
-                value={activityId}
-                onChange={e => setActivityId(e.target.value)}
+                value={activityName}
+                onChange={e => onActivityNameChange(e.target.value)}
                 disabled={!!editing}
                 className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select activity</option>
-                {childActivities.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {[a.activity_name, a.institution].filter(Boolean).join(" · ")}
-                  </option>
-                ))}
+                {activityNames.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Institution — mapped from the selected activity */}
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution *</label>
+            <select
+              value={institution}
+              onChange={e => setInstitution(e.target.value)}
+              disabled={!!editing || !activityName}
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+            >
+              <option value="">Select institution</option>
+              {institutionsForName.map(inst => <option key={inst} value={inst}>{inst}</option>)}
+            </select>
           </div>
 
           {/* Slot rows */}
