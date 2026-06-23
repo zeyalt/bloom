@@ -276,7 +276,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select activity</option>
-                {childActivities.map(a => <option key={a.id} value={a.id}>{a.institution}</option>)}
+                {childActivities.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {[a.activity_name, a.institution].filter(Boolean).join(" · ")}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
