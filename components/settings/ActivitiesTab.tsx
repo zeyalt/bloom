@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Archive, Trash2 } from "lucide-react";
+import { Plus, Pencil, Archive, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -36,10 +36,13 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   const [error, setError] = useState("");
   const [selectedChildId, setSelectedChildId] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState<Activity | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Filter activities by selected child (pill filter)
   const activeChildId = selectedChildId || children[0]?.id || "";
   const visibleActivities = activities.filter(a => a.child_id === activeChildId);
+  const activeList = visibleActivities.filter(a => a.status === "active");
+  const inactiveList = visibleActivities.filter(a => a.status !== "active");
 
   function openAdd() {
     setForm(EMPTY_FORM);
@@ -117,6 +120,74 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
     onRefresh();
   }
 
+  function renderRow(a: Activity) {
+    const category = a.category as ActivityCategory | undefined;
+    const dateText = a.start_date
+      ? a.status === "active"
+        ? `since ${formatDate(a.start_date)}`
+        : `${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
+      : "";
+    const title = a.activity_name || a.institution;
+    const meta = [
+      a.activity_name && a.institution ? a.institution : "",
+      a.instructor_name,
+      dateText,
+    ].filter(Boolean).join(" · ");
+    return (
+      <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: category?.color_code ?? "#ccc" }}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+              {title}
+            </span>
+            <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />
+            {category && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
+              >
+                {category.icon && <span className="mr-1">{category.icon}</span>}
+                {category.name}
+              </span>
+            )}
+          </div>
+          {meta && (
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{meta}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => openEdit(a)}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            title="Edit"
+          >
+            <Pencil size={14} />
+          </button>
+          {a.status === "active" && (
+            <button
+              onClick={() => archive(a)}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-amber-600 transition-colors"
+              title="Archive (mark completed)"
+            >
+              <Archive size={14} />
+            </button>
+          )}
+          <button
+            onClick={() => setConfirmDelete(a)}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -135,10 +206,11 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
             <button
               key={child.id}
               onClick={() => setSelectedChildId(child.id)}
+              style={active ? { backgroundColor: child.color_code } : undefined}
               className={cn(
                 "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
                 active
-                  ? "bg-[var(--accent-primary)] text-white border-transparent"
+                  ? "text-white border-transparent"
                   : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
               )}
             >
@@ -150,84 +222,30 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         })}
       </div>
 
-      {/* Activities for selected child */}
+      {/* Active activities */}
       <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)]">
-        {visibleActivities.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-[var(--text-muted)] text-center">No activities yet.</p>
-        ) : visibleActivities.map(a => {
-          const category = a.category as ActivityCategory | undefined;
-          const dateText = a.start_date
-            ? a.status === "active"
-              ? `since ${formatDate(a.start_date)}`
-              : `${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
-            : "";
-          const title = a.activity_name || a.institution;
-          const meta = [
-            a.activity_name && a.institution ? a.institution : "",
-            a.instructor_name,
-            dateText,
-          ].filter(Boolean).join(" · ");
-          return (
-          <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: category?.color_code ?? "#ccc" }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                  {title}
-                </span>
-                <Badge
-                  label={STATUS_LABELS[a.status]}
-                  variant={STATUS_VARIANTS[a.status]}
-                />
-                {category && (
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${category.color_code}15`,
-                      color: category.color_code,
-                    }}
-                  >
-                    {category.icon && <span className="mr-1">{category.icon}</span>}
-                    {category.name}
-                  </span>
-                )}
-              </div>
-              {meta && (
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{meta}</p>
-              )}
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => openEdit(a)}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                title="Edit"
-              >
-                <Pencil size={14} />
-              </button>
-              {a.status === "active" && (
-                <button
-                  onClick={() => archive(a)}
-                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-amber-600 transition-colors"
-                  title="Archive (mark completed)"
-                >
-                  <Archive size={14} />
-                </button>
-              )}
-              <button
-                onClick={() => setConfirmDelete(a)}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-          );
-        })}
+        {activeList.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-[var(--text-muted)] text-center">No active activities.</p>
+        ) : activeList.map(renderRow)}
       </div>
+
+      {/* Paused / completed / dropped — hidden by default */}
+      {inactiveList.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            {showInactive ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {showInactive ? "Hide" : "Show"} {inactiveList.length} paused / completed / dropped
+          </button>
+          {showInactive && (
+            <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)] mt-2">
+              {inactiveList.map(renderRow)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add/Edit modal */}
       <Modal

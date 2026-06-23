@@ -171,10 +171,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             <button
               key={child.id}
               onClick={() => setFilterChildId(child.id)}
+              style={active ? { backgroundColor: child.color_code } : undefined}
               className={cn(
                 "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
                 active
-                  ? "bg-[var(--accent-primary)] text-white border-transparent"
+                  ? "text-white border-transparent"
                   : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
               )}
             >
