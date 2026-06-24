@@ -219,7 +219,7 @@ export default function AgendaPage() {
                         const instructor = log?.instructor_name ?? a.instructor_name;
                         const location = log?.location ?? s.location;
                         return (
-                          <div key={key} className="border border-[var(--border)] rounded-xl p-3 bg-white flex items-start gap-3">
+                          <div key={s.id} className="border border-[var(--border)] rounded-xl p-3 bg-white flex items-start gap-3">
                             <div className="text-sm font-semibold text-[var(--text-primary)] w-16 shrink-0">
                               {s.start_time ? formatTime(s.start_time) : "—"}
                             </div>
