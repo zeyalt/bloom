@@ -1,15 +1,11 @@
 import { format, parseISO } from "date-fns";
 
-// Format currency in SGD
+// Format currency in SGD — always two decimal places (e.g. $1,253.00)
 export function formatCurrency(amount: number): string {
   const formatted = amount.toLocaleString("en-SG", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  // Strip trailing .00 for cleanliness
-  if (formatted.endsWith(".00")) {
-    return `$${formatted.slice(0, -3)}`;
-  }
   return `$${formatted}`;
 }
 

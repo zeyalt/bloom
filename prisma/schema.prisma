@@ -88,8 +88,8 @@ model AttendanceLog {
   activityId      String   @map("activity_id")
   childId         String   @map("child_id")
   date            DateTime @db.Date
-  startTime       String   @map("start_time") @db.VarChar(5)
-  durationMinutes Int      @map("duration_minutes")
+  startTime       String?  @map("start_time") @db.VarChar(5)
+  durationMinutes Int?     @map("duration_minutes")
   status          String   @db.VarChar(50)
   sentBy          String?  @map("sent_by") @db.VarChar(255)
   instructorName  String?  @map("instructor_name") @db.VarChar(255)

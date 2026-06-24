@@ -224,56 +224,50 @@ export default function ExpensesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Child</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Institution</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Category</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Amount</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--text-primary)]">Paid by</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
+                  <th className="px-3 py-2 text-left font-semibold">Date</th>
+                  <th className="px-3 py-2 text-left font-semibold">Child</th>
+                  <th className="px-3 py-2 text-left font-semibold">Institution</th>
+                  <th className="px-3 py-2 text-left font-semibold">Description</th>
+                  <th className="px-3 py-2 text-right font-semibold">Amount</th>
+                  <th className="px-3 py-2 text-right font-semibold">Cost / lesson</th>
+                  <th className="px-3 py-2 text-left font-semibold">Paid by</th>
                 </tr>
               </thead>
               <tbody>
-                {expenses.map(exp => (
-                  <tr
-                    key={exp.id}
-                    className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
-                  >
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{formatDate(exp.payment_date)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {exp.child && (
-                          <>
-                            <Avatar avatarKey={exp.child.avatar_key} fallbackEmoji={exp.child.avatar_emoji} size={20} />
-                            <span className="text-[var(--text-primary)]">
-                              {exp.child.name}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{exp.institution}</td>
-                    <td className="px-4 py-3">
-                      {exp.category && (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: `${exp.category.color_code}15`,
-                            color: exp.category.color_code,
-                          }}
-                        >
-                          {exp.category.name}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
-                      {formatCurrency(exp.amount)}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{exp.paid_by || "—"}</td>
-                  </tr>
-                ))}
+                {expenses.map(exp => {
+                  const costPerLesson =
+                    exp.num_lessons && exp.num_lessons > 0
+                      ? formatCurrency(exp.amount / exp.num_lessons)
+                      : "—";
+                  return (
+                    <tr
+                      key={exp.id}
+                      className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                          {exp.child && (
+                            <>
+                              <Avatar avatarKey={exp.child.avatar_key} fallbackEmoji={exp.child.avatar_emoji} size={18} />
+                              <span className="text-[var(--text-primary)] whitespace-nowrap">{exp.child.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>
+                      <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>
+                      <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-right whitespace-nowrap">
+                        {formatCurrency(exp.amount)}
+                      </td>
+                      <td className="px-3 py-2 text-[var(--text-secondary)] text-right whitespace-nowrap">{costPerLesson}</td>
+                      <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

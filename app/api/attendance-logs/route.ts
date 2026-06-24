@@ -9,12 +9,19 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const childId = url.searchParams.get("child_id");
     const activityId = url.searchParams.get("activity_id");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
     const limit = parseInt(url.searchParams.get("limit") || "100");
     const offset = parseInt(url.searchParams.get("offset") || "0");
 
     const where: any = {};
     if (childId) where.childId = childId;
     if (activityId) where.activityId = activityId;
+    if (from || to) {
+      where.date = {};
+      if (from) where.date.gte = new Date(from);
+      if (to) where.date.lte = new Date(to);
+    }
 
     const [data, count] = await Promise.all([
       prisma.attendanceLog.findMany({
@@ -51,17 +58,17 @@ export async function POST(req: Request) {
         activityId: body.activity_id || body.activityId,
         childId: body.child_id || body.childId,
         date: new Date(body.date),
-        startTime: body.start_time || body.startTime,
-        durationMinutes: body.duration_minutes || body.durationMinutes,
+        startTime: body.start_time || body.startTime || null,
+        durationMinutes: body.duration_minutes ? parseInt(body.duration_minutes) : null,
         status: body.status,
-        sentBy: body.sent_by || body.sentBy,
-        instructorName: body.instructor_name || body.instructorName,
-        lessonNumber: body.lesson_number || body.lessonNumber,
-        level: body.level,
-        location: body.location,
-        diaryNotes: body.diary_notes || body.diaryNotes,
-        absenceReason: body.absence_reason || body.absenceReason,
-        remarks: body.remarks,
+        sentBy: body.sent_by || body.sentBy || null,
+        instructorName: body.instructor_name || body.instructorName || null,
+        lessonNumber: body.lesson_number ? (parseInt(body.lesson_number) || null) : null,
+        level: body.level || null,
+        location: body.location || null,
+        diaryNotes: body.diary_notes || body.diaryNotes || null,
+        absenceReason: body.absence_reason || body.absenceReason || null,
+        remarks: body.remarks || null,
       },
       include: {
         activity: {

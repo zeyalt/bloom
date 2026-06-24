@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   CalendarDays,
   ClipboardList,
   Receipt,
@@ -13,9 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: LayoutDashboard },
-  { href: "/schedule", label: "Schedule", icon: CalendarDays },
-  { href: "/attendance", label: "Log", icon: ClipboardList },
+  { href: "/", label: "Schedule", icon: CalendarDays },
+  { href: "/attendance", label: "Attendance", icon: ClipboardList },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -34,10 +32,8 @@ export function BottomNav() {
             key={href}
             href={href}
             className={cn(
-              "flex-1 flex flex-col items-center gap-1 py-3 transition-all duration-150 min-h-16",
-              active
-                ? "text-[var(--text-primary)]"
-                : "text-[var(--text-muted)]"
+              "flex-1 flex flex-col items-center gap-1 py-3 min-h-16 transition-all duration-150",
+              active ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"
             )}
           >
             <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />

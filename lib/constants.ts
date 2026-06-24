@@ -88,8 +88,7 @@ export const DAYS_OF_WEEK = [
 
 // Nav items
 export const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/schedule", label: "Schedule", icon: "CalendarDays" },
+  { href: "/", label: "Schedule", icon: "CalendarDays" },
   { href: "/attendance", label: "Attendance", icon: "ClipboardList" },
   { href: "/expenses", label: "Expenses", icon: "Receipt" },
   { href: "/analytics", label: "Analytics", icon: "BarChart3" },

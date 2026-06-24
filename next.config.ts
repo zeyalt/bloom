@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      // Schedule was merged into the home agenda
+      { source: "/schedule", destination: "/", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

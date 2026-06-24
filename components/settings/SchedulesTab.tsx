@@ -216,7 +216,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
       {byActivity.map(({ activity: act, schedules: slots }) => {
         const child = act.child as Child | undefined;
-        const category = act.category as ActivityCategory | undefined;
+        const title = act.activity_name || act.institution;
+        const inst = (act.institution ?? "").trim();
+        const isBlankInst = inst === "" || inst.toLowerCase() === "freelance";
+        const secondaryRaw = isBlankInst ? (act.instructor_name ?? "") : inst;
+        const secondary = secondaryRaw && secondaryRaw !== title ? secondaryRaw : "";
         return (
           <div key={act.id} className="mb-4 border border-[var(--border)] rounded-xl overflow-hidden">
             {/* Activity header */}
@@ -224,9 +228,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               {child && (
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />
               )}
-              <span className="text-sm font-medium text-[var(--text-primary)]">{act.institution}</span>
-              {category && (
-                <span className="text-xs text-[var(--text-muted)]">· {category.name}</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{title}</span>
+              {secondary && (
+                <span className="text-xs text-[var(--text-muted)]">· {secondary}</span>
               )}
               {act.status !== "active" && (
                 <Badge label={act.status} variant="muted" />

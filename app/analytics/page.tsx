@@ -16,9 +16,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Receipt, TrendingUp, Calendar, Activity as ActivityIcon } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { formatCurrency } from "@/lib/utils";
-import type { Expense, AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
+import { StatCard } from "@/components/ui/StatCard";
+import { formatCurrency, getCurrentYear } from "@/lib/utils";
+import type { Expense, AttendanceLog, Activity, ActivityCategory, Child, Schedule } from "@/lib/types";
 
 interface ExpenseWithDetails extends Expense {
   child?: Child;
@@ -33,24 +35,41 @@ interface LogWithDetails extends AttendanceLog {
 export default function AnalyticsPage() {
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
   const [logs, setLogs] = useState<LogWithDetails[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const [expRes, logsRes] = await Promise.all([
+        const [expRes, logsRes, actRes, schedRes] = await Promise.all([
           fetch("/api/expenses?limit=500").then(r => r.json()),
           fetch("/api/attendance-logs?limit=500").then(r => r.json()),
+          fetch("/api/activities").then(r => r.json()),
+          fetch("/api/schedules").then(r => r.json()),
         ]);
         setExpenses(expRes.data || []);
         setLogs(logsRes.data || []);
+        setActivities(Array.isArray(actRes) ? actRes : []);
+        setSchedules(Array.isArray(schedRes) ? schedRes : []);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
   }, []);
+
+  // High-level metrics (moved from Home)
+  const yearTotal = expenses
+    .filter(e => new Date(e.payment_date).getFullYear() === getCurrentYear())
+    .reduce((sum, e) => sum + e.amount, 0);
+  const activeActivities = activities.filter(a => a.status === "active").length;
+  const now = new Date();
+  const monthAttended = logs.filter(
+    l => l.status === "attended" && new Date(l.date).getMonth() === now.getMonth() && new Date(l.date).getFullYear() === now.getFullYear()
+  ).length;
+  const weeklySlots = schedules.filter(s => s.is_active).length;
 
   // Monthly spending chart
   const monthlyData = expenses.reduce(
@@ -141,6 +160,14 @@ export default function AnalyticsPage() {
       <Header title="Analytics" subtitle="Spend and attendance insights" />
 
       <div className="px-5 md:px-8 space-y-8 pb-8 pt-4 md:pt-6">
+        {/* High-level metrics */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Expenses (YTD)" value={formatCurrency(yearTotal)} icon={<Receipt size={20} />} color="orange" />
+          <StatCard label="Active Activities" value={activeActivities} icon={<ActivityIcon size={20} />} color="green" />
+          <StatCard label="Sessions (This Month)" value={monthAttended} icon={<TrendingUp size={20} />} color="blue" />
+          <StatCard label="Weekly Slots" value={weeklySlots} icon={<Calendar size={20} />} color="warning" />
+        </div>
+
         {/* Monthly spending trend */}
         {monthlyData.length > 0 && (
           <div className="border border-[var(--border)] rounded-xl p-6 bg-[var(--bg-card)]">
