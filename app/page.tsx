@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, Pencil } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
+import { ScheduleSlotModal } from "@/components/schedule/ScheduleSlotModal";
 import { cn, formatTime } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
@@ -34,6 +35,7 @@ export default function AgendaPage() {
   const [selectedChild, setSelectedChild] = useState(""); // "" = all
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
+  const [slotEdit, setSlotEdit] = useState<ScheduleWithDetails | null>(null);
 
   const range = getWeekRange(weekOffset);
   const week = getWeekDays(weekOffset);
@@ -232,7 +234,14 @@ export default function AgendaPage() {
                                 {[a.activity_name ? a.institution : "", instructor, location].filter(Boolean).join(" · ")}
                               </p>
                             </div>
-                            <div className="shrink-0">
+                            <div className="shrink-0 flex items-center gap-1">
+                              <button
+                                onClick={() => setSlotEdit(s)}
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                                title="Edit schedule slot"
+                              >
+                                <Pencil size={14} />
+                              </button>
                               {log ? (
                                 <button onClick={() => openEditLog(log)} title="Edit attendance">
                                   <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
@@ -285,6 +294,14 @@ export default function AgendaPage() {
         children={children}
         activities={activities}
         prefill={prefill}
+        onSaved={fetchData}
+      />
+
+      <ScheduleSlotModal
+        open={!!slotEdit}
+        onClose={() => setSlotEdit(null)}
+        schedule={slotEdit}
+        title={slotEdit?.activity ? [slotEdit.activity.activity_name, slotEdit.activity.institution].filter(Boolean).join(" · ") : undefined}
         onSaved={fetchData}
       />
     </div>
