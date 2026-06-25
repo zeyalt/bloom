@@ -55,6 +55,7 @@ export interface Activity {
   activity_name?: string | null;
   institution: string;
   instructor_name: string | null;
+  level: string | null;
   status: ActivityStatus;
   start_date: string | null;
   end_date: string | null;
@@ -89,15 +90,17 @@ export interface AttendanceLog {
   child_id: string;
   date: string;
   start_time: string | null;
+  end_time: string | null;
   duration_minutes: number | null;
   status: AttendanceStatus;
   sent_by: string | null;
   instructor_name: string | null;
-  lesson_number: string | null;
-  level: string | null;
+  lesson_type: string | null;
   location: string | null;
-  diary_notes: string | null;
   absence_reason: string | null;
+  lesson_number: number | null;
+  level: string | null;
+  diary_notes: string | null;
   remarks: string | null;
   created_at: string;
   updated_at: string;

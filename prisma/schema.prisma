@@ -47,6 +47,7 @@ model Activity {
   activityName     String?  @map("activity_name") @db.VarChar(255)
   institution      String   @db.VarChar(255)
   instructorName   String?  @map("instructor_name") @db.VarChar(255)
+  level            String?  @db.VarChar(50)
   status           String   @default("active") @db.VarChar(50)
   startDate        DateTime? @map("start_date") @db.Date
   endDate          DateTime? @map("end_date") @db.Date
@@ -89,15 +90,17 @@ model AttendanceLog {
   childId         String   @map("child_id")
   date            DateTime @db.Date
   startTime       String?  @map("start_time") @db.VarChar(5)
+  endTime         String?  @map("end_time") @db.VarChar(5)
   durationMinutes Int?     @map("duration_minutes")
   status          String   @db.VarChar(50)
   sentBy          String?  @map("sent_by") @db.VarChar(255)
   instructorName  String?  @map("instructor_name") @db.VarChar(255)
+  lessonType      String?  @map("lesson_type") @db.VarChar(50)
+  location        String?  @db.VarChar(255)
+  absenceReason   String?  @map("absence_reason") @db.VarChar(255)
   lessonNumber    Int?     @map("lesson_number")
   level           String?  @db.VarChar(50)
-  location        String?  @db.VarChar(255)
   diaryNotes      String?  @map("diary_notes") @db.Text
-  absenceReason   String?  @map("absence_reason") @db.Text
   remarks         String?  @db.Text
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()

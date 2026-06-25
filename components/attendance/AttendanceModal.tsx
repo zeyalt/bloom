@@ -13,15 +13,12 @@ export interface AttendancePrefill {
   date?: string;
   status?: AttendanceStatus;
   start_time?: string | null;
-  duration_minutes?: number | string | null;
+  end_time?: string | null;
   sent_by?: string | null;
   instructor_name?: string | null;
-  lesson_number?: string | null;
-  level?: string | null;
+  lesson_type?: string | null;
   location?: string | null;
-  diary_notes?: string | null;
   absence_reason?: string | null;
-  remarks?: string | null;
 }
 
 interface AttForm {
@@ -30,23 +27,26 @@ interface AttForm {
   date: string;
   status: AttendanceStatus;
   start_time: string;
-  duration_minutes: string;
+  end_time: string;
   sent_by: string;
+  sent_by_custom: string;
   instructor_name: string;
-  lesson_number: string;
-  level: string;
+  lesson_type: string;
+  lesson_type_custom: string;
   location: string;
-  diary_notes: string;
   absence_reason: string;
-  remarks: string;
 }
 
 const blankForm = (): AttForm => ({
   activity_id: "", child_id: "", date: "", status: "attended",
-  start_time: "", duration_minutes: "", sent_by: "", instructor_name: "",
-  lesson_number: "", level: "", location: "", diary_notes: "",
-  absence_reason: "", remarks: "",
+  start_time: "", end_time: "", sent_by: "", sent_by_custom: "",
+  instructor_name: "", lesson_type: "", lesson_type_custom: "",
+  location: "", absence_reason: "",
 });
+
+const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
+const LESSON_TYPE_OPTIONS = ["Trial", "Replacement", "Grading Test", "Online", "Competition", "Normal", "Sparring"];
+const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 
 function fromPrefill(p?: AttendancePrefill): AttForm {
   const f = blankForm();
@@ -58,15 +58,14 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     date: p.date ?? "",
     status: p.status ?? "attended",
     start_time: p.start_time ?? "",
-    duration_minutes: p.duration_minutes != null ? String(p.duration_minutes) : "",
+    end_time: p.end_time ?? "",
     sent_by: p.sent_by ?? "",
+    sent_by_custom: (p.sent_by && !SENT_BY_OPTIONS.includes(p.sent_by)) ? p.sent_by : "",
     instructor_name: p.instructor_name ?? "",
-    lesson_number: p.lesson_number ?? "",
-    level: p.level ?? "",
+    lesson_type: p.lesson_type ?? "",
+    lesson_type_custom: (p.lesson_type && !LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : "",
     location: p.location ?? "",
-    diary_notes: p.diary_notes ?? "",
     absence_reason: p.absence_reason ?? "",
-    remarks: p.remarks ?? "",
   };
 }
 
@@ -105,21 +104,21 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     setSaving(true);
     setError("");
     try {
+      const sentByValue = form.sent_by === "custom" ? form.sent_by_custom : form.sent_by;
+      const lessonTypeValue = form.lesson_type === "custom" ? form.lesson_type_custom : form.lesson_type;
+
       const payload = {
         activity_id: form.activity_id,
         child_id: form.child_id,
         date: form.date,
         status: form.status,
         start_time: form.start_time || null,
-        duration_minutes: form.duration_minutes || null,
-        sent_by: form.sent_by || null,
+        end_time: form.end_time || null,
+        sent_by: sentByValue || null,
         instructor_name: form.instructor_name || null,
-        lesson_number: form.lesson_number || null,
-        level: form.level || null,
+        lesson_type: lessonTypeValue || null,
         location: form.location || null,
-        diary_notes: form.diary_notes || null,
-        absence_reason: form.absence_reason || null,
-        remarks: form.remarks || null,
+        absence_reason: form.status === "absent" ? form.absence_reason || null : null,
       };
       const editing = !!prefill?.id;
       const res = await fetch(
@@ -191,21 +190,14 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start time</label>
             <input type="time" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Duration (min)</label>
-            <input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} placeholder="e.g. 60" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent by</label>
-            <select value={form.sent_by} onChange={e => setForm(f => ({ ...f, sent_by: e.target.value }))} className={inputCls}>
-              <option value="">—</option>
-              {SENDERS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End time</label>
+            <input type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} className={inputCls} />
           </div>
         </div>
 
@@ -222,29 +214,71 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson number</label>
-            <input type="text" value={form.lesson_number} onChange={e => setForm(f => ({ ...f, lesson_number: e.target.value }))} className={inputCls} />
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent by</label>
+            <select value={form.sent_by_custom ? "custom" : form.sent_by} onChange={e => {
+              const val = e.target.value;
+              setForm(f => ({
+                ...f,
+                sent_by: val === "custom" ? "" : val,
+                sent_by_custom: val === "custom" ? f.sent_by_custom : "",
+              }));
+            }} className={inputCls}>
+              <option value="">—</option>
+              {SENT_BY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="custom">Custom...</option>
+            </select>
           </div>
+          {form.sent_by_custom || (form.sent_by && !SENT_BY_OPTIONS.includes(form.sent_by)) ? (
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Custom value</label>
+              <input
+                type="text"
+                value={form.sent_by_custom}
+                onChange={e => setForm(f => ({ ...f, sent_by_custom: e.target.value }))}
+                placeholder="Enter name"
+                className={inputCls}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
-            <input type="text" value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))} className={inputCls} />
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson type</label>
+            <select value={form.lesson_type_custom ? "custom" : form.lesson_type} onChange={e => {
+              const val = e.target.value;
+              setForm(f => ({
+                ...f,
+                lesson_type: val === "custom" ? "" : val,
+                lesson_type_custom: val === "custom" ? f.lesson_type_custom : "",
+              }));
+            }} className={inputCls}>
+              <option value="">—</option>
+              {LESSON_TYPE_OPTIONS.map(lt => <option key={lt} value={lt}>{lt}</option>)}
+              <option value="custom">Custom...</option>
+            </select>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Diary notes</label>
-          <textarea value={form.diary_notes} onChange={e => setForm(f => ({ ...f, diary_notes: e.target.value }))} placeholder="Session notes, progress, observations..." rows={2} className={`${inputCls} resize-none`} />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Remarks</label>
-          <textarea value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} placeholder="Any other notes..." rows={1} className={`${inputCls} resize-none`} />
+          {form.lesson_type_custom || (form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type)) ? (
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Custom value</label>
+              <input
+                type="text"
+                value={form.lesson_type_custom}
+                onChange={e => setForm(f => ({ ...f, lesson_type_custom: e.target.value }))}
+                placeholder="Enter lesson type"
+                className={inputCls}
+              />
+            </div>
+          ) : null}
         </div>
 
         {form.status === "absent" && (
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Absence reason</label>
-            <input type="text" value={form.absence_reason} onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))} className={inputCls} />
+            <select value={form.absence_reason} onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))} className={inputCls}>
+              <option value="">Select reason</option>
+              {ABSENCE_REASON_OPTIONS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
+            </select>
           </div>
         )}
 

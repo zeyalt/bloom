@@ -80,7 +80,7 @@ export default function AgendaPage() {
           date: day.iso,
           status: "attended",
           start_time: s.start_time,
-          duration_minutes: s.duration_minutes,
+          end_time: s.end_time,
           instructor_name: a.instructor_name,
           location: s.location,
         }),
@@ -100,7 +100,7 @@ export default function AgendaPage() {
       date: day.iso,
       status: "absent",
       start_time: s.start_time,
-      duration_minutes: s.duration_minutes,
+      end_time: s.end_time,
       instructor_name: a.instructor_name,
       location: s.location,
     });
@@ -115,7 +115,7 @@ export default function AgendaPage() {
       date: day.iso,
       status: "attended",
       start_time: s.start_time,
-      duration_minutes: s.duration_minutes,
+      end_time: s.end_time,
       instructor_name: a.instructor_name,
       location: s.location,
     });
@@ -130,15 +130,12 @@ export default function AgendaPage() {
       date: log.date.slice(0, 10),
       status: log.status,
       start_time: log.start_time,
-      duration_minutes: log.duration_minutes,
+      end_time: log.end_time,
       sent_by: log.sent_by,
       instructor_name: log.instructor_name,
-      lesson_number: log.lesson_number,
-      level: log.level,
+      lesson_type: log.lesson_type,
       location: log.location,
-      diary_notes: log.diary_notes,
       absence_reason: log.absence_reason,
-      remarks: log.remarks,
     });
     setModalOpen(true);
   }

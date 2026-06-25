@@ -60,15 +60,12 @@ export default function AttendancePage() {
       date: log.date.slice(0, 10),
       status: log.status,
       start_time: log.start_time,
-      duration_minutes: log.duration_minutes,
+      end_time: log.end_time,
       sent_by: log.sent_by,
       instructor_name: log.instructor_name,
-      lesson_number: log.lesson_number,
-      level: log.level,
+      lesson_type: log.lesson_type,
       location: log.location,
-      diary_notes: log.diary_notes,
       absence_reason: log.absence_reason,
-      remarks: log.remarks,
     });
     setModalOpen(true);
   }
@@ -173,10 +170,9 @@ export default function AttendancePage() {
                     </div>
                     <div className="text-xs text-[var(--text-muted)] mt-0.5 space-x-2">
                       {log.start_time && <span>{log.start_time}</span>}
-                      {log.duration_minutes && <span>· {log.duration_minutes} min</span>}
+                      {log.end_time && <span>· {log.end_time}</span>}
                       {log.instructor_name && <span>· {log.instructor_name}</span>}
-                      {log.lesson_number && <span>· L{log.lesson_number}</span>}
-                      {log.level && <span>· {log.level}</span>}
+                      {log.lesson_type && <span>· {log.lesson_type}</span>}
                     </div>
                   </div>
 
@@ -185,12 +181,6 @@ export default function AttendancePage() {
                       label={ATTENDANCE_STATUS_LABELS[log.status]}
                       variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
                     />
-                    {log.diary_notes && (
-                      <div className="text-xs text-[var(--text-secondary)] max-w-xs text-right line-clamp-2">{log.diary_notes}</div>
-                    )}
-                    {log.remarks && (
-                      <div className="text-xs text-[var(--text-muted)] max-w-xs text-right line-clamp-1">{log.remarks}</div>
-                    )}
                   </div>
                 </div>
               </button>
