@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
@@ -73,41 +73,48 @@ export default function AttendancePage() {
     setModalOpen(true);
   }
 
+  // Filter logs by selected child
+  const filteredLogs = filterChild
+    ? logs.filter(l => l.child_id === filterChild)
+    : logs.filter(l => filterActivity ? l.activity_id === filterActivity : true);
+
   return (
     <div className="max-w-[1200px] mx-auto w-full">
       <Header title="Attendance" subtitle="All sessions logged" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Filters and actions - single row on desktop, wraps on mobile */}
-        <div className="flex flex-wrap gap-2 mb-8 items-end">
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Child</label>
-            <select
-              value={filterChild}
-              onChange={e => setFilterChild(e.target.value)}
-              className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+        {/* Child filter pills + actions */}
+        <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterChild("")}
+              className={cn(
+                "px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                !filterChild ? "bg-[var(--text-primary)] text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+              )}
             >
-              <option value="">All children</option>
-              {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Activity</label>
-            <select
-              value={filterActivity}
-              onChange={e => setFilterActivity(e.target.value)}
-              className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-            >
-              <option value="">All activities</option>
-              {activities.map(a => (
-                <option key={a.id} value={a.id}>
-                  {[a.activity_name, a.institution].filter(Boolean).join(" · ")}
-                </option>
-              ))}
-            </select>
+              All
+            </button>
+            {children.map(child => {
+              const active = filterChild === child.id;
+              return (
+                <button
+                  key={child.id}
+                  onClick={() => setFilterChild(child.id)}
+                  style={active ? { backgroundColor: child.color_code } : undefined}
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                    active ? "text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                  )}
+                >
+                  <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
+                  {child.name}
+                </button>
+              );
+            })}
           </div>
           <div className="flex gap-1.5 shrink-0">
-            <Button variant="secondary" size="sm" onClick={() => exportAttendanceCSV(logs, `attendance-${new Date().toISOString().split('T')[0]}.csv`)}>
+            <Button variant="secondary" size="sm" onClick={() => exportAttendanceCSV(filteredLogs, `attendance-${new Date().toISOString().split('T')[0]}.csv`)}>
               <Download size={14} /> Export
             </Button>
             <Button variant="primary" size="sm" onClick={openAdd}>
@@ -116,18 +123,35 @@ export default function AttendancePage() {
           </div>
         </div>
 
+        {/* Activity filter dropdown (secondary) */}
+        <div className="mb-6">
+          <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Activity (optional)</label>
+          <select
+            value={filterActivity}
+            onChange={e => setFilterActivity(e.target.value)}
+            className="w-full max-w-sm px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+          >
+            <option value="">All activities</option>
+            {activities.map(a => (
+              <option key={a.id} value={a.id}>
+                {[a.activity_name, a.institution].filter(Boolean).join(" · ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Logs list */}
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => <div key={i} className="h-20 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />)}
           </div>
-        ) : logs.length === 0 ? (
+        ) : filteredLogs.length === 0 ? (
           <div className="text-center py-12 text-[var(--text-muted)]">
             <p className="text-sm">No attendance records</p>
           </div>
         ) : (
           <div className="space-y-2 pb-8">
-            {logs.map(log => (
+            {filteredLogs.map(log => (
               <button
                 key={log.id}
                 onClick={() => openEdit(log)}
