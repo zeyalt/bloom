@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, Pencil } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, Pencil, X } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -68,6 +68,45 @@ export default function AgendaPage() {
 
   const childMatch = (childId: string) => !selectedChild || childId === selectedChild;
 
+  async function quickAttend(s: ScheduleWithDetails, day: WeekDay) {
+    const a = s.activity!;
+    try {
+      const res = await fetch("/api/attendance-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activity_id: a.id,
+          child_id: a.child_id,
+          date: day.iso,
+          status: "attended",
+          start_time: s.start_time,
+          duration_minutes: s.duration_minutes,
+          instructor_name: a.instructor_name,
+          location: s.location,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      fetchData();
+    } catch (e) {
+      console.error("Failed to save attendance:", e);
+    }
+  }
+
+  function openAbsentModal(s: ScheduleWithDetails, day: WeekDay) {
+    const a = s.activity!;
+    setPrefill({
+      activity_id: a.id,
+      child_id: a.child_id,
+      date: day.iso,
+      status: "absent",
+      start_time: s.start_time,
+      duration_minutes: s.duration_minutes,
+      instructor_name: a.instructor_name,
+      location: s.location,
+    });
+    setModalOpen(true);
+  }
+
   function openConfirm(s: ScheduleWithDetails, day: WeekDay) {
     const a = s.activity!;
     setPrefill({
@@ -113,7 +152,16 @@ export default function AgendaPage() {
   const scheduledKeys = new Set<string>();
   const dayBlocks = week.map(day => {
     const occ = schedules
-      .filter(s => s.is_active && s.activity && scheduleOccursOn(s, day) && childMatch(s.activity.child_id))
+      .filter(s => {
+        if (!s.is_active || !s.activity) return false;
+        if (!scheduleOccursOn(s, day)) return false;
+        if (!childMatch(s.activity.child_id)) return false;
+        // Check if the occurrence date is within the activity's date range
+        const a = s.activity;
+        if (a.start_date && day.iso < a.start_date.slice(0, 10)) return false;
+        if (a.end_date && day.iso > a.end_date.slice(0, 10)) return false;
+        return true;
+      })
       .map(s => {
         const key = occurrenceKey(s.activity!.id, s.activity!.child_id, day.iso);
         scheduledKeys.add(key);
@@ -231,7 +279,7 @@ export default function AgendaPage() {
                                 <span className="text-sm font-medium text-[var(--text-primary)] truncate">{title}</span>
                               </div>
                               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                                {[a.activity_name ? a.institution : "", instructor, location].filter(Boolean).join(" · ")}
+                                {[a.institution || instructor, location].filter(Boolean).join(" · ")}
                               </p>
                             </div>
                             <div className="shrink-0 flex items-center gap-1">
@@ -247,9 +295,22 @@ export default function AgendaPage() {
                                   <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
                                 </button>
                               ) : (
-                                <Button size="sm" variant="secondary" onClick={() => openConfirm(s, day)}>
-                                  <Check size={14} /> Confirm
-                                </Button>
+                                <>
+                                  <button
+                                    onClick={() => quickAttend(s, day)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                                    title="Mark as attended"
+                                  >
+                                    <Check size={14} /> Attended
+                                  </button>
+                                  <button
+                                    onClick={() => openAbsentModal(s, day)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                                    title="Mark as absent"
+                                  >
+                                    <X size={14} /> Absent
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
