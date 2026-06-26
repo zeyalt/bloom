@@ -37,16 +37,16 @@ interface AttForm {
   absence_reason: string;
 }
 
+const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
+const LESSON_TYPE_OPTIONS = ["None", "Trial", "Replacement", "Grading Test", "Online", "Competition", "Normal", "Sparring"];
+const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
+
 const blankForm = (): AttForm => ({
   activity_id: "", child_id: "", date: "", status: "attended",
-  start_time: "", end_time: "", sent_by: "", sent_by_custom: "",
-  instructor_name: "", lesson_type: "", lesson_type_custom: "",
+  start_time: "", end_time: "", sent_by: "Zeya", sent_by_custom: "",
+  instructor_name: "", lesson_type: "Normal", lesson_type_custom: "",
   location: "", absence_reason: "",
 });
-
-const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
-const LESSON_TYPE_OPTIONS = ["Trial", "Replacement", "Grading Test", "Online", "Competition", "Normal", "Sparring"];
-const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 
 function fromPrefill(p?: AttendancePrefill): AttForm {
   const f = blankForm();
@@ -59,10 +59,10 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     status: p.status ?? "attended",
     start_time: p.start_time ?? "",
     end_time: p.end_time ?? "",
-    sent_by: p.sent_by ?? "",
+    sent_by: (p.sent_by && SENT_BY_OPTIONS.includes(p.sent_by)) ? p.sent_by : (p.sent_by ? p.sent_by : "Zeya"),
     sent_by_custom: (p.sent_by && !SENT_BY_OPTIONS.includes(p.sent_by)) ? p.sent_by : "",
     instructor_name: p.instructor_name ?? "",
-    lesson_type: p.lesson_type ?? "",
+    lesson_type: (p.lesson_type && LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : (p.lesson_type ? p.lesson_type : "Normal"),
     lesson_type_custom: (p.lesson_type && !LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : "",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
@@ -223,7 +223,6 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                 sent_by_custom: val === "custom" ? f.sent_by_custom : "",
               }));
             }} className={inputCls}>
-              <option value="">—</option>
               {SENT_BY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
               <option value="custom">Custom...</option>
             </select>
@@ -253,7 +252,6 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                 lesson_type_custom: val === "custom" ? f.lesson_type_custom : "",
               }));
             }} className={inputCls}>
-              <option value="">—</option>
               {LESSON_TYPE_OPTIONS.map(lt => <option key={lt} value={lt}>{lt}</option>)}
               <option value="custom">Custom...</option>
             </select>
