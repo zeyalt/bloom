@@ -36,6 +36,8 @@ export default function AgendaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [slotEdit, setSlotEdit] = useState<ScheduleWithDetails | null>(null);
+  const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
+  const [swipeTouchStartX, setSwipeTouchStartX] = useState(0);
 
   const range = getWeekRange(weekOffset);
   const week = getWeekDays(weekOffset);
@@ -143,6 +145,24 @@ export default function AgendaPage() {
   function openAdhoc() {
     setPrefill({ date: week.find(d => d.isToday)?.iso ?? week[0].iso, status: "attended" });
     setModalOpen(true);
+  }
+
+  function handleCardTouchStart(e: React.TouchEvent, cardId: string) {
+    setSwipeTouchStartX(e.touches[0].clientX);
+  }
+
+  function handleCardTouchMove(e: React.TouchEvent, cardId: string) {
+    if (swipeTouchStartX === 0) return;
+    const currentX = e.touches[0].clientX;
+    const diff = swipeTouchStartX - currentX;
+    // Swipe left detected (drag left ~50px)
+    if (diff > 50 && swipedCardId !== cardId) {
+      setSwipedCardId(cardId);
+    }
+  }
+
+  function handleCardTouchEnd() {
+    setSwipeTouchStartX(0);
   }
 
   // Build per-day items
@@ -263,53 +283,63 @@ export default function AgendaPage() {
                         const child = a.child;
                         const log = logsByKey.get(key);
                         const title = a.activity_name || a.institution;
-                        const instructor = log?.instructor_name ?? a.instructor_name;
-                        const location = log?.location ?? s.location;
+                        const isOpen = swipedCardId === s.id;
                         return (
-                          <div key={s.id} className="border border-[var(--border)] rounded-xl p-3 bg-white flex items-start gap-3">
-                            <div className="text-sm font-semibold text-[var(--text-primary)] w-16 shrink-0">
-                              {s.start_time ? formatTime(s.start_time) : "—"}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {child && <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={18} />}
-                                <span className="text-sm font-medium text-[var(--text-primary)] truncate">{title}</span>
+                          <div
+                            key={s.id}
+                            className="border border-[var(--border)] rounded-xl bg-white overflow-hidden cursor-pointer transition-all"
+                            onTouchStart={(e) => handleCardTouchStart(e, s.id)}
+                            onTouchMove={(e) => handleCardTouchMove(e, s.id)}
+                            onTouchEnd={handleCardTouchEnd}
+                            onClick={() => !isOpen && setSwipedCardId(null)}
+                          >
+                            {/* Main card content */}
+                            <div className={cn("p-3 flex items-start gap-3 transition-opacity", isOpen && "opacity-40")}>
+                              <div className="text-sm font-semibold text-[var(--text-primary)] w-16 shrink-0">
+                                {s.start_time ? formatTime(s.start_time) : "—"}
                               </div>
-                              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                                {[a.institution || instructor, location].filter(Boolean).join(" · ")}
-                              </p>
-                            </div>
-                            <div className="shrink-0 flex items-center gap-1">
-                              <button
-                                onClick={() => setSlotEdit(s)}
-                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                                title="Edit schedule slot"
-                              >
-                                <Pencil size={14} />
-                              </button>
-                              {log ? (
-                                <button onClick={() => openEditLog(log)} title="Edit attendance">
-                                  <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {child && <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={18} />}
+                                  <span className="text-sm font-medium text-[var(--text-primary)] truncate">{title}</span>
+                                </div>
+                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{a.institution}</p>
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSlotEdit(s); }}
+                                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                                  title="Edit schedule slot"
+                                >
+                                  <Pencil size={14} />
                                 </button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => quickAttend(s, day)}
-                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                                    title="Mark as attended"
-                                  >
-                                    <Check size={14} /> Attended
+                                {log && (
+                                  <button onClick={(e) => { e.stopPropagation(); openEditLog(log); }} title="Edit attendance">
+                                    <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
                                   </button>
-                                  <button
-                                    onClick={() => openAbsentModal(s, day)}
-                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                                    title="Mark as absent"
-                                  >
-                                    <X size={14} /> Absent
-                                  </button>
-                                </>
-                              )}
+                                )}
+                              </div>
                             </div>
+
+                            {/* Swipe reveal panel */}
+                            {!log && isOpen && (
+                              <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-3 flex gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); quickAttend(s, day); setSwipedCardId(null); }}
+                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                  title="Mark as attended"
+                                >
+                                  <Check size={14} /> Attended
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openAbsentModal(s, day); setSwipedCardId(null); }}
+                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                  title="Mark as absent"
+                                >
+                                  <X size={14} /> Absent
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
