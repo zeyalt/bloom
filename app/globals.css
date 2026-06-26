@@ -129,6 +129,21 @@ p, body {
   color: var(--bg-card);
 }
 
+/* Disable text selection on interactive elements and containers */
+button, [role="button"], .select-none,
+[class*="card"], [class*="modal"], [class*="tab"], .cursor-pointer {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Re-enable text selection on inputs and text areas */
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

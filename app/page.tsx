@@ -155,8 +155,9 @@ export default function AgendaPage() {
     if (swipeTouchStartX === 0) return;
     const currentX = e.touches[0].clientX;
     const diff = swipeTouchStartX - currentX;
-    // Swipe left detected (drag left ~50px)
-    if (diff > 50 && swipedCardId !== cardId) {
+    // Swipe left detected (drag left ~30px)
+    if (diff > 30 && swipedCardId !== cardId) {
+      e.preventDefault();
       setSwipedCardId(cardId);
     }
   }
@@ -287,7 +288,7 @@ export default function AgendaPage() {
                         return (
                           <div
                             key={s.id}
-                            className="border border-[var(--border)] rounded-xl bg-white overflow-hidden cursor-pointer transition-all"
+                            className="border border-[var(--border)] rounded-xl bg-white overflow-hidden cursor-pointer transition-all select-none"
                             onTouchStart={(e) => handleCardTouchStart(e, s.id)}
                             onTouchMove={(e) => handleCardTouchMove(e, s.id)}
                             onTouchEnd={handleCardTouchEnd}
