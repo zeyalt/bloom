@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CalendarDays,
+  Home,
   ClipboardList,
   Receipt,
   BarChart3,
@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Schedule", icon: CalendarDays },
+  { href: "/", label: "Home", icon: Home },
   { href: "/attendance", label: "Attendance", icon: ClipboardList },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },

@@ -41,23 +41,42 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API requests: network first, cache second
+  // API requests: cache first, update in background (stale-while-revalidate)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (!response || !response.ok) {
-            return response;
-          }
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+      caches.match(request).then((cachedResponse) => {
+        // Return cache immediately if available
+        if (cachedResponse) {
+          // Update cache in background
+          fetch(request).then((response) => {
+            if (response && response.ok) {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+          }).catch(() => {
+            // Network error during background update, that's ok
           });
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
+          return cachedResponse;
+        }
+
+        // No cache, fetch from network
+        return fetch(request)
+          .then((response) => {
+            if (!response || !response.ok) {
+              return response;
+            }
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+            return response;
+          })
+          .catch(() => {
+            return new Response('Offline', { status: 503 });
+          });
+      })
     );
     return;
   }

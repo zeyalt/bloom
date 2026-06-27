@@ -205,7 +205,7 @@ export default function AgendaPage() {
 
   return (
     <div className="max-w-[1000px] mx-auto w-full">
-      <Header title="Schedule" subtitle="Weekly agenda & attendance" />
+      <Header title="Home" subtitle="Track attendance & plan your week" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         {/* Week nav + add */}
