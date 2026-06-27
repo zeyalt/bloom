@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Download } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +11,7 @@ import { AttendanceModal, AttendancePrefill } from "@/components/attendance/Atte
 import { formatDate, cn } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
+import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
 
 interface LogWithDetails extends AttendanceLog {
@@ -18,34 +20,32 @@ interface LogWithDetails extends AttendanceLog {
 }
 
 export default function AttendancePage() {
-  const [logs, setLogs] = useState<LogWithDetails[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [children, setChildren] = useState<Child[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [filterChild, setFilterChild] = useState("");
   const [filterActivity, setFilterActivity] = useState("");
 
-  async function fetchAll() {
-    setLoading(true);
-    try {
-      const [logsRes, actsRes, childRes] = await Promise.all([
-        fetch(
-          `/api/attendance-logs?limit=200${filterChild ? `&child_id=${filterChild}` : ""}${filterActivity ? `&activity_id=${filterActivity}` : ""}`
-        ).then(r => r.json()),
-        fetch("/api/activities").then(r => r.json()),
-        fetch("/api/children").then(r => r.json()),
-      ]);
-      setLogs(logsRes.data || []);
-      setActivities(Array.isArray(actsRes) ? actsRes : []);
-      setChildren(Array.isArray(childRes) ? childRes : []);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Fetch data using React Query hooks
+  const { data: childrenData = [] } = useChildren();
+  const { data: activitiesData = [] } = useActivities();
+  const { data: logsData = [], isLoading } = useAttendanceLogs({
+    limit: 200,
+    childId: filterChild || undefined,
+    activityId: filterActivity || undefined,
+  });
 
-  useEffect(() => { fetchAll(); }, [filterChild, filterActivity]);
+  const children = childrenData;
+  const activities = activitiesData;
+  const logs = logsData;
+  const loading = isLoading;
+
+  async function fetchAll() {
+    // Invalidate queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
+    await queryClient.invalidateQueries({ queryKey: ["activities"] });
+    await queryClient.invalidateQueries({ queryKey: ["children"] });
+  }
 
   function openAdd() {
     setPrefill({ date: new Date().toISOString().split("T")[0], status: "attended" });

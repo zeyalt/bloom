@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, ChevronLeft, ChevronRight, Check, Pencil, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +12,7 @@ import { ScheduleSlotModal } from "@/components/schedule/ScheduleSlotModal";
 import { cn, formatTime } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
+import { useChildren, useSchedules, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { Schedule, Activity, ActivityCategory, Child, AttendanceLog } from "@/lib/types";
 
 interface ScheduleWithDetails extends Schedule {
@@ -26,11 +28,7 @@ function statusVariant(status: string): "success" | "danger" | "default" {
 }
 
 export default function AgendaPage() {
-  const [children, setChildren] = useState<Child[]>([]);
-  const [schedules, setSchedules] = useState<ScheduleWithDetails[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [logs, setLogs] = useState<LogWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedChild, setSelectedChild] = useState(""); // "" = all
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,25 +40,29 @@ export default function AgendaPage() {
   const range = getWeekRange(weekOffset);
   const week = getWeekDays(weekOffset);
 
-  async function fetchData() {
-    setLoading(true);
-    try {
-      const [childRes, schedRes, actRes, logRes] = await Promise.all([
-        fetch("/api/children").then(r => r.json()),
-        fetch("/api/schedules").then(r => r.json()),
-        fetch("/api/activities").then(r => r.json()),
-        fetch(`/api/attendance-logs?from=${range.from}&to=${range.to}&limit=500`).then(r => r.json()),
-      ]);
-      setChildren(Array.isArray(childRes) ? childRes : []);
-      setSchedules(Array.isArray(schedRes) ? schedRes : []);
-      setActivities(Array.isArray(actRes) ? actRes : []);
-      setLogs(logRes.data || []);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Fetch data using React Query hooks
+  const { data: childrenData = [] } = useChildren();
+  const { data: schedulesData = [] } = useSchedules();
+  const { data: activitiesData = [] } = useActivities();
+  const { data: logsData = [], isLoading } = useAttendanceLogs({
+    from: range.from,
+    to: range.to,
+    limit: 500,
+  });
 
-  useEffect(() => { fetchData(); }, [weekOffset]);
+  const children = childrenData;
+  const schedules = schedulesData;
+  const activities = activitiesData;
+  const logs = logsData;
+  const loading = isLoading;
+
+  async function fetchData() {
+    // Invalidate queries to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ["children"] });
+    await queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    await queryClient.invalidateQueries({ queryKey: ["activities"] });
+    await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
+  }
 
   // Index logs by occurrence key
   const logsByKey = new Map<string, LogWithDetails>();
