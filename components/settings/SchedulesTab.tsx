@@ -177,7 +177,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-secondary)]">{schedules.length} schedule slots</p>
-        <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Slot</Button>
+        <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Schedule</Button>
       </div>
 
       {/* Child filter pills */}
