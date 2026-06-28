@@ -96,7 +96,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Icon (emoji, optional)</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Icon (Emoji, Optional)</label>
             <input
               type="text"
               value={form.icon}

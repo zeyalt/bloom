@@ -149,7 +149,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Date of birth</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Date of Birth</label>
               <input
                 type="date"
                 value={form.date_of_birth}

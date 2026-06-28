@@ -215,11 +215,11 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start time</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time</label>
             <input type="time" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End time</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
             <input type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} className={inputCls} />
           </div>
         </div>
@@ -237,36 +237,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent by</label>
-            <select value={form.sent_by_custom ? "custom" : form.sent_by} onChange={e => {
-              const val = e.target.value;
-              setForm(f => ({
-                ...f,
-                sent_by: val === "custom" ? "" : val,
-                sent_by_custom: val === "custom" ? f.sent_by_custom : "",
-              }));
-            }} className={inputCls}>
-              {SENT_BY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              <option value="custom">Custom...</option>
-            </select>
-          </div>
-          {form.sent_by_custom || (form.sent_by && !SENT_BY_OPTIONS.includes(form.sent_by)) ? (
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Custom value</label>
-              <input
-                type="text"
-                value={form.sent_by_custom}
-                onChange={e => setForm(f => ({ ...f, sent_by_custom: e.target.value }))}
-                placeholder="Enter name"
-                className={inputCls}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson type</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
             <select value={form.lesson_type_custom ? "custom" : form.lesson_type} onChange={e => {
               const val = e.target.value;
               setForm(f => ({
@@ -279,23 +250,51 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
               <option value="custom">Custom...</option>
             </select>
           </div>
-          {form.lesson_type_custom || (form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type)) ? (
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Custom value</label>
-              <input
-                type="text"
-                value={form.lesson_type_custom}
-                onChange={e => setForm(f => ({ ...f, lesson_type_custom: e.target.value }))}
-                placeholder="Enter lesson type"
-                className={inputCls}
-              />
-            </div>
-          ) : null}
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By</label>
+            <select value={form.sent_by_custom ? "custom" : form.sent_by} onChange={e => {
+              const val = e.target.value;
+              setForm(f => ({
+                ...f,
+                sent_by: val === "custom" ? "" : val,
+                sent_by_custom: val === "custom" ? f.sent_by_custom : "",
+              }));
+            }} className={inputCls}>
+              {SENT_BY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
         </div>
+
+        {form.lesson_type_custom || (form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type)) ? (
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type (Custom)</label>
+            <input
+              type="text"
+              value={form.lesson_type_custom}
+              onChange={e => setForm(f => ({ ...f, lesson_type_custom: e.target.value }))}
+              placeholder="Enter lesson type"
+              className={inputCls}
+            />
+          </div>
+        ) : null}
+
+        {form.sent_by_custom || (form.sent_by && !SENT_BY_OPTIONS.includes(form.sent_by)) ? (
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By (Custom)</label>
+            <input
+              type="text"
+              value={form.sent_by_custom}
+              onChange={e => setForm(f => ({ ...f, sent_by_custom: e.target.value }))}
+              placeholder="Enter name"
+              className={inputCls}
+            />
+          </div>
+        ) : null}
 
         {form.status === "absent" && (
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Absence reason</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Absence Reason</label>
             <select value={form.absence_reason} onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))} className={inputCls}>
               <option value="">Select reason</option>
               {ABSENCE_REASON_OPTIONS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
