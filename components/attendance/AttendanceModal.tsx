@@ -86,6 +86,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [form, setForm] = useState<AttForm>(blankForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Reset form whenever the modal opens (with fresh prefill)
   useEffect(() => {
@@ -139,6 +140,28 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       setError((e as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteRecord() {
+    if (!prefill?.id) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/attendance-logs/${prefill.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const j = await res.json();
+        throw new Error(j.error || "Delete failed");
+      }
+      onSaved();
+      onClose();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -280,12 +303,28 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         )}
 
-        <div className="flex gap-2 pt-1">
-          <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button className="flex-1" onClick={save} loading={saving}>
-            {prefill?.id ? "Save changes" : "Save attendance"}
-          </Button>
-        </div>
+        {confirmDelete ? (
+          <div className="space-y-2 p-3 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-sm font-medium text-red-900">Delete this attendance record?</p>
+            <p className="text-xs text-red-700">This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <Button variant="secondary" className="flex-1 text-xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              <button onClick={deleteRecord} disabled={saving} className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors disabled:opacity-50">
+                {saving ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2 pt-1">
+            {prefill?.id && (
+              <button onClick={() => setConfirmDelete(true)} className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors">Delete</button>
+            )}
+            <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button className="flex-1" onClick={save} loading={saving}>
+              {prefill?.id ? "Save changes" : "Save attendance"}
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );

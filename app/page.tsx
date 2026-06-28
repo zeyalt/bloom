@@ -302,7 +302,7 @@ export default function AgendaPage() {
                             {!log && (
                               <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-3 flex gap-2">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); quickAttend(s, day); }}
+                                  onClick={(e) => { e.stopPropagation(); setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
                                   className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500 text-white active:scale-95 active:bg-green-600 hover:bg-green-600 transition-all duration-150"
                                   title="Mark as attended"
                                 >
