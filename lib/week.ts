@@ -54,7 +54,14 @@ export function scheduleOccursOn(schedule: RecurringLike, day: WeekDay): boolean
   return true;
 }
 
-// Stable key to match a scheduled occurrence against an existing attendance log
-export function occurrenceKey(activityId: string, childId: string, iso: string): string {
-  return `${activityId}|${childId}|${iso}`;
+// Stable key to match a scheduled occurrence against an existing attendance log.
+// startTime is included so multiple same-day slots for one activity (e.g. an
+// 11am and a 12pm class) stay distinct rather than collapsing into one.
+export function occurrenceKey(
+  activityId: string,
+  childId: string,
+  iso: string,
+  startTime?: string | null
+): string {
+  return `${activityId}|${childId}|${iso}|${startTime ?? ""}`;
 }

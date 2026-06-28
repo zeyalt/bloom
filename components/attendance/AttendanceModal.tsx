@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { SENDERS } from "@/lib/constants";
 import type { Activity, Child, AttendanceStatus } from "@/lib/types";
 
 export interface AttendancePrefill {
@@ -28,29 +27,36 @@ interface AttForm {
   status: AttendanceStatus;
   start_time: string;
   end_time: string;
-  sent_by: string;
-  sent_by_custom: string;
+  sent_by: string[];
   instructor_name: string;
   lesson_type: string;
-  lesson_type_custom: string;
   location: string;
   absence_reason: string;
 }
 
 const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
-const LESSON_TYPE_OPTIONS = ["None", "Trial", "Replacement", "Grading Test", "Online", "Competition", "Normal", "Sparring"];
+const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Grading Test", "Online", "Competition"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
+const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
+  { value: "attended", label: "Attended" },
+  { value: "absent", label: "Absent" },
+  { value: "cancelled_by_provider", label: "Cancelled" },
+];
+
+const parseSenders = (raw?: string | null): string[] =>
+  raw ? raw.split(",").map(s => s.trim()).filter(Boolean) : [];
 
 const blankForm = (): AttForm => ({
   activity_id: "", child_id: "", date: "", status: "attended",
-  start_time: "", end_time: "", sent_by: "Zeya", sent_by_custom: "",
-  instructor_name: "", lesson_type: "Normal", lesson_type_custom: "",
+  start_time: "", end_time: "", sent_by: ["Zeya"],
+  instructor_name: "", lesson_type: "Normal",
   location: "", absence_reason: "",
 });
 
 function fromPrefill(p?: AttendancePrefill): AttForm {
   const f = blankForm();
   if (!p) return f;
+  const senders = parseSenders(p.sent_by);
   return {
     ...f,
     activity_id: p.activity_id ?? "",
@@ -59,18 +65,15 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     status: p.status ?? "attended",
     start_time: p.start_time ?? "",
     end_time: p.end_time ?? "",
-    sent_by: (p.sent_by && SENT_BY_OPTIONS.includes(p.sent_by)) ? p.sent_by : (p.sent_by ? p.sent_by : "Zeya"),
-    sent_by_custom: (p.sent_by && !SENT_BY_OPTIONS.includes(p.sent_by)) ? p.sent_by : "",
+    sent_by: senders.length ? senders : f.sent_by,
     instructor_name: p.instructor_name ?? "",
-    lesson_type: (p.lesson_type && LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : (p.lesson_type ? p.lesson_type : "Normal"),
-    lesson_type_custom: (p.lesson_type && !LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : "",
+    lesson_type: (p.lesson_type && LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : "Normal",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
   };
 }
 
-const actLabel = (a: Activity) =>
-  [a.activity_name, a.institution].filter(Boolean).join(" · ") || "Activity";
+const actLabel = (a: Activity) => a.activity_name || a.institution || "Activity";
 
 interface Props {
   open: boolean;
@@ -87,12 +90,14 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [customSender, setCustomSender] = useState("");
 
   // Reset form whenever the modal opens (with fresh prefill)
   useEffect(() => {
     if (open) {
       setForm(fromPrefill(prefill));
       setError("");
+      setCustomSender("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -105,9 +110,6 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     setSaving(true);
     setError("");
     try {
-      const sentByValue = form.sent_by === "custom" ? form.sent_by_custom : form.sent_by;
-      const lessonTypeValue = form.lesson_type === "custom" ? form.lesson_type_custom : form.lesson_type;
-
       const payload = {
         activity_id: form.activity_id,
         child_id: form.child_id,
@@ -115,11 +117,14 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         status: form.status,
         start_time: form.start_time || null,
         end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
-        sent_by: sentByValue || null,
+        sent_by: form.sent_by.length ? form.sent_by.join(", ") : null,
         instructor_name: form.instructor_name || null,
-        lesson_type: lessonTypeValue || null,
+        lesson_type: form.lesson_type || null,
         location: form.location || null,
-        absence_reason: form.status === "absent" ? form.absence_reason || null : null,
+        // Same column stores the absence reason (absent) or cancellation reason (cancelled).
+        absence_reason: (form.status === "absent" || form.status === "cancelled_by_provider")
+          ? form.absence_reason || null
+          : null,
       };
       const editing = !!prefill?.id;
       const res = await fetch(
@@ -199,16 +204,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status *</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as AttendanceStatus }))} className={inputCls}>
-              <option value="attended">Attended</option>
-              <option value="absent">Absent</option>
-              <option value="replacement">Replacement</option>
-              <option value="trial">Trial</option>
-              <option value="grading">Grading</option>
-              <option value="online">Online</option>
-              <option value="sparring">Sparring</option>
-              <option value="competition">Competition</option>
-              <option value="cancelled_by_provider">Cancelled</option>
-              <option value="league_game">League Game</option>
+              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
         </div>
@@ -235,62 +231,58 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
-            <select value={form.lesson_type_custom ? "custom" : form.lesson_type} onChange={e => {
-              const val = e.target.value;
-              setForm(f => ({
-                ...f,
-                lesson_type: val === "custom" ? "" : val,
-                lesson_type_custom: val === "custom" ? f.lesson_type_custom : "",
-              }));
-            }} className={inputCls}>
-              {LESSON_TYPE_OPTIONS.map(lt => <option key={lt} value={lt}>{lt}</option>)}
-              <option value="custom">Custom...</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By</label>
-            <select value={form.sent_by_custom ? "custom" : form.sent_by} onChange={e => {
-              const val = e.target.value;
-              setForm(f => ({
-                ...f,
-                sent_by: val === "custom" ? "" : val,
-                sent_by_custom: val === "custom" ? f.sent_by_custom : "",
-              }));
-            }} className={inputCls}>
-              {SENT_BY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              <option value="custom">Custom...</option>
-            </select>
-          </div>
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
+          <select value={form.lesson_type} onChange={e => setForm(f => ({ ...f, lesson_type: e.target.value }))} className={inputCls}>
+            {LESSON_TYPE_OPTIONS.map(lt => <option key={lt} value={lt}>{lt}</option>)}
+          </select>
         </div>
 
-        {form.lesson_type_custom || (form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type)) ? (
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type (Custom)</label>
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By</label>
+          <div className="flex flex-wrap items-center gap-2">
+            {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
+              const active = form.sent_by.includes(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setForm(f => ({
+                    ...f,
+                    sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
+                  }))}
+                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                    active
+                      ? "bg-[var(--text-primary)] text-white border-transparent"
+                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
             <input
               type="text"
-              value={form.lesson_type_custom}
-              onChange={e => setForm(f => ({ ...f, lesson_type_custom: e.target.value }))}
-              placeholder="Enter lesson type"
-              className={inputCls}
+              value={customSender}
+              onChange={e => setCustomSender(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const v = customSender.trim();
+                  if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
+                  setCustomSender("");
+                }
+              }}
+              onBlur={() => {
+                const v = customSender.trim();
+                if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
+                setCustomSender("");
+              }}
+              placeholder="+ Add other"
+              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
             />
           </div>
-        ) : null}
-
-        {form.sent_by_custom || (form.sent_by && !SENT_BY_OPTIONS.includes(form.sent_by)) ? (
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By (Custom)</label>
-            <input
-              type="text"
-              value={form.sent_by_custom}
-              onChange={e => setForm(f => ({ ...f, sent_by_custom: e.target.value }))}
-              placeholder="Enter name"
-              className={inputCls}
-            />
-          </div>
-        ) : null}
+        </div>
 
         {form.status === "absent" && (
           <div>
@@ -299,6 +291,19 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
               <option value="">Select reason</option>
               {ABSENCE_REASON_OPTIONS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
             </select>
+          </div>
+        )}
+
+        {form.status === "cancelled_by_provider" && (
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Cancellation Reason</label>
+            <input
+              type="text"
+              value={form.absence_reason}
+              onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))}
+              placeholder="Enter cancellation reason"
+              className={inputCls}
+            />
           </div>
         )}
 
@@ -320,7 +325,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             )}
             <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {prefill?.id ? "Confirm" : "Save attendance"}
+              Confirm
             </Button>
           </div>
         )}

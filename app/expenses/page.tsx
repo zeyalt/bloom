@@ -436,7 +436,7 @@ export default function ExpensesPage() {
                 Cancel
               </Button>
               <Button className="flex-1" onClick={save} loading={saving}>
-                Add Expense
+                Confirm
               </Button>
             </div>
           </div>

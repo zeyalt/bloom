@@ -65,7 +65,7 @@ export default function AgendaPage() {
   // Index logs by occurrence key
   const logsByKey = new Map<string, LogWithDetails>();
   for (const log of logs) {
-    logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10)), log);
+    logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
   }
 
   const childMatch = (childId: string) => !selectedChild || childId === selectedChild;
@@ -162,7 +162,7 @@ export default function AgendaPage() {
         return true;
       })
       .map(s => {
-        const key = occurrenceKey(s.activity!.id, s.activity!.child_id, day.iso);
+        const key = occurrenceKey(s.activity!.id, s.activity!.child_id, day.iso, s.start_time);
         scheduledKeys.add(key);
         return { key, schedule: s };
       })
@@ -174,7 +174,7 @@ export default function AgendaPage() {
   const adhocByDay = new Map<string, LogWithDetails[]>();
   for (const log of logs) {
     const iso = log.date.slice(0, 10);
-    const key = occurrenceKey(log.activity_id, log.child_id, iso);
+    const key = occurrenceKey(log.activity_id, log.child_id, iso, log.start_time);
     if (scheduledKeys.has(key)) continue;
     if (!childMatch(log.child_id)) continue;
     const arr = adhocByDay.get(iso) ?? [];

@@ -433,7 +433,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {editing ? "Confirm" : `Add ${slots.filter(s => s.start_time).length || ""} slot${slots.filter(s => s.start_time).length === 1 ? "" : "s"}`.trim()}
+              Confirm
             </Button>
           </div>
         </div>

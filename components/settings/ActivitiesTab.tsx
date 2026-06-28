@@ -329,7 +329,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {editing ? "Confirm" : "Add activity"}
+              Confirm
             </Button>
           </div>
         </div>

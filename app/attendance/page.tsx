@@ -241,7 +241,7 @@ export default function AttendancePage() {
                     {visibleColumns.coach && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
                     {visibleColumns.lessonType && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
                     {visibleColumns.sentBy && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
-                    {visibleColumns.absenceReason && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.status === "absent" ? log.absence_reason || "—" : "—"}</td>}
+                    {visibleColumns.absenceReason && <td className="px-3 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
                       <td className="px-3 py-2 text-center">
                         <Badge

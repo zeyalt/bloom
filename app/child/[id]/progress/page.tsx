@@ -336,7 +336,7 @@ export default function ChildProgressPage({ params }: Props) {
                 Cancel
               </Button>
               <Button className="flex-1" onClick={save} loading={saving}>
-                Add Milestone
+                Confirm
               </Button>
             </div>
           </div>
