@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { ChildrenTab } from "@/components/settings/ChildrenTab";
 import { ActivitiesTab } from "@/components/settings/ActivitiesTab";
@@ -19,6 +20,7 @@ const TABS = [
 type Tab = typeof TABS[number]["key"];
 
 export default function SettingsPage() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("children");
   const [children, setChildren] = useState<Child[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -47,7 +49,13 @@ export default function SettingsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // Refresh after edits without unmounting the active tab (preserves filters/selection)
-  const silentRefresh = useCallback(() => fetchAll({ silent: true }), [fetchAll]);
+  const silentRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["children"] });
+    queryClient.invalidateQueries({ queryKey: ["activities"] });
+    queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+    fetchAll({ silent: true });
+  }, [queryClient, fetchAll]);
 
   const activeTabConfig = TABS.find(t => t.key === activeTab);
 

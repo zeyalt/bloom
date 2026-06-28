@@ -120,8 +120,8 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         activity_id: resolvedActivityId,
         day_of_week: s.day_of_week,
         start_time: s.start_time,
-        end_time: s.end_time || null,
-        location: s.location || null,
+        end_time: s.end_time && s.end_time.trim() ? s.end_time : null,
+        location: s.location && s.location.trim() ? s.location : null,
         is_active: isActive,
       });
 
@@ -433,7 +433,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {editing ? "Save changes" : `Add ${slots.filter(s => s.start_time).length || ""} slot${slots.filter(s => s.start_time).length === 1 ? "" : "s"}`.trim()}
+              {editing ? "Confirm" : `Add ${slots.filter(s => s.start_time).length || ""} slot${slots.filter(s => s.start_time).length === 1 ? "" : "s"}`.trim()}
             </Button>
           </div>
         </div>

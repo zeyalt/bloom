@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         childId: body.child_id || body.childId,
         date: new Date(body.date),
         startTime: body.start_time || body.startTime || null,
-        endTime: body.end_time || body.endTime || null,
+        endTime: body.end_time !== undefined ? body.end_time : (body.endTime || null),
         durationMinutes: body.duration_minutes ? parseInt(body.duration_minutes) : null,
         status: body.status,
         sentBy: body.sent_by || body.sentBy || null,

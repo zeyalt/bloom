@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const startTime = body.start_time || body.startTime;
-    const endTime = body.end_time || body.endTime || null;
+    const endTime = body.end_time !== undefined ? body.end_time : (body.endTime || null);
     const providedDuration = body.duration_minutes || body.durationMinutes;
     const schedule = await prisma.schedule.create({
       data: {

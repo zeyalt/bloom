@@ -69,8 +69,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   }
 
   async function save() {
-    if (!form.child_id || !form.category_id || !form.activity_name.trim()) {
-      setError("Child, category and activity are required.");
+    if (!form.child_id || !form.category_id || !form.activity_name.trim() || !form.instructor_name.trim() || !form.status || !form.start_date) {
+      setError("Child, category, activity, instructor, status, and start date are required.");
       return;
     }
     setSaving(true);
@@ -80,8 +80,8 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         ...form,
         activity_name: form.activity_name.trim(),
         institution: form.institution.trim(),
-        instructor_name: form.instructor_name || null,
-        start_date: form.start_date || null,
+        instructor_name: form.instructor_name.trim(),
+        start_date: form.start_date,
         end_date: form.end_date || null,
         notes: form.notes || null,
       };
@@ -284,7 +284,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Instructor</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Instructor *</label>
             <input
               type="text"
               value={form.instructor_name}
@@ -295,7 +295,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status *</label>
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
@@ -307,7 +307,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start date</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Date *</label>
               <input
                 type="date"
                 value={form.start_date}
@@ -316,7 +316,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End date</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Date</label>
               <input
                 type="date"
                 value={form.end_date}
@@ -329,7 +329,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {editing ? "Save changes" : "Add activity"}
+              {editing ? "Confirm" : "Add activity"}
             </Button>
           </div>
         </div>

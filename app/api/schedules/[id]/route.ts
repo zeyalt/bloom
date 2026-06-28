@@ -13,12 +13,12 @@ export async function PATCH(req: Request, { params }: Params) {
     const schedule = await prisma.schedule.update({
       where: { id },
       data: {
-        activityId: body.activity_id || body.activityId,
-        dayOfWeek: body.day_of_week || body.dayOfWeek,
+        activityId: body.activity_id !== undefined ? body.activity_id : body.activityId,
+        dayOfWeek: body.day_of_week !== undefined ? body.day_of_week : body.dayOfWeek,
         startTime: body.start_time || body.startTime,
-        endTime: body.end_time || body.endTime,
-        durationMinutes: body.duration_minutes || body.durationMinutes,
-        location: body.location,
+        endTime: body.end_time !== undefined ? body.end_time : body.endTime,
+        durationMinutes: body.duration_minutes !== undefined ? body.duration_minutes : body.durationMinutes,
+        location: body.location !== undefined ? body.location : undefined,
         isActive: body.is_active !== undefined ? body.is_active : body.isActive,
         effectiveFrom: body.effective_from ? new Date(body.effective_from) : undefined,
         effectiveUntil: body.effective_until ? new Date(body.effective_until) : undefined,

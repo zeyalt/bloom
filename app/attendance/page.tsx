@@ -156,8 +156,10 @@ export default function AttendancePage() {
                   <th className="px-3 py-2 text-left font-semibold">Institution</th>
                   <th className="px-3 py-2 text-left font-semibold">Level</th>
                   <th className="px-3 py-2 text-left font-semibold">Coach</th>
+                  <th className="px-3 py-2 text-left font-semibold">Location</th>
                   <th className="px-3 py-2 text-left font-semibold">Lesson Type</th>
                   <th className="px-3 py-2 text-left font-semibold">Sent By</th>
+                  <th className="px-3 py-2 text-left font-semibold">Absence Reason</th>
                   <th className="px-3 py-2 text-center font-semibold">Status</th>
                   <th className="px-3 py-2 text-center font-semibold">Action</th>
                 </tr>
@@ -174,8 +176,10 @@ export default function AttendancePage() {
                     <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>
                     <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>
                     <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.location || "—"}</td>
                     <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>
                     <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.status === "absent" ? log.absence_reason || "—" : "—"}</td>
                     <td className="px-3 py-2 text-center">
                       <Badge
                         label={ATTENDANCE_STATUS_LABELS[log.status]}

@@ -71,9 +71,9 @@ export function ScheduleSlotModal({ open, onClose, schedule, title, onSaved }: P
         body: JSON.stringify({
           day_of_week: form.day_of_week,
           start_time: form.start_time,
-          end_time: form.end_time || null,
+          end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
           duration_minutes: minutesBetween(form.start_time, form.end_time),
-          location: form.location || null,
+          location: form.location && form.location.trim() ? form.location : null,
           is_active: form.is_active,
         }),
       });
@@ -147,7 +147,7 @@ export function ScheduleSlotModal({ open, onClose, schedule, title, onSaved }: P
 
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button className="flex-1" onClick={save} loading={saving}>Save changes</Button>
+          <Button className="flex-1" onClick={save} loading={saving}>Confirm</Button>
         </div>
       </div>
     </Modal>

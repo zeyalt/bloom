@@ -20,6 +20,8 @@ export function useSchedules() {
       if (!res.ok) throw new Error("Failed to fetch schedules");
       return res.json() as Promise<Schedule[]>;
     },
+    staleTime: 5 * 60 * 1000,   // 5 minutes
+    gcTime: 30 * 60 * 1000,      // 30 minutes (formerly cacheTime)
   });
 }
 

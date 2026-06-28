@@ -127,7 +127,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
 
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button className="flex-1" onClick={save} loading={saving}>{editing ? "Save changes" : "Add category"}</Button>
+            <Button className="flex-1" onClick={save} loading={saving}>{editing ? "Confirm" : "Add category"}</Button>
           </div>
         </div>
       </Modal>

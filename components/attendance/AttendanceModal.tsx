@@ -114,7 +114,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         date: form.date,
         status: form.status,
         start_time: form.start_time || null,
-        end_time: form.end_time || null,
+        end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
         sent_by: sentByValue || null,
         instructor_name: form.instructor_name || null,
         lesson_type: lessonTypeValue || null,
@@ -320,7 +320,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             )}
             <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>
-              {prefill?.id ? "Save changes" : "Save attendance"}
+              {prefill?.id ? "Confirm" : "Save attendance"}
             </Button>
           </div>
         )}

@@ -43,8 +43,8 @@ export async function POST(req: Request) {
         institution: body.institution,
         instructorName: body.instructor_name || body.instructorName,
         status: body.status || "active",
-        startDate: body.start_date || body.startDate ? new Date(body.start_date || body.startDate) : null,
-        endDate: body.end_date || body.endDate ? new Date(body.end_date || body.endDate) : null,
+        startDate: body.start_date ? new Date(body.start_date) : (body.startDate ? new Date(body.startDate) : null),
+        endDate: body.end_date ? new Date(body.end_date) : (body.endDate ? new Date(body.endDate) : null),
         notes: body.notes,
       },
       include: {

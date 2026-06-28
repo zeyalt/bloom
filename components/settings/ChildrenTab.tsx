@@ -169,7 +169,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
           <div className="flex gap-2 pt-1">
             <Button variant="secondary" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button className="flex-1" onClick={save} loading={saving}>Save changes</Button>
+            <Button className="flex-1" onClick={save} loading={saving}>Confirm</Button>
           </div>
         </div>
       </Modal>
