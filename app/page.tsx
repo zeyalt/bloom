@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, Pencil, X } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -34,8 +34,6 @@ export default function AgendaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [slotEdit, setSlotEdit] = useState<ScheduleWithDetails | null>(null);
-  const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
-  const [swipeTouchStartX, setSwipeTouchStartX] = useState(0);
 
   const range = getWeekRange(weekOffset);
   const week = getWeekDays(weekOffset);
@@ -149,25 +147,6 @@ export default function AgendaPage() {
     setModalOpen(true);
   }
 
-  function handleCardTouchStart(e: React.TouchEvent, cardId: string) {
-    setSwipeTouchStartX(e.touches[0].clientX);
-  }
-
-  function handleCardTouchMove(e: React.TouchEvent, cardId: string) {
-    if (swipeTouchStartX === 0) return;
-    const currentX = e.touches[0].clientX;
-    const diff = swipeTouchStartX - currentX;
-    // Swipe left detected (drag left ~30px)
-    if (diff > 30 && swipedCardId !== cardId) {
-      e.preventDefault();
-      setSwipedCardId(cardId);
-    }
-  }
-
-  function handleCardTouchEnd() {
-    setSwipeTouchStartX(0);
-  }
-
   // Build per-day items
   const scheduledKeys = new Set<string>();
   const dayBlocks = week.map(day => {
@@ -261,24 +240,32 @@ export default function AgendaPage() {
             {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-[var(--bg-secondary)] rounded-xl animate-pulse" />)}
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {dayBlocks.map(({ day, occ }) => {
               const adhoc = adhocByDay.get(day.iso) ?? [];
               const hasItems = occ.length > 0 || adhoc.length > 0;
               return (
                 <div key={day.iso}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h2 className={cn("text-sm font-bold uppercase tracking-wide", day.isToday ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]")}>
-                      {day.fullLabel}
-                    </h2>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {day.date.toLocaleDateString("en-SG", { day: "numeric", month: "short" })}
-                      {day.isToday && " · Today"}
-                    </span>
+                  <div className="pb-3">
+                    <div className="flex items-baseline gap-3">
+                      <h2 className={cn("font-bold uppercase tracking-wider", day.isToday ? "text-lg text-[var(--accent-primary)]" : "text-base text-[var(--text-primary)]")}>
+                        {day.fullLabel}
+                      </h2>
+                      <span className={cn("text-sm", day.isToday ? "text-[var(--accent-primary)] font-semibold" : "text-[var(--text-muted)]")}>
+                        {day.date.toLocaleDateString("en-SG", { day: "numeric", month: "short" })}
+                      </span>
+                      {day.isToday && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--accent-primary)] text-white">
+                          Today
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {!hasItems ? (
-                    <p className="text-xs text-[var(--text-muted)] pl-0.5">No sessions</p>
+                    <div className="text-center py-8">
+                      <p className="text-sm text-[var(--text-muted)]">No activities scheduled</p>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {occ.map(({ key, schedule: s }) => {
@@ -286,57 +273,44 @@ export default function AgendaPage() {
                         const child = a.child;
                         const log = logsByKey.get(key);
                         const title = a.activity_name || a.institution;
-                        const isOpen = swipedCardId === s.id;
                         return (
                           <div
                             key={s.id}
-                            className="border border-[var(--border)] rounded-xl bg-white overflow-hidden cursor-pointer transition-all select-none"
-                            onTouchStart={(e) => handleCardTouchStart(e, s.id)}
-                            onTouchMove={(e) => handleCardTouchMove(e, s.id)}
-                            onTouchEnd={handleCardTouchEnd}
-                            onClick={() => !isOpen && setSwipedCardId(null)}
+                            className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md"
                           >
                             {/* Main card content */}
-                            <div className={cn("p-3 flex items-start gap-3 transition-opacity", isOpen && "opacity-40")}>
-                              <div className="text-sm font-semibold text-[var(--text-primary)] w-16 shrink-0">
-                                {s.start_time ? formatTime(s.start_time) : "—"}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {child && <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={18} />}
-                                  <span className="text-sm font-medium text-[var(--text-primary)] truncate">{title}</span>
+                            <div className="p-4">
+                              <div className="flex items-center gap-3 justify-between">
+                                <div className="flex items-center gap-4 min-w-0 flex-1">
+                                  <div className="text-lg font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                                    {s.start_time ? formatTime(s.start_time) : "—"}
+                                  </div>
+                                  <span className="text-base font-semibold text-[var(--text-primary)]">
+                                    {title}
+                                    {(a.institution || a.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a.institution || a.instructor_name}</span>}
+                                  </span>
                                 </div>
-                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{a.institution}</p>
-                              </div>
-                              <div className="shrink-0 flex items-center gap-1">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSlotEdit(s); }}
-                                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                                  title="Edit schedule slot"
-                                >
-                                  <Pencil size={14} />
-                                </button>
                                 {log && (
-                                  <button onClick={(e) => { e.stopPropagation(); openEditLog(log); }} title="Edit attendance">
-                                    <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
-                                  </button>
+                                  <span className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-black text-white">
+                                    <Check size={14} /> Updated
+                                  </span>
                                 )}
                               </div>
                             </div>
 
-                            {/* Swipe reveal panel */}
-                            {!log && isOpen && (
+                            {/* Action buttons */}
+                            {!log && (
                               <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-3 flex gap-2">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); quickAttend(s, day); setSwipedCardId(null); }}
-                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                  onClick={(e) => { e.stopPropagation(); quickAttend(s, day); }}
+                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500 text-white active:scale-95 active:bg-green-600 hover:bg-green-600 transition-all duration-150"
                                   title="Mark as attended"
                                 >
                                   <Check size={14} /> Attended
                                 </button>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); openAbsentModal(s, day); setSwipedCardId(null); }}
-                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                  onClick={(e) => { e.stopPropagation(); openAbsentModal(s, day); }}
+                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-500 text-white active:scale-95 active:bg-red-600 hover:bg-red-600 transition-all duration-150"
                                   title="Mark as absent"
                                 >
                                   <X size={14} /> Absent
@@ -350,23 +324,26 @@ export default function AgendaPage() {
                       {adhoc.map(log => {
                         const title = log.activity?.activity_name || log.activity?.institution || "Activity";
                         return (
-                          <div key={log.id} className="border border-[var(--border)] rounded-xl p-3 bg-white flex items-start gap-3">
-                            <div className="text-sm font-semibold text-[var(--text-primary)] w-16 shrink-0">
-                              {log.start_time ? formatTime(log.start_time) : "—"}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {log.child && <Avatar avatarKey={log.child.avatar_key} fallbackEmoji={log.child.avatar_emoji} size={18} />}
-                                <span className="text-sm font-medium text-[var(--text-primary)] truncate">{title}</span>
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">Ad-hoc</span>
+                          <div key={log.id} className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md">
+                            <div className="p-4">
+                              <div className="flex items-center gap-3 justify-between">
+                                <div className="flex items-center gap-4 min-w-0 flex-1">
+                                  <div className="text-lg font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                                    {log.start_time ? formatTime(log.start_time) : "—"}
+                                  </div>
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-base font-semibold text-[var(--text-primary)]">{title}</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-white bg-[var(--text-primary)] px-2 py-0.5 rounded-full shrink-0">Ad-hoc</span>
+                                  </div>
+                                </div>
+                                <button className="shrink-0" onClick={() => openEditLog(log)} title="Edit attendance">
+                                  <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
+                                </button>
                               </div>
-                              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                              <p className="text-sm text-[var(--text-secondary)] ml-20">
                                 {[log.instructor_name, log.location].filter(Boolean).join(" · ")}
                               </p>
                             </div>
-                            <button className="shrink-0" onClick={() => openEditLog(log)} title="Edit attendance">
-                              <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
-                            </button>
                           </div>
                         );
                       })}

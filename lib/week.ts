@@ -10,12 +10,12 @@ export interface WeekDay {
   isToday: boolean;
 }
 
-// Mon–Sun dates for the week `offset` weeks from the current week (0 = this week)
+// Sun–Sat dates for the week `offset` weeks from the current week (0 = this week)
 export function getWeekDays(offset: number): WeekDay[] {
-  const monday = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), offset);
+  const sunday = addWeeks(startOfWeek(new Date(), { weekStartsOn: 0 }), offset);
   const todayIso = format(new Date(), "yyyy-MM-dd");
   return Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(monday, i);
+    const date = addDays(sunday, i);
     const dayOfWeek = date.getDay();
     const meta = DAYS_OF_WEEK.find(d => d.value === dayOfWeek);
     const iso = format(date, "yyyy-MM-dd");
