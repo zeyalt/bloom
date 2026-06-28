@@ -9,6 +9,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const log = await prisma.attendanceLog.update({
       where: { id },
       data: {
+        // Prisma in this project rejects scalar FK writes (activityId/childId)
+        // on update — must go through the relation with connect.
+        activity: body.activity_id ? { connect: { id: body.activity_id } } : undefined,
+        child: body.child_id ? { connect: { id: body.child_id } } : undefined,
+        date: body.date ? new Date(body.date) : undefined,
         status: body.status ?? undefined,
         startTime: body.start_time !== undefined ? body.start_time : undefined,
         endTime: body.end_time !== undefined ? body.end_time : undefined,
@@ -29,6 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
     return NextResponse.json(serialize(log));
   } catch (err) {
+    console.error("PATCH attendance-log failed:", err);
     return NextResponse.json(
       { error: "Failed to update attendance log" },
       { status: 500 }

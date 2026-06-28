@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Download, Pencil } from "lucide-react";
+import { Plus, Download, Pencil, Settings } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, formatTime, cn } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
-import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
-import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
+import { useChildren, useActivities, useAttendanceLogs, useSchedules } from "@/lib/api-hooks";
+import type { AttendanceLog, Activity, ActivityCategory, Child, Schedule } from "@/lib/types";
 
 interface LogWithDetails extends AttendanceLog {
   activity?: Activity & { category?: ActivityCategory };
@@ -25,10 +25,23 @@ export default function AttendancePage() {
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [filterChild, setFilterChild] = useState("");
   const [filterActivity, setFilterActivity] = useState("");
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    dateTime: true,
+    activity: true,
+    institution: true,
+    level: true,
+    coach: true,
+    lessonType: true,
+    sentBy: true,
+    absenceReason: true,
+    status: true,
+  });
 
   // Fetch data using React Query hooks
   const { data: childrenData = [] } = useChildren();
   const { data: activitiesData = [] } = useActivities();
+  const { data: schedulesData = [] } = useSchedules();
   const { data: logsData = [], isLoading } = useAttendanceLogs({
     limit: 200,
     childId: filterChild || undefined,
@@ -37,8 +50,20 @@ export default function AttendancePage() {
 
   const children = childrenData;
   const activities = activitiesData;
+  const schedules = schedulesData;
   const logs = logsData;
   const loading = isLoading;
+
+  // Find the recurring schedule that matches a log's activity + weekday,
+  // used to back-fill start/end time and location for older records.
+  function matchingSchedule(log: LogWithDetails): Schedule | undefined {
+    const iso = log.date.slice(0, 10);
+    const [y, m, d] = iso.split("-").map(Number);
+    const dayOfWeek = new Date(y, m - 1, d).getDay();
+    return schedules.find(
+      s => s.activity_id === log.activity_id && s.day_of_week === dayOfWeek
+    );
+  }
 
   async function fetchAll() {
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
@@ -52,18 +77,21 @@ export default function AttendancePage() {
   }
 
   function openEdit(log: LogWithDetails) {
+    // Back-fill time/location from the recurring schedule when the log itself
+    // is missing them (e.g. older records saved before end_time persisted).
+    const sched = matchingSchedule(log);
     setPrefill({
       id: log.id,
       activity_id: log.activity_id,
       child_id: log.child_id,
       date: log.date.slice(0, 10),
       status: log.status,
-      start_time: log.start_time,
-      end_time: log.end_time,
+      start_time: log.start_time ?? sched?.start_time ?? null,
+      end_time: log.end_time ?? sched?.end_time ?? null,
       sent_by: log.sent_by,
       instructor_name: log.instructor_name,
       lesson_type: log.lesson_type,
-      location: log.location,
+      location: log.location ?? sched?.location ?? null,
       absence_reason: log.absence_reason,
     });
     setModalOpen(true);
@@ -110,6 +138,9 @@ export default function AttendancePage() {
             })}
           </div>
           <div className="flex gap-1.5 shrink-0">
+            <button onClick={() => setShowColumnPicker(!showColumnPicker)} className="p-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Customize columns">
+              <Settings size={16} />
+            </button>
             <Button variant="secondary" size="sm" onClick={() => exportAttendanceCSV(filteredLogs, `attendance-${new Date().toISOString().split('T')[0]}.csv`)}>
               <Download size={14} /> Export
             </Button>
@@ -118,6 +149,36 @@ export default function AttendancePage() {
             </Button>
           </div>
         </div>
+
+        {/* Column picker */}
+        {showColumnPicker && (
+          <div className="mb-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase mb-3">Visible Columns</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[
+                { key: "dateTime", label: "Date & Time" },
+                { key: "activity", label: "Activity" },
+                { key: "institution", label: "Institution" },
+                { key: "level", label: "Level" },
+                { key: "coach", label: "Coach" },
+                { key: "lessonType", label: "Lesson Type" },
+                { key: "sentBy", label: "Sent By" },
+                { key: "absenceReason", label: "Absence Reason" },
+                { key: "status", label: "Status" },
+              ].map(col => (
+                <label key={col.key} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns[col.key as keyof typeof visibleColumns]}
+                    onChange={e => setVisibleColumns(v => ({ ...v, [col.key]: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <span className="text-xs text-[var(--text-primary)]">{col.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Activity filter dropdown (secondary) */}
         <div className="mb-6">
@@ -150,17 +211,15 @@ export default function AttendancePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
-                  <th className="px-3 py-2 text-left font-semibold">Date</th>
-                  <th className="px-3 py-2 text-left font-semibold">Time</th>
-                  <th className="px-3 py-2 text-left font-semibold">Activity</th>
-                  <th className="px-3 py-2 text-left font-semibold">Institution</th>
-                  <th className="px-3 py-2 text-left font-semibold">Level</th>
-                  <th className="px-3 py-2 text-left font-semibold">Coach</th>
-                  <th className="px-3 py-2 text-left font-semibold">Location</th>
-                  <th className="px-3 py-2 text-left font-semibold">Lesson Type</th>
-                  <th className="px-3 py-2 text-left font-semibold">Sent By</th>
-                  <th className="px-3 py-2 text-left font-semibold">Absence Reason</th>
-                  <th className="px-3 py-2 text-center font-semibold">Status</th>
+                  {visibleColumns.dateTime && <th className="px-3 py-2 text-left font-semibold min-w-[110px]">Date & Time</th>}
+                  {visibleColumns.activity && <th className="px-3 py-2 text-left font-semibold">Activity</th>}
+                  {visibleColumns.institution && <th className="px-3 py-2 text-left font-semibold">Institution</th>}
+                  {visibleColumns.level && <th className="px-3 py-2 text-left font-semibold">Level</th>}
+                  {visibleColumns.coach && <th className="px-3 py-2 text-left font-semibold">Coach</th>}
+                  {visibleColumns.lessonType && <th className="px-3 py-2 text-left font-semibold">Lesson Type</th>}
+                  {visibleColumns.sentBy && <th className="px-3 py-2 text-left font-semibold">Sent By</th>}
+                  {visibleColumns.absenceReason && <th className="px-3 py-2 text-left font-semibold">Absence Reason</th>}
+                  {visibleColumns.status && <th className="px-3 py-2 text-center font-semibold">Status</th>}
                   <th className="px-3 py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
@@ -170,22 +229,27 @@ export default function AttendancePage() {
                     key={log.id}
                     className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
-                    <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(log.date)}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{log.start_time || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.location || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.status === "absent" ? log.absence_reason || "—" : "—"}</td>
-                    <td className="px-3 py-2 text-center">
-                      <Badge
-                        label={ATTENDANCE_STATUS_LABELS[log.status]}
-                        variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
-                      />
-                    </td>
+                    {visibleColumns.dateTime && (
+                      <td className="px-3 py-2 text-[var(--text-secondary)] min-w-[110px]">
+                        <div>{formatDate(log.date)}</div>
+                        {log.start_time && <div className="text-xs text-[var(--text-muted)]">{formatTime(log.start_time)}</div>}
+                      </td>
+                    )}
+                    {visibleColumns.activity && <td className="px-3 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>}
+                    {visibleColumns.institution && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
+                    {visibleColumns.level && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>}
+                    {visibleColumns.coach && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
+                    {visibleColumns.lessonType && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
+                    {visibleColumns.sentBy && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
+                    {visibleColumns.absenceReason && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.status === "absent" ? log.absence_reason || "—" : "—"}</td>}
+                    {visibleColumns.status && (
+                      <td className="px-3 py-2 text-center">
+                        <Badge
+                          label={ATTENDANCE_STATUS_LABELS[log.status]}
+                          variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
+                        />
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-center">
                       <button
                         onClick={() => openEdit(log)}

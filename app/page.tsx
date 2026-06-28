@@ -282,7 +282,7 @@ export default function AgendaPage() {
                             <div className="p-4">
                               <div className="flex items-center gap-3 justify-between">
                                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                                  <div className="text-lg font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
                                     {s.start_time ? formatTime(s.start_time) : "—"}
                                   </div>
                                   <span className="text-base font-semibold text-[var(--text-primary)]">
@@ -291,8 +291,8 @@ export default function AgendaPage() {
                                   </span>
                                 </div>
                                 {log && (
-                                  <span className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-black text-white">
-                                    <Check size={14} /> Updated
+                                  <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
+                                    <Check size={12} /> Updated
                                   </span>
                                 )}
                               </div>
@@ -328,7 +328,7 @@ export default function AgendaPage() {
                             <div className="p-4">
                               <div className="flex items-center gap-3 justify-between">
                                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                                  <div className="text-lg font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
                                     {log.start_time ? formatTime(log.start_time) : "—"}
                                   </div>
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
