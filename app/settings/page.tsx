@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import type { Child, Activity, Schedule, ActivityCategory } from "@/lib/types";
 
 const TABS = [
-  { key: "children",   label: "Children"   },
-  { key: "activities", label: "Activities" },
-  { key: "schedules",  label: "Schedules"  },
-  { key: "categories", label: "Categories" },
+  { key: "children",   label: "Children",   subtitle: "Manage profiles and milestones" },
+  { key: "activities", label: "Activities", subtitle: "Track interests and learning goals" },
+  { key: "schedules",  label: "Schedules",  subtitle: "Set weekly routines and lessons" },
+  { key: "categories", label: "Categories", subtitle: "Organize by activity type" },
 ] as const;
 
 type Tab = typeof TABS[number]["key"];
@@ -49,9 +49,11 @@ export default function SettingsPage() {
   // Refresh after edits without unmounting the active tab (preserves filters/selection)
   const silentRefresh = useCallback(() => fetchAll({ silent: true }), [fetchAll]);
 
+  const activeTabConfig = TABS.find(t => t.key === activeTab);
+
   return (
     <div className="max-w-[860px] mx-auto w-full">
-      <Header title="Settings" subtitle="Manage children, activities and schedules" />
+      <Header title="Settings" subtitle={activeTabConfig?.subtitle || "Manage settings"} />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
         {/* Tab bar — tabs share width so they fit without scrolling */}

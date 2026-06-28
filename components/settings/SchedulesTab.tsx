@@ -216,6 +216,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
       {byActivity.map(({ activity: act, schedules: slots }) => {
         const child = act.child as Child | undefined;
+        const category = act.category as ActivityCategory | undefined;
         const title = act.activity_name || act.institution;
         const inst = (act.institution ?? "").trim();
         const isBlankInst = inst === "" || inst.toLowerCase() === "freelance";
@@ -224,16 +225,22 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         return (
           <div key={act.id} className="mb-4 border border-[var(--border)] rounded-xl overflow-hidden">
             {/* Activity header */}
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)]">
-              {child && (
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />
-              )}
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] flex-wrap">
               <span className="text-sm font-medium text-[var(--text-primary)]">{title}</span>
               {secondary && (
                 <span className="text-xs text-[var(--text-muted)]">· {secondary}</span>
               )}
               {act.status !== "active" && (
                 <Badge label={act.status} variant="muted" />
+              )}
+              {category && (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
+                >
+                  {category.icon && <span className="mr-1">{category.icon}</span>}
+                  {category.name}
+                </span>
               )}
             </div>
 
@@ -274,7 +281,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       )}
 
       {/* Add/Edit modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule Slots"}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule"}>
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
@@ -320,6 +327,34 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             </select>
           </div>
 
+          {/* Level */}
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
+            <input
+              type="text"
+              placeholder="e.g. U10"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+            />
+          </div>
+
+          {/* Start Date and End Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Date</label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Date</label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
+            </div>
+          </div>
+
           {/* Slot rows */}
           <div className="space-y-3">
             {slots.map((slot, i) => (
@@ -355,7 +390,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start time *</label>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time *</label>
                     <input
                       type="time"
                       value={slot.start_time}
@@ -364,7 +399,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End time</label>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
                     <input
                       type="time"
                       value={slot.end_time}

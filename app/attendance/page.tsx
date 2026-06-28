@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Pencil } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -41,7 +41,6 @@ export default function AttendancePage() {
   const loading = isLoading;
 
   async function fetchAll() {
-    // Invalidate queries to refetch fresh data
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
     await queryClient.invalidateQueries({ queryKey: ["activities"] });
     await queryClient.invalidateQueries({ queryKey: ["children"] });
@@ -76,7 +75,7 @@ export default function AttendancePage() {
     : logs.filter(l => filterActivity ? l.activity_id === filterActivity : true);
 
   return (
-    <div className="max-w-[1200px] mx-auto w-full">
+    <div className="max-w-[1400px] mx-auto w-full">
       <Header title="Attendance" subtitle="All sessions logged" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
@@ -137,54 +136,65 @@ export default function AttendancePage() {
           </select>
         </div>
 
-        {/* Logs list */}
+        {/* Table */}
         {loading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />)}
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="text-center py-12 text-[var(--text-muted)]">
             <p className="text-sm">No attendance records</p>
           </div>
         ) : (
-          <div className="space-y-2 pb-8">
-            {filteredLogs.map(log => (
-              <button
-                key={log.id}
-                onClick={() => openEdit(log)}
-                className="w-full text-left border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-card)] hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-[var(--text-primary)]">{formatDate(log.date)}</span>
-                      {log.child && (
-                        <span className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
-                          <Avatar avatarKey={log.child.avatar_key} fallbackEmoji={log.child.avatar_emoji} size={18} />
-                          {log.child.name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-[var(--text-secondary)] mt-1">
-                      {[log.activity?.activity_name, log.activity?.institution].filter(Boolean).join(" · ")}
-                    </div>
-                    <div className="text-xs text-[var(--text-muted)] mt-0.5 space-x-2">
-                      {log.start_time && <span>{log.start_time}</span>}
-                      {log.end_time && <span>· {log.end_time}</span>}
-                      {log.instructor_name && <span>· {log.instructor_name}</span>}
-                      {log.lesson_type && <span>· {log.lesson_type}</span>}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge
-                      label={ATTENDANCE_STATUS_LABELS[log.status]}
-                      variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
-                    />
-                  </div>
-                </div>
-              </button>
-            ))}
+          <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
+                  <th className="px-3 py-2 text-left font-semibold">Date</th>
+                  <th className="px-3 py-2 text-left font-semibold">Time</th>
+                  <th className="px-3 py-2 text-left font-semibold">Activity</th>
+                  <th className="px-3 py-2 text-left font-semibold">Institution</th>
+                  <th className="px-3 py-2 text-left font-semibold">Level</th>
+                  <th className="px-3 py-2 text-left font-semibold">Coach</th>
+                  <th className="px-3 py-2 text-left font-semibold">Lesson Type</th>
+                  <th className="px-3 py-2 text-left font-semibold">Sent By</th>
+                  <th className="px-3 py-2 text-center font-semibold">Status</th>
+                  <th className="px-3 py-2 text-center font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.map(log => (
+                  <tr
+                    key={log.id}
+                    className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(log.date)}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{log.start_time || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>
+                    <td className="px-3 py-2 text-center">
+                      <Badge
+                        label={ATTENDANCE_STATUS_LABELS[log.status]}
+                        variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => openEdit(log)}
+                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                        title="Edit attendance"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Archive, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -105,15 +105,6 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
     }
   }
 
-  async function archive(a: Activity) {
-    await fetch(`/api/activities/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "completed" }),
-    });
-    onRefresh();
-  }
-
   async function deleteActivity(a: Activity) {
     await fetch(`/api/activities/${a.id}`, { method: "DELETE" });
     setConfirmDelete(null);
@@ -123,25 +114,20 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   function renderRow(a: Activity) {
     const category = a.category as ActivityCategory | undefined;
     const dateText = a.start_date
-      ? a.status === "active"
-        ? `since ${formatDate(a.start_date)}`
-        : `${formatDate(a.start_date)}${a.end_date ? ` – ${formatDate(a.end_date)}` : ""}`
+      ? a.end_date
+        ? `${formatDate(a.start_date)} – ${formatDate(a.end_date)}`
+        : `Since ${formatDate(a.start_date)}`
       : "";
     const title = a.activity_name || a.institution;
     const meta = [
       a.activity_name && a.institution ? a.institution : "",
       a.instructor_name,
-      dateText,
     ].filter(Boolean).join(" · ");
     return (
-      <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-        <span
-          className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: category?.color_code ?? "#ccc" }}
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+      <div key={a.id} className="px-4 py-3">
+        <div className="flex items-start justify-between gap-3 mb-1.5">
+          <div className="flex items-center gap-2 flex-wrap flex-1">
+            <span className="text-sm font-medium text-[var(--text-primary)]">
               {title}
             </span>
             <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />
@@ -155,35 +141,29 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               </span>
             )}
           </div>
-          {meta && (
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{meta}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => openEdit(a)}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Edit"
-          >
-            <Pencil size={14} />
-          </button>
-          {a.status === "active" && (
+          <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => archive(a)}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-amber-600 transition-colors"
-              title="Archive (mark completed)"
+              onClick={() => openEdit(a)}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              title="Edit"
             >
-              <Archive size={14} />
+              <Pencil size={14} />
             </button>
-          )}
-          <button
-            onClick={() => setConfirmDelete(a)}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
-            title="Delete"
-          >
-            <Trash2 size={14} />
-          </button>
+            <button
+              onClick={() => setConfirmDelete(a)}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+              title="Delete"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
+        {meta && (
+          <p className="text-xs text-[var(--text-secondary)]">{meta}</p>
+        )}
+        {dateText && (
+          <p className="text-xs text-[var(--text-muted)]">{dateText}</p>
+        )}
       </div>
     );
   }
