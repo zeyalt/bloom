@@ -35,7 +35,7 @@ interface AttForm {
 }
 
 const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
-const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Grading Test", "Online", "Competition"];
+const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online", "Sparring"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
   { value: "attended", label: "Attended" },
@@ -172,7 +172,12 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     }
   }
 
-  const childActivities = activities.filter(a => !form.child_id || a.child_id === form.child_id);
+  // Match the Settings → Activities list: active activities only, filtered by
+  // child. Keep the currently-selected activity even if it's since been dropped.
+  const childActivities = activities.filter(
+    a => (!form.child_id || a.child_id === form.child_id)
+      && (a.status === "active" || a.id === form.activity_id)
+  );
   const inputCls =
     "w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20";
 

@@ -69,10 +69,7 @@ export const SENDERS = ["Zeya", "Atiqah", "Both", "Grandparent", "Helper", "Self
 export const PAYERS = [
   "Zeya",
   "Atiqah",
-  "Both (OCBC)",
-  "Zara's CDA",
-  "Grandparent",
-  "Helper",
+  "Zeya & Atiqah",
 ] as const;
 
 // Days of the week (0=Sun, 1=Mon … 6=Sat) — display starting Monday

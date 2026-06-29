@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Pencil } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { Avatar } from "@/components/ui/Avatar";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
@@ -45,6 +44,7 @@ export default function ExpensesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -77,7 +77,27 @@ export default function ExpensesPage() {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   function openAdd() {
+    setEditingId(null);
     setForm(EMPTY_FORM);
+    setError("");
+    setShowForm(true);
+  }
+
+  function openEdit(exp: ExpenseWithDetails) {
+    setEditingId(exp.id);
+    const act = activities.find(a => a.id === exp.activity_id);
+    setForm({
+      child_id: exp.child_id,
+      activity_name: act ? (act.activity_name || act.institution) : "",
+      institution: exp.institution || "",
+      description: exp.description || "",
+      amount: String(exp.amount),
+      payment_date: exp.payment_date.slice(0, 10),
+      paid_by: exp.paid_by || "",
+      term_start_date: exp.term_start_date ? exp.term_start_date.slice(0, 10) : "",
+      term_end_date: exp.term_end_date ? exp.term_end_date.slice(0, 10) : "",
+      num_lessons: exp.num_lessons != null ? String(exp.num_lessons) : "",
+    });
     setError("");
     setShowForm(true);
   }
@@ -124,11 +144,14 @@ export default function ExpensesPage() {
         term_end_date: form.term_end_date || null,
         num_lessons: form.num_lessons || null,
       };
-      const res = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        editingId ? `/api/expenses/${editingId}` : "/api/expenses",
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) {
         const j = await res.json();
         throw new Error(j.error || "Save failed");
@@ -172,7 +195,7 @@ export default function ExpensesPage() {
               onChange={e => setFilterChild(e.target.value)}
               className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
             >
-              <option value="">All children</option>
+              <option value="">All</option>
               {children.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -227,13 +250,14 @@ export default function ExpensesPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
-                  <th className="px-3 py-2 text-left font-semibold">Date</th>
+                  <th className="px-3 py-2 text-left font-semibold">Payment Date</th>
                   <th className="px-3 py-2 text-left font-semibold">Child</th>
                   <th className="px-3 py-2 text-left font-semibold">Institution</th>
                   <th className="px-3 py-2 text-left font-semibold">Description</th>
                   <th className="px-3 py-2 text-right font-semibold">Amount</th>
                   <th className="px-3 py-2 text-right font-semibold">Cost / lesson</th>
                   <th className="px-3 py-2 text-left font-semibold">Paid by</th>
+                  <th className="px-3 py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,16 +272,7 @@ export default function ExpensesPage() {
                       className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
                     >
                       <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          {exp.child && (
-                            <>
-                              <Avatar avatarKey={exp.child.avatar_key} fallbackEmoji={exp.child.avatar_emoji} size={18} />
-                              <span className="text-[var(--text-primary)] whitespace-nowrap">{exp.child.name}</span>
-                            </>
-                          )}
-                        </div>
-                      </td>
+                      <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">{exp.child?.name || "—"}</td>
                       <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>
                       <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>
                       <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-right whitespace-nowrap">
@@ -265,6 +280,15 @@ export default function ExpensesPage() {
                       </td>
                       <td className="px-3 py-2 text-[var(--text-secondary)] text-right whitespace-nowrap">{costPerLesson}</td>
                       <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => openEdit(exp)}
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                          title="Edit expense"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -274,7 +298,7 @@ export default function ExpensesPage() {
         )}
 
         {/* Add expense modal */}
-        <Modal open={showForm} onClose={() => setShowForm(false)} title="Add Expense">
+        <Modal open={showForm} onClose={() => setShowForm(false)} title={editingId ? "Edit Expense" : "Add Expense"}>
           <div className="space-y-5">
             {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
@@ -362,7 +386,7 @@ export default function ExpensesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Payment date <span className="text-red-500">*</span>
+                  Payment Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Download, Pencil, Settings, ChevronUp, ChevronDown } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -39,6 +39,22 @@ export default function AttendancePage() {
     status: true,
   });
 
+  // Persist the user's chosen columns across visits.
+  const columnsLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("attendance-visible-columns");
+      if (saved) setVisibleColumns(v => ({ ...v, ...JSON.parse(saved) }));
+    } catch { /* ignore */ }
+    columnsLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!columnsLoaded.current) return;
+    try {
+      localStorage.setItem("attendance-visible-columns", JSON.stringify(visibleColumns));
+    } catch { /* ignore */ }
+  }, [visibleColumns]);
+
   // Fetch data using React Query hooks
   const { data: childrenData = [] } = useChildren();
   const { data: activitiesData = [] } = useActivities();
@@ -73,7 +89,11 @@ export default function AttendancePage() {
   }
 
   function openAdd() {
-    setPrefill({ date: new Date().toISOString().split("T")[0], status: "attended" });
+    setPrefill({
+      date: new Date().toISOString().split("T")[0],
+      status: "attended",
+      child_id: children[0]?.id,
+    });
     setModalOpen(true);
   }
 
@@ -249,16 +269,16 @@ export default function AttendancePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
-                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-3 py-2 text-left font-semibold min-w-[110px] cursor-pointer select-none hover:text-[var(--text-primary)]">Date & Time<SortIcon col="dateTime" /></th>}
-                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
-                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
-                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
-                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
-                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
-                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sent By<SortIcon col="sentBy" /></th>}
-                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
-                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-3 py-2 text-center font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
-                  <th className="px-3 py-2 text-center font-semibold">Action</th>
+                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-2 py-2 text-left font-semibold min-w-[110px] cursor-pointer select-none hover:text-[var(--text-primary)]">Date & Time<SortIcon col="dateTime" /></th>}
+                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
+                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
+                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
+                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
+                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
+                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sent By<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
+                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-2 py-2 text-center font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
+                  <th className="px-2 py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -268,27 +288,27 @@ export default function AttendancePage() {
                     className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     {visibleColumns.dateTime && (
-                      <td className="px-3 py-2 text-[var(--text-secondary)] min-w-[110px]">
+                      <td className="px-2 py-2 text-[var(--text-secondary)] min-w-[110px]">
                         <div>{formatDate(log.date)}</div>
                         {log.start_time && <div className="text-xs text-[var(--text-muted)]">{formatTime(log.start_time)}</div>}
                       </td>
                     )}
-                    {visibleColumns.activity && <td className="px-3 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>}
-                    {visibleColumns.institution && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
-                    {visibleColumns.level && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>}
-                    {visibleColumns.coach && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
-                    {visibleColumns.lessonType && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
-                    {visibleColumns.sentBy && <td className="px-3 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
-                    {visibleColumns.absenceReason && <td className="px-3 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
+                    {visibleColumns.activity && <td className="px-2 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>}
+                    {visibleColumns.institution && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
+                    {visibleColumns.level && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.activity?.level || "—"}</td>}
+                    {visibleColumns.coach && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
+                    {visibleColumns.lessonType && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
+                    {visibleColumns.sentBy && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
+                    {visibleColumns.absenceReason && <td className="px-2 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-2 py-2 text-center">
                         <Badge
                           label={ATTENDANCE_STATUS_LABELS[log.status]}
                           variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
                         />
                       </td>
                     )}
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-2 py-2 text-center">
                       <button
                         onClick={() => openEdit(log)}
                         className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
