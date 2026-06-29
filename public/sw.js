@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bloom-v2';
+const CACHE_NAME = 'bloom-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -41,42 +41,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API requests: cache first, update in background (stale-while-revalidate)
+  // API requests: network first so saved changes show immediately across tabs.
+  // Cache the fresh response and fall back to it only when offline.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        // Return cache immediately if available
-        if (cachedResponse) {
-          // Update cache in background
-          fetch(request).then((response) => {
-            if (response && response.ok) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
-            }
-          }).catch(() => {
-            // Network error during background update, that's ok
-          });
-          return cachedResponse;
-        }
-
-        // No cache, fetch from network
-        return fetch(request)
-          .then((response) => {
-            if (!response || !response.ok) {
-              return response;
-            }
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
             });
-            return response;
-          })
-          .catch(() => {
-            return new Response('Offline', { status: 503 });
-          });
-      })
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then(
+            (cached) => cached || new Response('Offline', { status: 503 })
+          )
+        )
     );
     return;
   }

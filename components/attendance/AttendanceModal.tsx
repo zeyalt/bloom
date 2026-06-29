@@ -67,7 +67,7 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     end_time: p.end_time ?? "",
     sent_by: senders.length ? senders : f.sent_by,
     instructor_name: p.instructor_name ?? "",
-    lesson_type: (p.lesson_type && LESSON_TYPE_OPTIONS.includes(p.lesson_type)) ? p.lesson_type : "Normal",
+    lesson_type: p.lesson_type || "Normal",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
   };
@@ -91,6 +91,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [customSender, setCustomSender] = useState("");
+  const [customLesson, setCustomLesson] = useState("");
 
   // Reset form whenever the modal opens (with fresh prefill)
   useEffect(() => {
@@ -98,6 +99,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       setForm(fromPrefill(prefill));
       setError("");
       setCustomSender("");
+      setCustomLesson("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -233,9 +235,45 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div>
           <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
-          <select value={form.lesson_type} onChange={e => setForm(f => ({ ...f, lesson_type: e.target.value }))} className={inputCls}>
-            {LESSON_TYPE_OPTIONS.map(lt => <option key={lt} value={lt}>{lt}</option>)}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            {[...LESSON_TYPE_OPTIONS, ...(form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type) ? [form.lesson_type] : [])].map(lt => {
+              const active = form.lesson_type === lt;
+              return (
+                <button
+                  key={lt}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, lesson_type: lt }))}
+                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                    active
+                      ? "bg-[var(--text-primary)] text-white border-transparent"
+                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                  }`}
+                >
+                  {lt}
+                </button>
+              );
+            })}
+            <input
+              type="text"
+              value={customLesson}
+              onChange={e => setCustomLesson(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const v = customLesson.trim();
+                  if (v) setForm(f => ({ ...f, lesson_type: v }));
+                  setCustomLesson("");
+                }
+              }}
+              onBlur={() => {
+                const v = customLesson.trim();
+                if (v) setForm(f => ({ ...f, lesson_type: v }));
+                setCustomLesson("");
+              }}
+              placeholder="+ Add other"
+              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+            />
+          </div>
         </div>
 
         <div>

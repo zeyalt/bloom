@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Download, Pencil, Settings } from "lucide-react";
+import { Plus, Download, Pencil, Settings, ChevronUp, ChevronDown } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +26,7 @@ export default function AttendancePage() {
   const [filterChild, setFilterChild] = useState("");
   const [filterActivity, setFilterActivity] = useState("");
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "dateTime", dir: "desc" });
   const [visibleColumns, setVisibleColumns] = useState({
     dateTime: true,
     activity: true,
@@ -101,6 +102,43 @@ export default function AttendancePage() {
   const filteredLogs = filterChild
     ? logs.filter(l => l.child_id === filterChild)
     : logs.filter(l => filterActivity ? l.activity_id === filterActivity : true);
+
+  // Sortable value for each column key
+  function sortValue(log: LogWithDetails, key: string): string {
+    switch (key) {
+      case "dateTime": return `${log.date.slice(0, 10)} ${log.start_time ?? ""}`;
+      case "activity": return log.activity?.activity_name ?? "";
+      case "institution": return log.activity?.institution ?? "";
+      case "level": return log.activity?.level ?? "";
+      case "coach": return log.instructor_name ?? "";
+      case "lessonType": return log.lesson_type ?? "";
+      case "sentBy": return log.sent_by ?? "";
+      case "absenceReason": return (log.status === "absent" || log.status === "cancelled_by_provider") ? (log.absence_reason ?? "") : "";
+      case "status": return ATTENDANCE_STATUS_LABELS[log.status] ?? log.status;
+      default: return "";
+    }
+  }
+
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const av = sortValue(a, sort.key);
+    const bv = sortValue(b, sort.key);
+    // Push empty values to the bottom regardless of direction
+    if (!av && bv) return 1;
+    if (av && !bv) return -1;
+    const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
+    return sort.dir === "asc" ? cmp : -cmp;
+  });
+
+  function toggleSort(key: string) {
+    setSort(s => s.key === key
+      ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+      : { key, dir: key === "dateTime" ? "desc" : "asc" });
+  }
+
+  const SortIcon = ({ col }: { col: string }) =>
+    sort.key !== col ? null : sort.dir === "asc"
+      ? <ChevronUp size={12} className="inline ml-1 -mt-0.5" />
+      : <ChevronDown size={12} className="inline ml-1 -mt-0.5" />;
 
   return (
     <div className="max-w-[1400px] mx-auto w-full">
@@ -211,20 +249,20 @@ export default function AttendancePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] uppercase tracking-wide">
-                  {visibleColumns.dateTime && <th className="px-3 py-2 text-left font-semibold min-w-[110px]">Date & Time</th>}
-                  {visibleColumns.activity && <th className="px-3 py-2 text-left font-semibold">Activity</th>}
-                  {visibleColumns.institution && <th className="px-3 py-2 text-left font-semibold">Institution</th>}
-                  {visibleColumns.level && <th className="px-3 py-2 text-left font-semibold">Level</th>}
-                  {visibleColumns.coach && <th className="px-3 py-2 text-left font-semibold">Coach</th>}
-                  {visibleColumns.lessonType && <th className="px-3 py-2 text-left font-semibold">Lesson Type</th>}
-                  {visibleColumns.sentBy && <th className="px-3 py-2 text-left font-semibold">Sent By</th>}
-                  {visibleColumns.absenceReason && <th className="px-3 py-2 text-left font-semibold">Absence Reason</th>}
-                  {visibleColumns.status && <th className="px-3 py-2 text-center font-semibold">Status</th>}
+                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-3 py-2 text-left font-semibold min-w-[110px] cursor-pointer select-none hover:text-[var(--text-primary)]">Date & Time<SortIcon col="dateTime" /></th>}
+                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
+                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
+                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
+                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
+                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
+                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sent By<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-3 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
+                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-3 py-2 text-center font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
                   <th className="px-3 py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLogs.map(log => (
+                {sortedLogs.map(log => (
                   <tr
                     key={log.id}
                     className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"

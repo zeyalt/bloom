@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { ScheduleSlotModal } from "@/components/schedule/ScheduleSlotModal";
 import { cn, formatTime } from "@/lib/utils";
-import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
 import { useChildren, useSchedules, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { Schedule, Activity, ActivityCategory, Child, AttendanceLog } from "@/lib/types";
@@ -23,10 +21,6 @@ interface LogWithDetails extends AttendanceLog {
   child?: Child;
 }
 
-function statusVariant(status: string): "success" | "danger" | "default" {
-  return status === "attended" ? "success" : status === "absent" ? "danger" : "default";
-}
-
 export default function AgendaPage() {
   const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
@@ -34,6 +28,8 @@ export default function AgendaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [slotEdit, setSlotEdit] = useState<ScheduleWithDetails | null>(null);
+  const todayRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToToday = useRef(false);
 
   const range = getWeekRange(weekOffset);
   const week = getWeekDays(weekOffset);
@@ -53,6 +49,16 @@ export default function AgendaPage() {
   const activities = activitiesData;
   const logs = logsData;
   const loading = isLoading;
+
+  // On first load of the current week, jump to today so the user lands on the
+  // current day (not Sunday). Earlier days remain above to scroll back to.
+  useEffect(() => {
+    if (loading || weekOffset !== 0 || hasScrolledToToday.current) return;
+    if (todayRef.current) {
+      todayRef.current.scrollIntoView({ block: "start" });
+      hasScrolledToToday.current = true;
+    }
+  }, [loading, weekOffset]);
 
   async function fetchData() {
     // Invalidate queries to refetch fresh data
@@ -184,7 +190,7 @@ export default function AgendaPage() {
 
   return (
     <div className="max-w-[1000px] mx-auto w-full">
-      <Header title="Home" subtitle="Track attendance & plan your week" />
+      <Header title="Home" subtitle="Track attendance & plan your week" sticky />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         {/* Week nav + add */}
@@ -245,7 +251,7 @@ export default function AgendaPage() {
               const adhoc = adhocByDay.get(day.iso) ?? [];
               const hasItems = occ.length > 0 || adhoc.length > 0;
               return (
-                <div key={day.iso}>
+                <div key={day.iso} ref={day.isToday ? todayRef : undefined} className="scroll-mt-28 md:scroll-mt-32">
                   <div className="pb-3">
                     <div className="flex items-baseline gap-3">
                       <h2 className={cn("font-bold uppercase tracking-wider", day.isToday ? "text-lg text-[var(--accent-primary)]" : "text-base text-[var(--text-primary)]")}>
@@ -322,27 +328,29 @@ export default function AgendaPage() {
                       })}
 
                       {adhoc.map(log => {
-                        const title = log.activity?.activity_name || log.activity?.institution || "Activity";
+                        const a = log.activity;
+                        const title = a?.activity_name || a?.institution || "Activity";
                         return (
-                          <div key={log.id} className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md">
+                          <div
+                            key={log.id}
+                            onClick={() => openEditLog(log)}
+                            className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md cursor-pointer"
+                          >
                             <div className="p-4">
                               <div className="flex items-center gap-3 justify-between">
                                 <div className="flex items-center gap-4 min-w-0 flex-1">
                                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
                                     {log.start_time ? formatTime(log.start_time) : "—"}
                                   </div>
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="text-base font-semibold text-[var(--text-primary)]">{title}</span>
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-white bg-[var(--text-primary)] px-2 py-0.5 rounded-full shrink-0">Ad-hoc</span>
-                                  </div>
+                                  <span className="text-base font-semibold text-[var(--text-primary)]">
+                                    {title}
+                                    {(a?.institution || a?.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a?.institution || a?.instructor_name}</span>}
+                                  </span>
                                 </div>
-                                <button className="shrink-0" onClick={() => openEditLog(log)} title="Edit attendance">
-                                  <Badge label={ATTENDANCE_STATUS_LABELS[log.status]} variant={statusVariant(log.status)} />
-                                </button>
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
+                                  <Check size={12} /> Updated
+                                </span>
                               </div>
-                              <p className="text-sm text-[var(--text-secondary)] ml-20">
-                                {[log.instructor_name, log.location].filter(Boolean).join(" · ")}
-                              </p>
                             </div>
                           </div>
                         );

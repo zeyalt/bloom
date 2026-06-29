@@ -3,15 +3,17 @@
 import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
   showBack?: boolean;
+  sticky?: boolean;
 }
 
-export function Header({ title, subtitle, action, showBack = false }: HeaderProps) {
+export function Header({ title, subtitle, action, showBack = false, sticky = false }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const today = format(new Date(), "EEEE, d MMM yyyy");
@@ -21,7 +23,10 @@ export function Header({ title, subtitle, action, showBack = false }: HeaderProp
   const shouldShowBack = showBack || isChildPage;
 
   return (
-    <div className="flex items-center justify-between gap-4 py-5 px-5 md:py-7 md:px-8 border-b border-[var(--border)] bg-[var(--bg-card)]">
+    <div className={cn(
+      "flex items-center justify-between gap-4 py-5 px-5 md:py-7 md:px-8 border-b border-[var(--border)] bg-[var(--bg-card)]",
+      sticky && "sticky top-0 z-30"
+    )}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
         {shouldShowBack && (
           <button
