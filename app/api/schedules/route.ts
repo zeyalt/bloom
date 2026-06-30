@@ -60,6 +60,8 @@ export async function POST(req: Request) {
         endTime: endTime,
         durationMinutes: providedDuration || minutesBetween(startTime, endTime),
         location: body.location || null,
+        level: body.level || null,
+        term: body.term || null,
         isActive: body.is_active !== undefined ? body.is_active : body.isActive !== undefined ? body.isActive : true,
         effectiveFrom: body.effective_from ? new Date(body.effective_from) : null,
         effectiveUntil: body.effective_until ? new Date(body.effective_until) : null,

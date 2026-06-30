@@ -291,7 +291,7 @@ export default function AgendaPage() {
                                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
                                     {s.start_time ? formatTime(s.start_time) : "—"}
                                   </div>
-                                  <span className="text-base font-semibold text-[var(--text-primary)]">
+                                  <span className="text-base font-semibold text-[var(--text-primary)] min-w-0 truncate">
                                     {title}
                                     {(a.institution || a.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a.institution || a.instructor_name}</span>}
                                   </span>
@@ -342,7 +342,7 @@ export default function AgendaPage() {
                                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
                                     {log.start_time ? formatTime(log.start_time) : "—"}
                                   </div>
-                                  <span className="text-base font-semibold text-[var(--text-primary)]">
+                                  <span className="text-base font-semibold text-[var(--text-primary)] min-w-0 truncate">
                                     {title}
                                     {(a?.institution || a?.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a?.institution || a?.instructor_name}</span>}
                                   </span>

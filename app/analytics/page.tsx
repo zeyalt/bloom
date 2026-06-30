@@ -31,6 +31,7 @@ import { Header } from "@/components/layout/Header";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from "@/lib/constants";
 import { useExpenses, useAttendanceLogs, useActivities, useChildren } from "@/lib/api-hooks";
+import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
 import type { Expense, AttendanceLog, Activity, Child } from "@/lib/types";
 
 const DISPLAY_FONT = "var(--font-display)";
@@ -146,7 +147,7 @@ function KpiCard({ label, value, delta, deltaSuffix = "%", spark, color, icon, a
       <div className="mt-1.5 flex items-center justify-between gap-2">
         <DeltaPill delta={delta} suffix={deltaSuffix} />
         {hasSpark && (
-          <div className="w-20 h-8 shrink-0">
+          <div className="w-14 sm:w-20 h-7 sm:h-8 shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sparkData} margin={{ top: 2, bottom: 2, left: 0, right: 0 }}>
                 <defs>
@@ -637,6 +638,12 @@ export default function AnalyticsPage() {
               </ChartCard>
             )}
           </div>
+        </section>
+
+        {/* ── Section 4: Engagement Timeline (full history) ── */}
+        <section className="space-y-4">
+          {sectionHead("Activity Timeline", "How long each child has done each activity")}
+          <EngagementTimeline activities={activitiesData} children={childrenData} />
         </section>
       </div>
     </div>

@@ -73,6 +73,8 @@ model Schedule {
   endTime         String?   @map("end_time") @db.VarChar(5)
   durationMinutes Int?      @map("duration_minutes")
   location        String?   @db.VarChar(255)
+  level           String?   @db.VarChar(50)
+  term            String?   @db.VarChar(100)
   isActive        Boolean   @default(true) @map("is_active")
   effectiveFrom   DateTime? @map("effective_from") @db.Date
   effectiveUntil  DateTime? @map("effective_until") @db.Date

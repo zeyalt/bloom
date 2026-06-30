@@ -75,6 +75,8 @@ export interface Schedule {
   end_time: string | null;
   duration_minutes: number | null;
   location: string | null;
+  level?: string | null;
+  term?: string | null;
   is_active: boolean;
   effective_from: string | null;
   effective_until: string | null;
