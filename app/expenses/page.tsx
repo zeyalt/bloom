@@ -22,6 +22,7 @@ interface Activity {
   institution: string;
   child_id: string;
   category_id: string;
+  status?: string;
 }
 
 const EMPTY_FORM = {
@@ -45,6 +46,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +80,7 @@ export default function ExpensesPage() {
 
   function openAdd() {
     setEditingId(null);
+    setEditingActivityId(null);
     setForm(EMPTY_FORM);
     setError("");
     setShowForm(true);
@@ -85,6 +88,7 @@ export default function ExpensesPage() {
 
   function openEdit(exp: ExpenseWithDetails) {
     setEditingId(exp.id);
+    setEditingActivityId(exp.activity_id ?? null);
     const act = activities.find(a => a.id === exp.activity_id);
     setForm({
       child_id: exp.child_id,
@@ -102,9 +106,13 @@ export default function ExpensesPage() {
     setShowForm(true);
   }
 
-  // Activity → Institution resolution (institution is mapped from the activity)
+  // Activity → Institution resolution (institution is mapped from the activity).
+  // Only active activities are selectable (excludes dropped/legacy records);
+  // keep the activity of the expense being edited even if it's inactive.
   const actName = (a: Activity) => a.activity_name || a.institution;
-  const childActivities = activities.filter(a => a.child_id === form.child_id);
+  const childActivities = activities.filter(
+    a => a.child_id === form.child_id && (a.status === "active" || a.id === editingActivityId)
+  );
   const activityNames = [...new Set(childActivities.map(actName))];
   const institutionsForName = [
     ...new Set(childActivities.filter(a => actName(a) === form.activity_name).map(a => a.institution)),
