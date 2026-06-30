@@ -31,7 +31,7 @@ const EMPTY_FORM = {
   description: "",
   amount: "",
   payment_date: new Date().toISOString().split('T')[0],
-  paid_by: "",
+  paid_by: "Zeya",
   term_start_date: "",
   term_end_date: "",
   num_lessons: "",
@@ -93,7 +93,7 @@ export default function ExpensesPage() {
       description: exp.description || "",
       amount: String(exp.amount),
       payment_date: exp.payment_date.slice(0, 10),
-      paid_by: exp.paid_by || "",
+      paid_by: exp.paid_by || "Zeya",
       term_start_date: exp.term_start_date ? exp.term_start_date.slice(0, 10) : "",
       term_end_date: exp.term_end_date ? exp.term_end_date.slice(0, 10) : "",
       num_lessons: exp.num_lessons != null ? String(exp.num_lessons) : "",
@@ -401,7 +401,7 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Term start <span className="text-[var(--text-muted)]">(optional)</span>
+                  Term Start
                 </label>
                 <input
                   type="date"
@@ -412,7 +412,7 @@ export default function ExpensesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Term end <span className="text-[var(--text-muted)]">(optional)</span>
+                  Term End
                 </label>
                 <input
                   type="date"
@@ -427,7 +427,7 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  No. of lessons <span className="text-[var(--text-muted)]">(optional)</span>
+                  No. of Lessons
                 </label>
                 <input
                   type="number"
@@ -440,14 +440,13 @@ export default function ExpensesPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Paid by
+                  Paid By
                 </label>
                 <select
                   value={form.paid_by}
                   onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
                   className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
-                  <option value="">—</option>
                   {PAYERS.map(p => (
                     <option key={p} value={p}>{p}</option>
                   ))}

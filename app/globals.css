@@ -54,6 +54,11 @@ body {
   color-scheme: light;
 }
 
+html {
+  /* Disable pinch-zoom and double-tap zoom (keep normal scrolling) */
+  touch-action: pan-x pan-y;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -62,6 +67,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-size: 16px;
   transition: background-color 200ms ease-out, color 200ms ease-out;
+}
+
+/* App-like lockdown: no text selection / copy callout, except in editable fields */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
 
 /* Typography system — clean, readable scale */
