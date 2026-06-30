@@ -56,6 +56,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const [editing, setEditing] = useState(false);
   const [editOriginalIds, setEditOriginalIds] = useState<string[]>([]);
   const [childId, setChildId] = useState("");
+  const [editingActivityId, setEditingActivityId] = useState("");
   const [activityName, setActivityName] = useState("");
   const [institution, setInstitution] = useState("");
   const [slots, setSlots] = useState<SlotRow[]>([emptySlot()]);
@@ -70,7 +71,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const [filterChildId, setFilterChildId] = useState("");
   const [showEnded, setShowEnded] = useState(false);
 
-  const childActivities = activities.filter(a => a.child_id === childId);
+  // Only active activities are selectable (excludes legacy/dropped placeholder
+  // records); keep the activity currently being edited even if it's inactive.
+  const childActivities = activities.filter(
+    a => a.child_id === childId && (a.status === "active" || a.id === editingActivityId)
+  );
 
   // Activity is selected via name + institution (which resolves to one record)
   const actName = (a: Activity) => a.activity_name || a.institution;
@@ -99,6 +104,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       activities.find(a => a.child_id === firstChild && a.status === "active") ??
       activities.find(a => a.child_id === firstChild);
     setChildId(firstChild);
+    setEditingActivityId("");
     selectActivity(firstAct);
     setSlots([emptySlot()]);
     resetSharedFields();
@@ -110,6 +116,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
   function openEditCard(card: ScheduleCard) {
     setChildId(card.activity.child_id);
+    setEditingActivityId(card.activity.id);
     selectActivity(card.activity);
     setSlots(card.slots.map(s => ({
       id: s.id,
