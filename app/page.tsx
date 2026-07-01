@@ -286,15 +286,24 @@ export default function AgendaPage() {
                           >
                             {/* Main card content */}
                             <div className="p-4">
-                              <div className="flex items-center gap-3 justify-between">
-                                <div className="flex items-center gap-4 min-w-0 flex-1">
-                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                              <div className="flex items-start gap-3 justify-between">
+                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0 pt-0.5">
                                     {s.start_time ? formatTime(s.start_time) : "—"}
                                   </div>
-                                  <span className="text-base font-semibold text-[var(--text-primary)] min-w-0 truncate">
-                                    {title}
-                                    {(a.institution || a.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a.institution || a.instructor_name}</span>}
-                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-base font-semibold text-[var(--text-primary)] truncate">{title}</span>
+                                      {child && (
+                                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
+                                          {child.name}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {(a.institution || a.instructor_name) && (
+                                      <div className="text-sm text-[var(--text-secondary)] truncate mt-0.5">{a.institution || a.instructor_name}</div>
+                                    )}
+                                  </div>
                                 </div>
                                 {log && (
                                   <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
@@ -329,6 +338,7 @@ export default function AgendaPage() {
 
                       {adhoc.map(log => {
                         const a = log.activity;
+                        const child = log.child;
                         const title = a?.activity_name || a?.institution || "Activity";
                         return (
                           <div
@@ -337,15 +347,24 @@ export default function AgendaPage() {
                             className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md cursor-pointer"
                           >
                             <div className="p-4">
-                              <div className="flex items-center gap-3 justify-between">
-                                <div className="flex items-center gap-4 min-w-0 flex-1">
-                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0">
+                              <div className="flex items-start gap-3 justify-between">
+                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0 pt-0.5">
                                     {log.start_time ? formatTime(log.start_time) : "—"}
                                   </div>
-                                  <span className="text-base font-semibold text-[var(--text-primary)] min-w-0 truncate">
-                                    {title}
-                                    {(a?.institution || a?.instructor_name) && <span className="text-[var(--text-secondary)] font-normal"> · {a?.institution || a?.instructor_name}</span>}
-                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-base font-semibold text-[var(--text-primary)] truncate">{title}</span>
+                                      {child && (
+                                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
+                                          {child.name}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {(a?.institution || a?.instructor_name) && (
+                                      <div className="text-sm text-[var(--text-secondary)] truncate mt-0.5">{a?.institution || a?.instructor_name}</div>
+                                    )}
+                                  </div>
                                 </div>
                                 <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
                                   <Check size={12} /> Updated
