@@ -96,12 +96,14 @@ export interface AttendanceLog {
   duration_minutes: number | null;
   status: AttendanceStatus;
   sent_by: string | null;
+  fetcher?: string | null;
   instructor_name: string | null;
   lesson_type: string | null;
   location: string | null;
   absence_reason: string | null;
   lesson_number: number | null;
   level: string | null;
+  learned?: string | null;
   diary_notes: string | null;
   remarks: string | null;
   created_at: string;

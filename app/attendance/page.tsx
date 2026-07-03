@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Download, Pencil, Settings, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Download, Pencil, Settings, ChevronUp, ChevronDown, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -35,6 +35,8 @@ export default function AttendancePage() {
     coach: true,
     lessonType: true,
     sentBy: true,
+    fetcher: true,
+    notes: true,
     absenceReason: true,
     status: true,
   });
@@ -110,10 +112,13 @@ export default function AttendancePage() {
       start_time: log.start_time ?? sched?.start_time ?? null,
       end_time: log.end_time ?? sched?.end_time ?? null,
       sent_by: log.sent_by,
+      fetcher: log.fetcher,
       instructor_name: log.instructor_name,
       lesson_type: log.lesson_type,
       location: log.location ?? sched?.location ?? null,
       absence_reason: log.absence_reason,
+      learned: log.learned,
+      diary_notes: log.diary_notes,
     });
     setModalOpen(true);
   }
@@ -133,6 +138,7 @@ export default function AttendancePage() {
       case "coach": return log.instructor_name ?? "";
       case "lessonType": return log.lesson_type ?? "";
       case "sentBy": return log.sent_by ?? "";
+      case "fetcher": return log.fetcher ?? "";
       case "absenceReason": return (log.status === "absent" || log.status === "cancelled_by_provider") ? (log.absence_reason ?? "") : "";
       case "status": return ATTENDANCE_STATUS_LABELS[log.status] ?? log.status;
       default: return "";
@@ -220,7 +226,9 @@ export default function AttendancePage() {
                 { key: "level", label: "Level" },
                 { key: "coach", label: "Coach" },
                 { key: "lessonType", label: "Lesson Type" },
-                { key: "sentBy", label: "Sent By" },
+                { key: "sentBy", label: "Sender" },
+                { key: "fetcher", label: "Fetcher" },
+                { key: "notes", label: "Notes" },
                 { key: "absenceReason", label: "Absence Reason" },
                 { key: "status", label: "Status" },
               ].map(col => (
@@ -275,9 +283,11 @@ export default function AttendancePage() {
                   {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
                   {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
                   {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
-                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sent By<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sender<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Fetcher<SortIcon col="fetcher" /></th>}
                   {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
                   {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-2 py-2 text-center font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
+                  {visibleColumns.notes && <th className="px-2 py-2 text-center font-semibold">Notes</th>}
                   <th className="px-2 py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
@@ -299,6 +309,7 @@ export default function AttendancePage() {
                     {visibleColumns.coach && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
                     {visibleColumns.lessonType && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
                     {visibleColumns.sentBy && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
+                    {visibleColumns.fetcher && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
                     {visibleColumns.absenceReason && <td className="px-2 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
                       <td className="px-2 py-2 text-center">
@@ -306,6 +317,15 @@ export default function AttendancePage() {
                           label={ATTENDANCE_STATUS_LABELS[log.status]}
                           variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
                         />
+                      </td>
+                    )}
+                    {visibleColumns.notes && (
+                      <td className="px-2 py-2 text-center">
+                        {(log.learned || log.diary_notes) ? (
+                          <span title={[log.learned && `Learned: ${log.learned}`, log.diary_notes && `Reflection: ${log.diary_notes}`].filter(Boolean).join("\n")}>
+                            <NotebookPen size={14} className="inline text-[var(--text-secondary)]" />
+                          </span>
+                        ) : <span className="text-[var(--text-muted)]">—</span>}
                       </td>
                     )}
                     <td className="px-2 py-2 text-center">

@@ -14,10 +14,13 @@ export interface AttendancePrefill {
   start_time?: string | null;
   end_time?: string | null;
   sent_by?: string | null;
+  fetcher?: string | null;
   instructor_name?: string | null;
   lesson_type?: string | null;
   location?: string | null;
   absence_reason?: string | null;
+  learned?: string | null;
+  diary_notes?: string | null;
 }
 
 interface AttForm {
@@ -28,15 +31,19 @@ interface AttForm {
   start_time: string;
   end_time: string;
   sent_by: string[];
+  fetcher: string[];
   instructor_name: string;
   lesson_type: string;
   location: string;
   absence_reason: string;
+  learned: string;
+  diary_notes: string;
 }
 
 const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
 const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online", "Sparring"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
+const FETCHER_OPTIONS = SENT_BY_OPTIONS;
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
   { value: "attended", label: "Attended" },
   { value: "absent", label: "Absent" },
@@ -48,15 +55,17 @@ const parseSenders = (raw?: string | null): string[] =>
 
 const blankForm = (): AttForm => ({
   activity_id: "", child_id: "", date: "", status: "attended",
-  start_time: "", end_time: "", sent_by: ["Zeya"],
-  instructor_name: "", lesson_type: "Normal",
+  start_time: "", end_time: "", sent_by: [], fetcher: [],
+  instructor_name: "", lesson_type: "",
   location: "", absence_reason: "",
+  learned: "", diary_notes: "",
 });
 
 function fromPrefill(p?: AttendancePrefill): AttForm {
   const f = blankForm();
   if (!p) return f;
   const senders = parseSenders(p.sent_by);
+  const fetchers = parseSenders(p.fetcher);
   return {
     ...f,
     activity_id: p.activity_id ?? "",
@@ -65,11 +74,14 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     status: p.status ?? "attended",
     start_time: p.start_time ?? "",
     end_time: p.end_time ?? "",
-    sent_by: senders.length ? senders : f.sent_by,
+    sent_by: senders,
+    fetcher: fetchers,
     instructor_name: p.instructor_name ?? "",
-    lesson_type: p.lesson_type || "Normal",
+    lesson_type: p.lesson_type || "",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
+    learned: p.learned ?? "",
+    diary_notes: p.diary_notes ?? "",
   };
 }
 
@@ -91,6 +103,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [customSender, setCustomSender] = useState("");
+  const [customFetcher, setCustomFetcher] = useState("");
   const [customLesson, setCustomLesson] = useState("");
 
   // Reset form whenever the modal opens (with fresh prefill)
@@ -99,6 +112,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       setForm(fromPrefill(prefill));
       setError("");
       setCustomSender("");
+      setCustomFetcher("");
       setCustomLesson("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,6 +134,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         start_time: form.start_time || null,
         end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
         sent_by: form.sent_by.length ? form.sent_by.join(", ") : null,
+        fetcher: form.fetcher.length ? form.fetcher.join(", ") : null,
         instructor_name: form.instructor_name || null,
         lesson_type: form.lesson_type || null,
         location: form.location || null,
@@ -127,6 +142,8 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         absence_reason: (form.status === "absent" || form.status === "cancelled_by_provider")
           ? form.absence_reason || null
           : null,
+        learned: form.learned.trim() || null,
+        diary_notes: form.diary_notes.trim() || null,
       };
       const editing = !!prefill?.id;
       const res = await fetch(
@@ -282,7 +299,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sent By</label>
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sender</label>
           <div className="flex flex-wrap items-center gap-2">
             {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
               const active = form.sent_by.includes(s);
@@ -327,6 +344,52 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Fetcher</label>
+          <div className="flex flex-wrap items-center gap-2">
+            {[...FETCHER_OPTIONS, ...form.fetcher.filter(s => !FETCHER_OPTIONS.includes(s))].map(s => {
+              const active = form.fetcher.includes(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setForm(f => ({
+                    ...f,
+                    fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
+                  }))}
+                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                    active
+                      ? "bg-[var(--text-primary)] text-white border-transparent"
+                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
+            <input
+              type="text"
+              value={customFetcher}
+              onChange={e => setCustomFetcher(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const v = customFetcher.trim();
+                  if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
+                  setCustomFetcher("");
+                }
+              }}
+              onBlur={() => {
+                const v = customFetcher.trim();
+                if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
+                setCustomFetcher("");
+              }}
+              placeholder="+ Add other"
+              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+            />
+          </div>
+        </div>
+
         {form.status === "absent" && (
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Absence Reason</label>
@@ -349,6 +412,32 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             />
           </div>
         )}
+
+        <div className="pt-1 border-t border-[var(--border)]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2 mt-3">Reflection</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">What was learned</label>
+              <textarea
+                value={form.learned}
+                onChange={e => setForm(f => ({ ...f, learned: e.target.value }))}
+                placeholder="Skills or topics from this session…"
+                rows={2}
+                className={`${inputCls} resize-y`}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection / Notes</label>
+              <textarea
+                value={form.diary_notes}
+                onChange={e => setForm(f => ({ ...f, diary_notes: e.target.value }))}
+                placeholder="How did it go? Highlights, struggles, mood…"
+                rows={3}
+                className={`${inputCls} resize-y`}
+              />
+            </div>
+          </div>
+        </div>
 
         {confirmDelete ? (
           <div className="space-y-2 p-3 bg-red-50 rounded-lg border border-red-200">

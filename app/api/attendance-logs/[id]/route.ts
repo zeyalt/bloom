@@ -18,10 +18,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         startTime: body.start_time !== undefined ? body.start_time : undefined,
         endTime: body.end_time !== undefined ? body.end_time : undefined,
         sentBy: body.sent_by !== undefined ? body.sent_by : undefined,
+        fetcher: body.fetcher !== undefined ? body.fetcher : undefined,
         instructorName: body.instructor_name !== undefined ? body.instructor_name : undefined,
         lessonType: body.lesson_type !== undefined ? body.lesson_type : undefined,
         location: body.location !== undefined ? body.location : undefined,
         absenceReason: body.absence_reason !== undefined ? body.absence_reason : undefined,
+        learned: body.learned !== undefined ? body.learned : undefined,
+        diaryNotes: body.diary_notes !== undefined ? body.diary_notes : undefined,
       },
       include: {
         activity: {

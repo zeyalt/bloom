@@ -14,7 +14,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Receipt, CalendarCheck, ListChecks, Clock, TrendingUp, TrendingDown } from "lucide-react";
+import Link from "next/link";
+import { Receipt, CalendarCheck, ListChecks, Clock, TrendingUp, TrendingDown, NotebookPen, ArrowRight } from "lucide-react";
 import {
   format,
   parseISO,
@@ -405,6 +406,13 @@ export default function AnalyticsPage() {
 
   const k = data.kpis;
 
+  // Learning highlights — most recent reflections (full history, ignores the filter)
+  const childColorById = new Map((childrenData as Child[]).map(c => [c.id, c.color_code]));
+  const highlights = (logsData as AttendanceLog[])
+    .filter(l => l.learned || l.diary_notes)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""))
+    .slice(0, 6);
+
   const inputCls = "px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all";
   const sectionHead = (title: string, sub: string) => (
     <div className="flex items-baseline gap-3 mb-1">
@@ -452,6 +460,44 @@ export default function AnalyticsPage() {
           <KpiCard label="Sessions attended" value={String(k.sessions)} delta={k.sessionsDelta} spark={k.sessionsByMonth} color="#f59e0b" icon={<ListChecks size={16} />} animate={animate} />
           <KpiCard label="Hours attended" value={fmtHours(k.totalHours)} delta={k.hoursDelta} spark={k.hoursByMonth} color="#8B5CF6" icon={<Clock size={16} />} animate={animate} />
         </div>
+
+        {/* ── Learning Highlights (full history) ── */}
+        {highlights.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              {sectionHead("Learning Highlights", "Recent reflections")}
+              <Link href="/journal" className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-primary)] hover:opacity-80 pb-1">
+                See all in Journal <ArrowRight size={13} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {highlights.map(log => {
+                const color = childColorById.get(log.child_id) || "#9ca3af";
+                const title = log.activity?.activity_name || log.activity?.institution || "Activity";
+                return (
+                  <div key={log.id} className="rounded-2xl border border-[var(--border)]/70 bg-[var(--bg-card)] p-4 shadow-sm flex gap-3">
+                    <span className="w-1 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-semibold text-[var(--text-primary)]">{new Date(log.date).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}</span>
+                        <span className="text-[var(--text-muted)] truncate">· {title}</span>
+                      </div>
+                      {log.learned && (
+                        <p className="text-sm text-[var(--text-primary)] mt-1 line-clamp-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mr-1">Learned</span>
+                          {log.learned}
+                        </p>
+                      )}
+                      {!log.learned && log.diary_notes && (
+                        <p className="text-sm text-[var(--text-secondary)] mt-1 line-clamp-2">{log.diary_notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ── Section 1: Spending ── */}
         <section className="space-y-4">

@@ -96,12 +96,14 @@ model AttendanceLog {
   durationMinutes Int?     @map("duration_minutes")
   status          String   @db.VarChar(50)
   sentBy          String?  @map("sent_by") @db.VarChar(255)
+  fetcher         String?  @db.VarChar(255)
   instructorName  String?  @map("instructor_name") @db.VarChar(255)
   lessonType      String?  @map("lesson_type") @db.VarChar(50)
   location        String?  @db.VarChar(255)
   absenceReason   String?  @map("absence_reason") @db.VarChar(255)
   lessonNumber    Int?     @map("lesson_number")
   level           String?  @db.VarChar(50)
+  learned         String?  @db.Text
   diaryNotes      String?  @map("diary_notes") @db.Text
   remarks         String?  @db.Text
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()

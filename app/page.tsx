@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -140,10 +140,13 @@ export default function AgendaPage() {
       start_time: log.start_time,
       end_time: log.end_time,
       sent_by: log.sent_by,
+      fetcher: log.fetcher,
       instructor_name: log.instructor_name,
       lesson_type: log.lesson_type,
       location: log.location,
       absence_reason: log.absence_reason,
+      learned: log.learned,
+      diary_notes: log.diary_notes,
     });
     setModalOpen(true);
   }
@@ -252,7 +255,7 @@ export default function AgendaPage() {
               const hasItems = occ.length > 0 || adhoc.length > 0;
               return (
                 <div key={day.iso} ref={day.isToday ? todayRef : undefined} className="scroll-mt-28 md:scroll-mt-32">
-                  <div className="pb-3">
+                  <div className="pb-2">
                     <div className="flex items-baseline gap-3">
                       <h2 className={cn("font-bold uppercase tracking-wider", day.isToday ? "text-lg text-[var(--accent-primary)]" : "text-base text-[var(--text-primary)]")}>
                         {day.fullLabel}
@@ -273,7 +276,7 @@ export default function AgendaPage() {
                       <p className="text-sm text-[var(--text-muted)]">No activities scheduled</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {occ.map(({ key, schedule: s }) => {
                         const a = s.activity!;
                         const child = a.child;
@@ -285,37 +288,40 @@ export default function AgendaPage() {
                             className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md"
                           >
                             {/* Main card content */}
-                            <div className="p-4">
-                              <div className="flex items-start gap-3 justify-between">
-                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                            <div className="p-3">
+                              <div className="flex items-start gap-2.5 justify-between">
+                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0 pt-0.5">
                                     {s.start_time ? formatTime(s.start_time) : "—"}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-base font-semibold text-[var(--text-primary)] truncate">{title}</span>
-                                      {child && (
-                                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
-                                          {child.name}
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span className="block text-base font-semibold text-[var(--text-primary)] truncate leading-tight">{title}</span>
                                     {(a.institution || a.instructor_name) && (
-                                      <div className="text-sm text-[var(--text-secondary)] truncate mt-0.5">{a.institution || a.instructor_name}</div>
+                                      <div className="text-xs text-[var(--text-secondary)] truncate mt-1">{a.institution || a.instructor_name}</div>
                                     )}
                                   </div>
                                 </div>
-                                {log && (
-                                  <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
-                                    <Check size={12} /> Updated
-                                  </span>
-                                )}
+                                <div className="shrink-0 flex flex-col items-end gap-1">
+                                  {child && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
+                                      {child.name}
+                                    </span>
+                                  )}
+                                  {log && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
+                                      <Check size={12} /> Updated
+                                    </span>
+                                  )}
+                                  {log && (log.learned || log.diary_notes) && (
+                                    <NotebookPen size={13} className="text-[var(--text-muted)]" aria-label="Has reflection" />
+                                  )}
+                                </div>
                               </div>
                             </div>
 
                             {/* Action buttons */}
                             {!log && (
-                              <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-3 flex gap-2">
+                              <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-2.5 flex gap-2">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
                                   className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500 text-white active:scale-95 active:bg-green-600 hover:bg-green-600 transition-all duration-150"
@@ -346,29 +352,32 @@ export default function AgendaPage() {
                             onClick={() => openEditLog(log)}
                             className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md cursor-pointer"
                           >
-                            <div className="p-4">
-                              <div className="flex items-start gap-3 justify-between">
-                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                            <div className="p-3">
+                              <div className="flex items-start gap-2.5 justify-between">
+                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono tabular-nums shrink-0 pt-0.5">
                                     {log.start_time ? formatTime(log.start_time) : "—"}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-base font-semibold text-[var(--text-primary)] truncate">{title}</span>
-                                      {child && (
-                                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
-                                          {child.name}
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span className="block text-base font-semibold text-[var(--text-primary)] truncate leading-tight">{title}</span>
                                     {(a?.institution || a?.instructor_name) && (
-                                      <div className="text-sm text-[var(--text-secondary)] truncate mt-0.5">{a?.institution || a?.instructor_name}</div>
+                                      <div className="text-xs text-[var(--text-secondary)] truncate mt-1">{a?.institution || a?.instructor_name}</div>
                                     )}
                                   </div>
                                 </div>
-                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
-                                  <Check size={12} /> Updated
-                                </span>
+                                <div className="shrink-0 flex flex-col items-end gap-1">
+                                  {child && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${child.color_code}1a`, color: child.color_code }}>
+                                      {child.name}
+                                    </span>
+                                  )}
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
+                                    <Check size={12} /> Updated
+                                  </span>
+                                  {(log.learned || log.diary_notes) && (
+                                    <NotebookPen size={13} className="text-[var(--text-muted)]" aria-label="Has reflection" />
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
