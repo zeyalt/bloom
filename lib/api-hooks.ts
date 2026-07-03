@@ -1,5 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Child, Schedule, Activity, AttendanceLog, Expense } from "./types";
+import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory } from "./types";
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await fetch("/api/categories");
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      return res.json() as Promise<ActivityCategory[]>;
+    },
+  });
+}
 
 export function useChildren() {
   return useQuery({

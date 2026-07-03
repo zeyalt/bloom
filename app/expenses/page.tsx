@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, Pencil } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +10,7 @@ import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
 import { PAYERS } from "@/lib/constants";
+import { useExpenses, useChildren, useCategories, useActivities } from "@/lib/api-hooks";
 import type { Expense, Child, ActivityCategory } from "@/lib/types";
 
 interface ExpenseWithDetails extends Expense {
@@ -39,11 +41,7 @@ const EMPTY_FORM = {
 };
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
-  const [children, setChildren] = useState<Child[]>([]);
-  const [categories, setCategories] = useState<ActivityCategory[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
@@ -54,27 +52,19 @@ export default function ExpensesPage() {
   const [filterYear, setFilterYear] = useState(String(getCurrentYear()));
   const [filterPayer, setFilterPayer] = useState("");
 
-  async function fetchAll() {
-    setLoading(true);
-    try {
-      const [expRes, childRes, catRes, actRes] = await Promise.all([
-        fetch(
-          `/api/expenses?year=${filterYear}${filterChild ? `&child_id=${filterChild}` : ""}${filterPayer ? `&paid_by=${filterPayer}` : ""}`
-        ).then(r => r.json()),
-        fetch("/api/children").then(r => r.json()),
-        fetch("/api/categories").then(r => r.json()),
-        fetch("/api/activities").then(r => r.json()),
-      ]);
-      setExpenses(expRes.data || []);
-      setChildren(Array.isArray(childRes) ? childRes : []);
-      setCategories(Array.isArray(catRes) ? catRes : []);
-      setActivities(Array.isArray(actRes) ? actRes : []);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Cached via React Query (fetch per-year; filter child/payer client-side for
+  // instant tab switches). Refresh via invalidation after saves.
+  const { data: yearExpenses = [], isLoading: loading } = useExpenses({ year: Number(filterYear), limit: 500 });
+  const { data: children = [] } = useChildren();
+  const { data: categories = [] } = useCategories();
+  const { data: activities = [] } = useActivities();
 
-  useEffect(() => { fetchAll(); }, [filterChild, filterYear, filterPayer]);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["expenses"] });
+
+  const expenses = (yearExpenses as ExpenseWithDetails[]).filter(e =>
+    (!filterChild || e.child_id === filterChild) &&
+    (!filterPayer || e.paid_by === filterPayer)
+  );
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -165,7 +155,7 @@ export default function ExpensesPage() {
         throw new Error(j.error || "Save failed");
       }
       setShowForm(false);
-      fetchAll();
+      refresh();
     } catch (e) {
       setError((e as Error).message);
     } finally {

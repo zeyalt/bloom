@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { ChildrenTab } from "@/components/settings/ChildrenTab";
@@ -8,7 +8,7 @@ import { ActivitiesTab } from "@/components/settings/ActivitiesTab";
 import { SchedulesTab } from "@/components/settings/SchedulesTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { cn } from "@/lib/utils";
-import type { Child, Activity, Schedule, ActivityCategory } from "@/lib/types";
+import { useChildren, useActivities, useSchedules, useCategories } from "@/lib/api-hooks";
 
 const TABS = [
   { key: "children",   label: "Children",   subtitle: "Manage profiles and milestones" },
@@ -22,31 +22,13 @@ type Tab = typeof TABS[number]["key"];
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("children");
-  const [children, setChildren] = useState<Child[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [categories, setCategories] = useState<ActivityCategory[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!opts?.silent) setLoading(true);
-    try {
-      const [ch, ac, sc, cat] = await Promise.all([
-        fetch("/api/children").then(r => r.json()),
-        fetch("/api/activities").then(r => r.json()),
-        fetch("/api/schedules").then(r => r.json()),
-        fetch("/api/categories").then(r => r.json()),
-      ]);
-      setChildren(Array.isArray(ch) ? ch : []);
-      setActivities(Array.isArray(ac) ? ac : []);
-      setSchedules(Array.isArray(sc) ? sc : []);
-      setCategories(Array.isArray(cat) ? cat : []);
-    } finally {
-      if (!opts?.silent) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  // Cached via React Query — instant on tab switches, refetched on invalidation.
+  const { data: children = [], isLoading: lc } = useChildren();
+  const { data: activities = [], isLoading: la } = useActivities();
+  const { data: schedules = [], isLoading: ls } = useSchedules();
+  const { data: categories = [], isLoading: lcat } = useCategories();
+  const loading = lc || la || ls || lcat;
 
   // Refresh after edits without unmounting the active tab (preserves filters/selection)
   const silentRefresh = useCallback(() => {
@@ -54,8 +36,7 @@ export default function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["activities"] });
     queryClient.invalidateQueries({ queryKey: ["schedules"] });
     queryClient.invalidateQueries({ queryKey: ["categories"] });
-    fetchAll({ silent: true });
-  }, [queryClient, fetchAll]);
+  }, [queryClient]);
 
   const activeTabConfig = TABS.find(t => t.key === activeTab);
 
