@@ -102,6 +102,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "reflections">("details");
   const [customSender, setCustomSender] = useState("");
   const [customFetcher, setCustomFetcher] = useState("");
   const [customLesson, setCustomLesson] = useState("");
@@ -111,6 +112,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     if (open) {
       setForm(fromPrefill(prefill));
       setError("");
+      setActiveTab("details");
       setCustomSender("");
       setCustomFetcher("");
       setCustomLesson("");
@@ -203,6 +205,22 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       <div className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-[var(--bg-secondary)]/60 rounded-xl border border-[var(--border)]/40">
+          {(["details", "reflections"] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setActiveTab(t)}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${activeTab === t ? "bg-white text-[var(--text-primary)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+            >
+              {t === "details" ? "Details" : "Reflections"}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "details" && (
+        <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
@@ -413,31 +431,33 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         )}
 
-        <div className="pt-1 border-t border-[var(--border)]">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2 mt-3">Reflection</p>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">What was learned</label>
-              <textarea
-                value={form.learned}
-                onChange={e => setForm(f => ({ ...f, learned: e.target.value }))}
-                placeholder="Skills or topics from this session…"
-                rows={2}
-                className={`${inputCls} resize-y`}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection / Notes</label>
-              <textarea
-                value={form.diary_notes}
-                onChange={e => setForm(f => ({ ...f, diary_notes: e.target.value }))}
-                placeholder="How did it go? Highlights, struggles, mood…"
-                rows={3}
-                className={`${inputCls} resize-y`}
-              />
-            </div>
+        </div>
+        )}
+
+        {activeTab === "reflections" && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">What was learned</label>
+            <textarea
+              value={form.learned}
+              onChange={e => setForm(f => ({ ...f, learned: e.target.value }))}
+              placeholder="Skills or topics from this session…"
+              rows={4}
+              className={`${inputCls} resize-y`}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection / Notes</label>
+            <textarea
+              value={form.diary_notes}
+              onChange={e => setForm(f => ({ ...f, diary_notes: e.target.value }))}
+              placeholder="How did it go? Highlights, struggles, mood…"
+              rows={10}
+              className={`${inputCls} resize-y`}
+            />
           </div>
         </div>
+        )}
 
         {confirmDelete ? (
           <div className="space-y-2 p-3 bg-red-50 rounded-lg border border-red-200">
