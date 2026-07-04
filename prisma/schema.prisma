@@ -40,6 +40,15 @@ model ActivityCategory {
   @@map("activity_categories")
 }
 
+// Cached AI summaries, keyed by scope: "all" | "child:<id>" | "activity:<id>"
+model AiSummary {
+  scope       String   @id
+  summary     String   @db.Text
+  generatedAt DateTime @map("generated_at") @db.Timestamp()
+
+  @@map("ai_summaries")
+}
+
 model Activity {
   id               String   @id @default(cuid())
   childId          String   @map("child_id")

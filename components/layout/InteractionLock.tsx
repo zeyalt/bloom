@@ -9,10 +9,21 @@ import { useEffect } from "react";
  */
 export function InteractionLock() {
   useEffect(() => {
-    const block = (e: Event) => e.preventDefault();
-    const events = ["copy", "cut", "paste", "contextmenu", "gesturestart", "gesturechange", "gestureend"];
-    events.forEach(ev => document.addEventListener(ev, block));
-    return () => events.forEach(ev => document.removeEventListener(ev, block));
+    // Allow copy/cut/paste and the callout inside editable fields; block elsewhere.
+    const isEditable = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    const blockClipboard = (e: Event) => { if (!isEditable(e.target)) e.preventDefault(); };
+    const blockGesture = (e: Event) => e.preventDefault();
+
+    const clipEvents = ["copy", "cut", "paste", "contextmenu"];
+    const gestureEvents = ["gesturestart", "gesturechange", "gestureend"];
+    clipEvents.forEach(ev => document.addEventListener(ev, blockClipboard));
+    gestureEvents.forEach(ev => document.addEventListener(ev, blockGesture));
+    return () => {
+      clipEvents.forEach(ev => document.removeEventListener(ev, blockClipboard));
+      gestureEvents.forEach(ev => document.removeEventListener(ev, blockGesture));
+    };
   }, []);
 
   return null;

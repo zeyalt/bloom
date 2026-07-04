@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Avatar } from "@/components/ui/Avatar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
+import { SummaryCard } from "@/components/journal/SummaryCard";
 import { formatDate, cn } from "@/lib/utils";
 import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
@@ -20,6 +21,7 @@ const hasReflection = (l: AttendanceLog) => !!(l.learned || l.diary_notes);
 export default function JournalPage() {
   const queryClient = useQueryClient();
   const [filterChild, setFilterChild] = useState("");
+  const [filterActivity, setFilterActivity] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
 
@@ -55,10 +57,24 @@ export default function JournalPage() {
     setModalOpen(true);
   }
 
+  const childName = (id?: string) => children.find(c => c.id === id)?.name;
+
+  // Activities (with ≥1 reflection) in scope of the child filter
+  const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(hasReflection).map(l => l.activity_id));
+  const scopeActivities = activities
+    .filter(a => reflectionActivityIds.has(a.id) && (!filterChild || a.child_id === filterChild))
+    .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
+
   const entries = (logsData as LogWithDetails[])
     .filter(hasReflection)
     .filter(l => !filterChild || l.child_id === filterChild)
+    .filter(l => !filterActivity || l.activity_id === filterActivity)
     .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
+
+  const selectedActivity = filterActivity ? activities.find(a => a.id === filterActivity) : undefined;
+  const overviewTitle = filterChild ? `${childName(filterChild)}’s learning overview` : "Learning overview";
+  const activityTitle = (a: Activity) =>
+    `${!filterChild ? `${childName(a.child_id) ?? ""} · ` : ""}${a.activity_name || a.institution}`;
 
   return (
     <div className="max-w-[900px] mx-auto w-full">
@@ -66,9 +82,9 @@ export default function JournalPage() {
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         {/* Child filter pills */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
-            onClick={() => setFilterChild("")}
+            onClick={() => { setFilterChild(""); setFilterActivity(""); }}
             className={cn(
               "px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
               !filterChild ? "bg-[var(--text-primary)] text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
@@ -81,7 +97,7 @@ export default function JournalPage() {
             return (
               <button
                 key={child.id}
-                onClick={() => setFilterChild(child.id)}
+                onClick={() => { setFilterChild(child.id); setFilterActivity(""); }}
                 style={active ? { backgroundColor: child.color_code } : undefined}
                 className={cn(
                   "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
@@ -95,6 +111,42 @@ export default function JournalPage() {
           })}
         </div>
 
+        {/* Activity filter */}
+        <div className="mb-6">
+          <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">Activity</label>
+          <select
+            value={filterActivity}
+            onChange={e => setFilterActivity(e.target.value)}
+            className="w-full max-w-sm px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+          >
+            <option value="">All activities</option>
+            {scopeActivities.map(a => (
+              <option key={a.id} value={a.id}>{a.activity_name || a.institution}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* AI summaries */}
+        {entries.length > 0 && (
+          selectedActivity ? (
+            <div className="mb-6">
+              <SummaryCard kind="journey" activityId={selectedActivity.id} title={`${childName(selectedActivity.child_id)}’s ${selectedActivity.activity_name || selectedActivity.institution} journey`} />
+            </div>
+          ) : (
+            <div className="mb-6 space-y-3">
+              <SummaryCard kind="overview" childId={filterChild || undefined} title={overviewTitle} />
+              {scopeActivities.length > 0 && (
+                <>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] pt-1">Per-activity journeys</p>
+                  {scopeActivities.map(a => (
+                    <SummaryCard key={a.id} kind="journey" activityId={a.id} title={activityTitle(a)} />
+                  ))}
+                </>
+              )}
+            </div>
+          )
+        )}
+
         {isLoading ? (
           <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] rounded-2xl animate-pulse" />)}</div>
         ) : entries.length === 0 ? (
@@ -105,6 +157,7 @@ export default function JournalPage() {
           </div>
         ) : (
           <div className="space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Reflections</p>
             {entries.map(log => {
               const child = log.child ?? children.find(c => c.id === log.child_id);
               const title = log.activity?.activity_name || log.activity?.institution || "Activity";
