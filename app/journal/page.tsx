@@ -106,7 +106,7 @@ export default function JournalPage() {
 
   const subTabs: { value: SubTab; label: string }[] = [
     { value: "reflections", label: "Reflections" },
-    { value: "highlights", label: "Highlights" },
+    { value: "highlights", label: "AI Highlights" },
   ];
 
   return (

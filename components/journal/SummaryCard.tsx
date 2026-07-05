@@ -68,7 +68,6 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
     }
   }
 
-  const genLabel = kind === "journey" ? "Generate journey summary" : "Generate overview & highlights";
   const emptyHint = kind === "journey"
     ? "Generate an AI summary of this activity’s journey."
     : "Generate an AI overview and key highlights from these reflections.";
@@ -76,8 +75,10 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
   return (
     <div className="rounded-2xl border border-[var(--border)]/70 bg-[var(--bg-card)] p-5 md:p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Sparkles size={16} className="text-[var(--accent-primary)] shrink-0" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[#7c3aed] text-white shadow-[var(--shadow-xs)] shrink-0">
+            <Sparkles size={14} />
+          </span>
           <h3 className="text-base font-semibold text-[var(--text-primary)] truncate" style={{ fontFamily: "var(--font-display)" }}>{title}</h3>
         </div>
         {summary && (
@@ -101,9 +102,9 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
       ) : (
         <div className="mt-3">
           <p className="text-sm text-[var(--text-secondary)]">{emptyHint}</p>
-          <button onClick={generate} disabled={loading} className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-[var(--accent-primary)] text-white hover:opacity-90 disabled:opacity-60 transition-opacity">
+          <button onClick={generate} disabled={loading} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[var(--accent-primary)] to-[#7c3aed] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:opacity-95 active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100 transition-all cursor-pointer">
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            {loading ? "Generating…" : genLabel}
+            {loading ? "Generating…" : "Generate Summary"}
           </button>
         </div>
       )}
