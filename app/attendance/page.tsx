@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Download, Pencil, Settings, ChevronUp, ChevronDown, NotebookPen } from "lucide-react";
+import { Plus, Download, Pencil, Columns3, ChevronUp, ChevronDown, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
+import { Select } from "@/components/ui/Select";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
-import { formatDate, formatTime, cn } from "@/lib/utils";
+import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import { useChildren, useActivities, useAttendanceLogs, useSchedules } from "@/lib/api-hooks";
@@ -23,7 +24,8 @@ export default function AttendancePage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
-  const [filterChild, setFilterChild] = useState("");
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [filterActivity, setFilterActivity] = useState("");
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "dateTime", dir: "desc" });
@@ -63,7 +65,6 @@ export default function AttendancePage() {
   const { data: schedulesData = [] } = useSchedules();
   const { data: logsData = [], isLoading } = useAttendanceLogs({
     limit: 200,
-    childId: filterChild || undefined,
     activityId: filterActivity || undefined,
   });
 
@@ -124,9 +125,10 @@ export default function AttendancePage() {
   }
 
   // Filter logs by selected child
-  const filteredLogs = filterChild
-    ? logs.filter(l => l.child_id === filterChild)
-    : logs.filter(l => filterActivity ? l.activity_id === filterActivity : true);
+  const filteredLogs = logs.filter(l =>
+    (!selectedChildren.length || selectedChildren.includes(l.child_id)) &&
+    (!filterActivity || l.activity_id === filterActivity)
+  );
 
   // Sortable value for each column key
   function sortValue(log: LogWithDetails, key: string): string {
@@ -168,42 +170,19 @@ export default function AttendancePage() {
 
   return (
     <div className="max-w-[1400px] mx-auto w-full">
-      <Header title="Attendance" subtitle="All sessions logged" />
+      <Header title="Attendance" subtitle="Every session, captured 📋" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
         {/* Child filter pills + actions */}
         <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setFilterChild("")}
-              className={cn(
-                "px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
-                !filterChild ? "bg-[var(--text-primary)] text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-              )}
-            >
-              All
-            </button>
-            {children.map(child => {
-              const active = filterChild === child.id;
-              return (
-                <button
-                  key={child.id}
-                  onClick={() => setFilterChild(child.id)}
-                  style={active ? { backgroundColor: child.color_code } : undefined}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
-                    active ? "text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-                  )}
-                >
-                  <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
-                  {child.name}
-                </button>
-              );
-            })}
-          </div>
+          <ChildFilter children={children} selected={selectedChildren} onToggle={toggleChild} />
           <div className="flex gap-1.5 shrink-0">
-            <button onClick={() => setShowColumnPicker(!showColumnPicker)} className="p-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Customize columns">
-              <Settings size={16} />
+            <button
+              onClick={() => setShowColumnPicker(!showColumnPicker)}
+              title="Show or hide table columns"
+              className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+            >
+              <Columns3 size={14} /> Columns
             </button>
             <Button variant="secondary" size="sm" onClick={() => exportAttendanceCSV(filteredLogs, `attendance-${new Date().toISOString().split('T')[0]}.csv`)}>
               <Download size={14} /> Export
@@ -248,19 +227,15 @@ export default function AttendancePage() {
 
         {/* Activity filter dropdown (secondary) */}
         <div className="mb-6">
-          <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Activity (optional)</label>
-          <select
-            value={filterActivity}
-            onChange={e => setFilterActivity(e.target.value)}
-            className="w-full max-w-sm px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-          >
+          <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">Activity (optional)</label>
+          <Select className="max-w-sm" value={filterActivity} onChange={e => setFilterActivity(e.target.value)}>
             <option value="">All activities</option>
             {activities.map(a => (
               <option key={a.id} value={a.id}>
                 {[a.activity_name, a.institution].filter(Boolean).join(" · ")}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Table */}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays } from "lucide-react";
+import { startOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { ScheduleSlotModal } from "@/components/schedule/ScheduleSlotModal";
 import { cn, formatTime } from "@/lib/utils";
@@ -24,7 +25,8 @@ interface LogWithDetails extends AttendanceLog {
 export default function AgendaPage() {
   const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedChild, setSelectedChild] = useState(""); // "" = all
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]); // empty = everyone
+  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [slotEdit, setSlotEdit] = useState<ScheduleWithDetails | null>(null);
@@ -74,7 +76,7 @@ export default function AgendaPage() {
     logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
   }
 
-  const childMatch = (childId: string) => !selectedChild || childId === selectedChild;
+  const childMatch = (childId: string) => !selectedChildren.length || selectedChildren.includes(childId);
 
   async function quickAttend(s: ScheduleWithDetails, day: WeekDay) {
     const a = s.activity!;
@@ -156,6 +158,14 @@ export default function AgendaPage() {
     setModalOpen(true);
   }
 
+  // Jump to the week containing a date picked from the calendar
+  function onPickWeek(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.value) return;
+    const pickedStart = startOfWeek(parseISO(e.target.value), { weekStartsOn: 0 });
+    const currentStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+    setWeekOffset(Math.round(differenceInCalendarDays(pickedStart, currentStart) / 7));
+  }
+
   // Build per-day items
   const scheduledKeys = new Set<string>();
   const dayBlocks = week.map(day => {
@@ -193,56 +203,46 @@ export default function AgendaPage() {
 
   return (
     <div className="max-w-[1000px] mx-auto w-full">
-      <Header title="Home" subtitle="Track attendance & plan your week" sticky />
+      <Header
+        title="Home"
+        subtitle="Here's how the week is blooming 🌱"
+        sticky
+        action={<Button size="sm" onClick={openAdhoc}><Plus size={14} /> Add event</Button>}
+      />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
-        {/* Week nav + add */}
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <div className="flex items-center gap-1.5">
-            <button onClick={() => setWeekOffset(o => o - 1)} className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Previous week">
-              <ChevronLeft size={16} />
-            </button>
-            <button onClick={() => setWeekOffset(0)} className={cn("px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors", weekOffset === 0 ? "border-[var(--accent-primary)] text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]")}>
-              This week
-            </button>
-            <button onClick={() => setWeekOffset(o => o + 1)} className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Next week">
-              <ChevronRight size={16} />
-            </button>
-          </div>
-          <Button size="sm" onClick={openAdhoc}><Plus size={14} /> Add event</Button>
-        </div>
-
-        <p className="text-sm font-medium text-[var(--text-secondary)] mb-4">{range.label}</p>
-
-        {/* Child toggle pills */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setSelectedChild("")}
-            className={cn(
-              "px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
-              !selectedChild ? "bg-[var(--text-primary)] text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-            )}
-          >
-            All
+        {/* Week nav — full-width week picker (tap to choose any week) */}
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={() => setWeekOffset(o => o - 1)} className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-full border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer" title="Previous week">
+            <ChevronLeft size={16} />
           </button>
-          {children.map(child => {
-            const active = selectedChild === child.id;
-            return (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child.id)}
-                style={active ? { backgroundColor: child.color_code } : undefined}
-                className={cn(
-                  "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
-                  active ? "text-white border-transparent" : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-                )}
-              >
-                <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
-                {child.name}
-              </button>
-            );
-          })}
+          <div className="relative flex-1">
+            <div
+              aria-hidden
+              className={cn(
+                "w-full inline-flex items-center justify-center gap-2 h-10 rounded-full border text-sm font-medium transition-colors",
+                weekOffset === 0
+                  ? "border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[var(--accent-primary)]/5"
+                  : "border-[var(--border)] text-[var(--text-primary)]"
+              )}
+            >
+              <CalendarDays size={15} /> {weekOffset === 0 ? "This week" : range.label}
+            </div>
+            <input
+              type="date"
+              value={range.from}
+              onChange={onPickWeek}
+              aria-label="Pick a week"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
+          <button onClick={() => setWeekOffset(o => o + 1)} className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-full border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer" title="Next week">
+            <ChevronRight size={16} />
+          </button>
         </div>
+
+        {/* Child toggle pills — multi-select (none selected = everyone) */}
+        <ChildFilter className="mb-6" children={children} selected={selectedChildren} onToggle={toggleChild} />
 
         {loading ? (
           <div className="space-y-3">
@@ -285,7 +285,7 @@ export default function AgendaPage() {
                         return (
                           <div
                             key={s.id}
-                            className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md"
+                            className="border border-[var(--border)] rounded-2xl bg-white select-none overflow-hidden shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]"
                           >
                             {/* Main card content */}
                             <div className="p-3">
@@ -323,18 +323,18 @@ export default function AgendaPage() {
                             {!log && (
                               <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] p-2.5 flex gap-2">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
-                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500 text-white active:scale-95 active:bg-green-600 hover:bg-green-600 transition-all duration-150"
-                                  title="Mark as attended"
-                                >
-                                  <Check size={14} /> Attended
-                                </button>
-                                <button
                                   onClick={(e) => { e.stopPropagation(); openAbsentModal(s, day); }}
                                   className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-500 text-white active:scale-95 active:bg-red-600 hover:bg-red-600 transition-all duration-150"
                                   title="Mark as absent"
                                 >
                                   <X size={14} /> Absent
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
+                                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500 text-white active:scale-95 active:bg-green-600 hover:bg-green-600 transition-all duration-150"
+                                  title="Mark as attended"
+                                >
+                                  <Check size={14} /> Attended
                                 </button>
                               </div>
                             )}
@@ -350,7 +350,7 @@ export default function AgendaPage() {
                           <div
                             key={log.id}
                             onClick={() => openEditLog(log)}
-                            className="border border-[var(--border)] rounded-xl bg-white select-none overflow-hidden transition-shadow duration-200 hover:shadow-md cursor-pointer"
+                            className="border border-[var(--border)] rounded-2xl bg-white select-none overflow-hidden shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer"
                           >
                             <div className="p-3">
                               <div className="flex items-start gap-2.5 justify-between">

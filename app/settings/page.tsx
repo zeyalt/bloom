@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 import { useChildren, useActivities, useSchedules, useCategories } from "@/lib/api-hooks";
 
 const TABS = [
-  { key: "children",   label: "Children",   subtitle: "Manage profiles and milestones" },
-  { key: "activities", label: "Activities", subtitle: "Track interests and learning goals" },
-  { key: "schedules",  label: "Schedules",  subtitle: "Set weekly routines and lessons" },
-  { key: "categories", label: "Categories", subtitle: "Organize by activity type" },
+  { key: "children",   label: "Children",   subtitle: "Your growing seedlings 🌿" },
+  { key: "activities", label: "Activities", subtitle: "Passions, hobbies & pursuits ⚽" },
+  { key: "schedules",  label: "Schedules",  subtitle: "The weekly rhythm 🗓️" },
+  { key: "categories", label: "Categories", subtitle: "Sort the fun by type 🏷️" },
 ] as const;
 
 type Tab = typeof TABS[number]["key"];

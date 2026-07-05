@@ -44,7 +44,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
       {/* Panel — centered on all screen sizes */}
       <div
         className={cn(
-          "relative w-full bg-white rounded-[12px] shadow-xl",
+          "relative w-full bg-white rounded-[20px] shadow-[var(--shadow-pop)]",
           "max-h-[90dvh] flex flex-col",
           "animate-in fade-in zoom-in-95 duration-200 ease-out",
           sizeStyles[size]

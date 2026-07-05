@@ -10,6 +10,8 @@ import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
 import { PAYERS } from "@/lib/constants";
+import { Select } from "@/components/ui/Select";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { useExpenses, useChildren, useCategories, useActivities } from "@/lib/api-hooks";
 import type { Expense, Child, ActivityCategory } from "@/lib/types";
 
@@ -48,7 +50,8 @@ export default function ExpensesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [filterChild, setFilterChild] = useState("");
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [filterYear, setFilterYear] = useState(String(getCurrentYear()));
   const [filterPayer, setFilterPayer] = useState("");
 
@@ -62,7 +65,7 @@ export default function ExpensesPage() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["expenses"] });
 
   const expenses = (yearExpenses as ExpenseWithDetails[]).filter(e =>
-    (!filterChild || e.child_id === filterChild) &&
+    (!selectedChildren.length || selectedChildren.includes(e.child_id)) &&
     (!filterPayer || e.paid_by === filterPayer)
   );
 
@@ -167,54 +170,30 @@ export default function ExpensesPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto w-full">
-      <Header title="Expenses" subtitle="All payments and fees" />
+      <Header title="Expenses" subtitle="Where the enrichment budget grows 💰" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
+        {/* Child filter — multi-select (none selected = everyone) */}
+        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
+
         {/* Filters and actions - single row on desktop, wraps on mobile */}
         <div className="flex flex-wrap gap-2 mb-8 items-end">
           <div className="flex-1 min-w-[110px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Year</label>
-            <select
-              value={filterYear}
-              onChange={e => setFilterYear(e.target.value)}
-              className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-            >
+            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">Year</label>
+            <Select value={filterYear} onChange={e => setFilterYear(e.target.value)}>
               {years.map(y => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
+                <option key={y} value={y}>{y}</option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Child</label>
-            <select
-              value={filterChild}
-              onChange={e => setFilterChild(e.target.value)}
-              className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-            >
-              <option value="">All</option>
-              {children.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Payer</label>
-            <select
-              value={filterPayer}
-              onChange={e => setFilterPayer(e.target.value)}
-              className="w-full px-2.5 py-2 text-sm border border-[var(--border)] rounded-[8px] bg-white focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
-            >
+            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">Payer</label>
+            <Select value={filterPayer} onChange={e => setFilterPayer(e.target.value)}>
               <option value="">All payers</option>
               {PAYERS.map(p => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
+                <option key={p} value={p}>{p}</option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <Button onClick={() => exportExpensesCSV(expenses, `expenses-${filterYear}.csv`)} variant="secondary" size="sm">

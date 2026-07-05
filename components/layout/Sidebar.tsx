@@ -50,10 +50,10 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                "flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm transition-all duration-150",
                 active
-                  ? "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
               )}
             >
               <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />

@@ -416,7 +416,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="max-w-[1200px] mx-auto w-full">
-        <Header title="Analytics" subtitle="Spend, attendance & time insights" />
+        <Header title="Analytics" subtitle="The story behind the numbers 📊" />
         <div className="px-5 md:px-8 space-y-6 pb-8 pt-4 md:pt-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] rounded-2xl animate-pulse" />)}</div>
           {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] rounded-2xl animate-pulse" />)}
@@ -427,22 +427,19 @@ export default function AnalyticsPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto w-full">
-      <Header title="Analytics" subtitle="Spend, attendance & time insights" />
+      <Header title="Analytics" subtitle="The story behind the numbers 📊" />
 
       <div className="px-5 md:px-8 space-y-10 pb-8 pt-4 md:pt-6">
         {/* Filter bar */}
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
             <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">From</label>
-            <input type="month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={inputCls} />
+            <input type="month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={`${inputCls} w-full`} />
           </div>
-          <div>
+          <div className="flex-1">
             <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">To</label>
-            <input type="month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={inputCls} />
+            <input type="month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={`${inputCls} w-full`} />
           </div>
-          <p className="text-xs text-[var(--text-muted)] pb-2.5 ml-auto">
-            {format(data.from, "MMM yyyy")} – {format(data.to, "MMM yyyy")}
-          </p>
         </div>
 
         {/* KPI strip */}
