@@ -237,7 +237,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         activity: act,
         category: act.category as ActivityCategory | undefined,
         term: first.term ?? null,
-        level: first.level ?? null,
+        level: act.level ?? null,
         effective_from: first.effective_from,
         effective_until,
         slots: sorted,

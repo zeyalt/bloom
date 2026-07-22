@@ -20,7 +20,6 @@ const EMPTY_FORM = {
   end_time: "",
   location: "",
   institution: "",
-  level: "",
   is_active: true,
   effective_from: "",
   effective_until: "",
@@ -48,7 +47,6 @@ export function ScheduleSlotModal({ open, onClose, schedule, title, onSaved }: P
         end_time: schedule.end_time ?? "",
         location: schedule.location ?? "",
         institution: "",
-        level: "",
         is_active: schedule.is_active,
         effective_from: schedule.effective_from ? String(schedule.effective_from).slice(0, 10) : "",
         effective_until: schedule.effective_until ? String(schedule.effective_until).slice(0, 10) : "",
@@ -106,11 +104,6 @@ export function ScheduleSlotModal({ open, onClose, schedule, title, onSaved }: P
         <div>
           <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution</label>
           <input type="text" value={form.institution} onChange={e => setForm(f => ({ ...f, institution: e.target.value }))} placeholder="e.g. Barca Academy" className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
-          <input type="text" value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))} placeholder="e.g. U10" className={inputCls} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">

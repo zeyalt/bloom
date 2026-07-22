@@ -18,6 +18,7 @@ export async function PATCH(req: Request, { params }: Params) {
         activityName: body.activity_name ?? body.activityName ?? null,
         institution: body.institution,
         instructorName: body.instructor_name || body.instructorName,
+        level: body.level !== undefined ? body.level : undefined,
         status: body.status,
         startDate: body.start_date ? new Date(body.start_date) : undefined,
         endDate: body.end_date === null ? null : (body.end_date ? new Date(body.end_date) : undefined),

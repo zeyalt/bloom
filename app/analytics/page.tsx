@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -28,10 +28,12 @@ import {
   isWithinInterval,
 } from "date-fns";
 import { Header } from "@/components/layout/Header";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from "@/lib/constants";
 import { useExpenses, useAttendanceLogs, useActivities, useChildren } from "@/lib/api-hooks";
 import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
+import { FerryBreakdown } from "@/components/analytics/FerryBreakdown";
 import type { Expense, AttendanceLog, Activity, Child } from "@/lib/types";
 
 const DISPLAY_FONT = "var(--font-display)";
@@ -242,7 +244,19 @@ export default function AnalyticsPage() {
   const [fromMonth, setFromMonth] = useState(`${thisYear}-01`);
   const [toMonth, setToMonth] = useState(nowMonth);
 
+  // Child filter — all selected by default; toggling a pill off hides that child.
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const childrenInit = useRef(false);
+  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  useEffect(() => {
+    if (!childrenInit.current && (childrenData as Child[]).length) {
+      setSelectedChildren((childrenData as Child[]).map(c => c.id));
+      childrenInit.current = true;
+    }
+  }, [childrenData]);
+
   const data = useMemo(() => {
+    const childOk = (id: string) => selectedChildren.includes(id);
     // Effective range (guard from > to by swapping).
     const a = startOfMonth(parseISO(`${fromMonth}-01`));
     const b = endOfMonth(parseISO(`${toMonth}-01`));
@@ -254,10 +268,10 @@ export default function AnalyticsPage() {
 
     const inRange = (d: string, lo: Date, hi: Date) => isWithinInterval(parseISO(d.slice(0, 10)), { start: lo, end: hi });
 
-    const expIn = (expensesData as Expense[]).filter(e => inRange(e.payment_date, from, to));
-    const expPrev = (expensesData as Expense[]).filter(e => inRange(e.payment_date, prevFrom, prevTo));
-    const logIn = (logsData as AttendanceLog[]).filter(l => inRange(l.date, from, to));
-    const logPrev = (logsData as AttendanceLog[]).filter(l => inRange(l.date, prevFrom, prevTo));
+    const expIn = (expensesData as Expense[]).filter(e => childOk(e.child_id) && inRange(e.payment_date, from, to));
+    const expPrev = (expensesData as Expense[]).filter(e => childOk(e.child_id) && inRange(e.payment_date, prevFrom, prevTo));
+    const logIn = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, from, to));
+    const logPrev = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, prevFrom, prevTo));
 
     // Lookups
     const actById = new Map((activitiesData as Activity[]).map(a2 => [a2.id, a2]));
@@ -365,7 +379,7 @@ export default function AnalyticsPage() {
       // raw for hours section (depends on its own toggles)
       logIn,
     };
-  }, [expensesData, logsData, activitiesData, childrenData, fromMonth, toMonth]);
+  }, [expensesData, logsData, activitiesData, childrenData, fromMonth, toMonth, selectedChildren]);
 
   // ── Hours section (its own toggles) ──
   const [hoursGroup, setHoursGroup] = useState<"category" | "activity">("category");
@@ -431,14 +445,17 @@ export default function AnalyticsPage() {
 
       <div className="px-5 md:px-8 space-y-10 pb-8 pt-4 md:pt-6">
         {/* Filter bar */}
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">From</label>
-            <input type="month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={`${inputCls} w-full`} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">To</label>
-            <input type="month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={`${inputCls} w-full`} />
+        <div className="space-y-3">
+          <ChildFilter children={childrenData as Child[]} selected={selectedChildren} onToggle={toggleChild} />
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">From</label>
+              <input type="month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={`${inputCls} w-full`} />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">To</label>
+              <input type="month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={`${inputCls} w-full`} />
+            </div>
           </div>
         </div>
 
@@ -637,10 +654,16 @@ export default function AnalyticsPage() {
           </div>
         </section>
 
-        {/* ── Section 4: Engagement Timeline (full history) ── */}
+        {/* ── Section 4: Sender / Fetcher breakdown ── */}
+        <section className="space-y-4">
+          {sectionHead("Who Ferries Whom", "Sender & fetcher by activity, per child")}
+          <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
+        </section>
+
+        {/* ── Section 5: Engagement Timeline (full history) ── */}
         <section className="space-y-4">
           {sectionHead("Activity Timeline", "How long each child has done each activity")}
-          <EngagementTimeline activities={activitiesData} children={childrenData} />
+          <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
         </section>
       </div>
     </div>

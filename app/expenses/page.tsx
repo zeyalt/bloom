@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, Pencil } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -51,6 +51,7 @@ export default function ExpensesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const childrenInit = useRef(false);
   const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [filterYear, setFilterYear] = useState(String(getCurrentYear()));
   const [filterPayer, setFilterPayer] = useState("");
@@ -64,8 +65,16 @@ export default function ExpensesPage() {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["expenses"] });
 
+  // Select all children by default once they load; toggling a pill off hides that child.
+  useEffect(() => {
+    if (!childrenInit.current && children.length) {
+      setSelectedChildren(children.map(c => c.id));
+      childrenInit.current = true;
+    }
+  }, [children]);
+
   const expenses = (yearExpenses as ExpenseWithDetails[]).filter(e =>
-    (!selectedChildren.length || selectedChildren.includes(e.child_id)) &&
+    selectedChildren.includes(e.child_id) &&
     (!filterPayer || e.paid_by === filterPayer)
   );
 

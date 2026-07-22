@@ -25,7 +25,7 @@ const STATUS_VARIANTS: Record<string, "success" | "warning" | "muted" | "danger"
 
 const EMPTY_FORM = {
   child_id: "", category_id: "", activity_name: "", institution: "", instructor_name: "",
-  status: "active" as ActivityStatus, start_date: "", end_date: "", notes: "",
+  level: "", status: "active" as ActivityStatus, start_date: "", end_date: "", notes: "",
 };
 
 export function ActivitiesTab({ activities, categories, children, onRefresh }: Props) {
@@ -58,6 +58,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       activity_name: a.activity_name ?? "",
       institution: a.institution,
       instructor_name: a.instructor_name ?? "",
+      level: a.level ?? "",
       status: a.status,
       start_date: a.start_date ? a.start_date.slice(0, 10) : "",
       end_date: a.end_date ? a.end_date.slice(0, 10) : "",
@@ -81,6 +82,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         activity_name: form.activity_name.trim(),
         institution: form.institution.trim(),
         instructor_name: form.instructor_name.trim(),
+        level: form.level.trim() || null,
         start_date: form.start_date,
         end_date: form.end_date || null,
         notes: form.notes || null,
@@ -290,6 +292,17 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.instructor_name}
               onChange={e => setForm(f => ({ ...f, instructor_name: e.target.value }))}
               placeholder="e.g. Coach Reuben"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
+            <input
+              type="text"
+              value={form.level}
+              onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
+              placeholder="e.g. P2 (Distinction), Kids 4T, Red Belt"
               className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>

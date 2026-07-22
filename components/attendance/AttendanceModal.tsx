@@ -40,7 +40,7 @@ interface AttForm {
   diary_notes: string;
 }
 
-const ABSENCE_REASON_OPTIONS = ["Sick", "Cancelled", "Transport Issue", "Conflict", "Other"];
+const ABSENCE_REASON_OPTIONS = ["Sick", "Conflict", "Overseas", "Other"];
 const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online", "Sparring"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 const FETCHER_OPTIONS = SENT_BY_OPTIONS;

@@ -20,7 +20,6 @@ export async function PATCH(req: Request, { params }: Params) {
         endTime: body.end_time !== undefined ? body.end_time : body.endTime,
         durationMinutes: body.duration_minutes !== undefined ? body.duration_minutes : body.durationMinutes,
         location: body.location !== undefined ? body.location : undefined,
-        level: body.level !== undefined ? body.level : undefined,
         term: body.term !== undefined ? body.term : undefined,
         isActive: body.is_active !== undefined ? body.is_active : body.isActive,
         effectiveFrom: body.effective_from !== undefined ? (body.effective_from ? new Date(body.effective_from) : null) : undefined,

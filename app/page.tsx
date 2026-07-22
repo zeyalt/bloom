@@ -25,7 +25,8 @@ interface LogWithDetails extends AttendanceLog {
 export default function AgendaPage() {
   const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedChildren, setSelectedChildren] = useState<string[]>([]); // empty = everyone
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const childrenInit = useRef(false);
   const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
@@ -52,6 +53,14 @@ export default function AgendaPage() {
   const logs = logsData;
   const loading = isLoading;
 
+  // Select all children by default once they load; toggling a pill off hides that child.
+  useEffect(() => {
+    if (!childrenInit.current && children.length) {
+      setSelectedChildren(children.map(c => c.id));
+      childrenInit.current = true;
+    }
+  }, [children]);
+
   // On first load of the current week, jump to today so the user lands on the
   // current day (not Sunday). Earlier days remain above to scroll back to.
   useEffect(() => {
@@ -76,7 +85,7 @@ export default function AgendaPage() {
     logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
   }
 
-  const childMatch = (childId: string) => !selectedChildren.length || selectedChildren.includes(childId);
+  const childMatch = (childId: string) => selectedChildren.includes(childId);
 
   async function quickAttend(s: ScheduleWithDetails, day: WeekDay) {
     const a = s.activity!;

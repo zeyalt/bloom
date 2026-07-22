@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Pencil, NotebookPen, ChevronDown, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ export default function JournalPage() {
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<SubTab>("reflections");
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const childrenInit = useRef(false);
   const [filterActivity, setFilterActivity] = useState("");
 
   const toggleChild = (id: string) => {
@@ -42,6 +43,14 @@ export default function JournalPage() {
 
   const children = childrenData;
   const activities = activitiesData;
+
+  // Select all children by default once they load; toggling a pill off hides that child.
+  useEffect(() => {
+    if (!childrenInit.current && children.length) {
+      setSelectedChildren(children.map(c => c.id));
+      childrenInit.current = true;
+    }
+  }, [children]);
 
   async function fetchAll() {
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
@@ -80,12 +89,12 @@ export default function JournalPage() {
 
   const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(hasReflection).map(l => l.activity_id));
   const scopeActivities = activities
-    .filter(a => reflectionActivityIds.has(a.id) && (!selectedChildren.length || selectedChildren.includes(a.child_id)))
+    .filter(a => reflectionActivityIds.has(a.id) && selectedChildren.includes(a.child_id))
     .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
 
   const entries = (logsData as LogWithDetails[])
     .filter(hasReflection)
-    .filter(l => !selectedChildren.length || selectedChildren.includes(l.child_id))
+    .filter(l => selectedChildren.includes(l.child_id))
     .filter(l => !filterActivity || l.activity_id === filterActivity)
     .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
 
