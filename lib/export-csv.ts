@@ -1,7 +1,6 @@
 import { formatDate, formatCurrency } from "./utils";
-import type { AttendanceLog, Expense, Schedule, Activity } from "./types";
 
-export function downloadCSV(filename: string, csv: string) {
+function downloadCSV(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
@@ -69,37 +68,6 @@ export function exportExpensesCSV(expenses: any[], filename = "expenses.csv") {
     formatCurrency(exp.amount),
     exp.paid_by || "",
     exp.year || "",
-  ]);
-
-  const csv = [
-    headers.join(","),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(",")),
-  ].join("\n");
-
-  downloadCSV(filename, csv);
-}
-
-export function exportSchedulesCSV(schedules: any[], filename = "schedules.csv") {
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  const headers = [
-    "Child",
-    "Activity",
-    "Day",
-    "Start Time",
-    "End Time",
-    "Location",
-    "Active",
-  ];
-
-  const rows = schedules.map(s => [
-    s.activity?.child?.name || "",
-    s.activity?.institution || "",
-    dayNames[s.day_of_week] || "",
-    s.start_time || "",
-    s.end_time || "",
-    s.location || "",
-    s.is_active ? "Yes" : "No",
   ]);
 
   const csv = [

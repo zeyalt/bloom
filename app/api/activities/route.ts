@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(serialize(activities));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch activities" },
       { status: 500 }
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(activity), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create activity" },
       { status: 500 }

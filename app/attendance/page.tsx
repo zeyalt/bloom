@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Plus, Download, Pencil, Columns3, ChevronUp, ChevronDown, NotebookPen } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, Download, Pencil, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { ChildFilter } from "@/components/ui/ChildFilter";
+import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
@@ -19,14 +20,43 @@ interface LogWithDetails extends AttendanceLog {
   child?: Child;
 }
 
+const PAGE_SIZE = 30;
+
+const activityLabel = (a: Activity) => a.activity_name || a.institution;
+
+// Sortable value for each column key. `child` and `activity` come from the
+// joins `useAttendanceLogs` attaches, so no lookup table is needed here.
+function sortValue(log: LogWithDetails, key: string): string {
+  switch (key) {
+    case "dateTime": return `${log.date.slice(0, 10)} ${log.start_time ?? ""}`;
+    case "child": return log.child?.name ?? "";
+    case "activity": return log.activity?.activity_name ?? "";
+    case "institution": return log.activity?.institution ?? "";
+    case "level": return log.level ?? log.activity?.level ?? "";
+    case "coach": return log.instructor_name ?? "";
+    case "lessonType": return log.lesson_type ?? "";
+    case "sentBy": return log.sent_by ?? "";
+    case "fetcher": return log.fetcher ?? "";
+    case "absenceReason": return (log.status === "absent" || log.status === "cancelled_by_provider") ? (log.absence_reason ?? "") : "";
+    case "status": return ATTENDANCE_STATUS_LABELS[log.status] ?? log.status;
+    default: return "";
+  }
+}
+
 export default function AttendancePage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const childrenInit = useRef(false);
-  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  // Every filter/sort change returns the user to the first page.
+  const toggleChild = (id: string) => {
+    setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+    setPage(1);
+  };
   const [filterActivity, setFilterActivity] = useState("");
+  const [filterInstitution, setFilterInstitution] = useState("");
+  const [page, setPage] = useState(1);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "dateTime", dir: "desc" });
   const [visibleColumns, setVisibleColumns] = useState({
@@ -64,8 +94,9 @@ export default function AttendancePage() {
   const { data: childrenData = [] } = useChildren();
   const { data: activitiesData = [] } = useActivities();
   const { data: schedulesData = [] } = useSchedules();
+  // This tab is the full attendance record — never a truncated window.
   const { data: logsData = [], isLoading } = useAttendanceLogs({
-    limit: 200,
+    limit: "all",
   });
 
   const children = childrenData;
@@ -93,10 +124,9 @@ export default function AttendancePage() {
     );
   }
 
+  // Saving a log changes logs only — children and activities are untouched.
   async function fetchAll() {
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
-    await queryClient.invalidateQueries({ queryKey: ["activities"] });
-    await queryClient.invalidateQueries({ queryKey: ["children"] });
   }
 
   function openAdd() {
@@ -132,42 +162,42 @@ export default function AttendancePage() {
     setModalOpen(true);
   }
 
-  // Get unique activity names and map to their IDs
-  const activityNameMap = new Map<string, string[]>();
-  activities.forEach(a => {
-    const name = a.activity_name || a.institution;
-    if (!activityNameMap.has(name)) activityNameMap.set(name, []);
-    activityNameMap.get(name)!.push(a.id);
-  });
-  const uniqueActivities = Array.from(activityNameMap.keys()).sort();
+  // Filters cascade: Child narrows Activity, and Child + Activity narrow Institution.
+  // Each stage is derived from `activities`, so options that would yield zero rows
+  // never appear.
+  //
+  // A stored selection that has fallen out of its option list (e.g. after unchecking
+  // a child) falls back to "All", so the table never empties behind a filter the user
+  // can no longer see. Derived rather than reset in an effect — no cascading render.
+  const { activityOptions, activeActivity, institutionOptions, activeInstitution, matchingActivityIds } = useMemo(() => {
+    const childActivities = activities.filter(a => selectedChildren.includes(a.child_id));
 
-  // Filter logs by selected child and activity name.
-  // All children are selected by default; unselecting a pill hides that child's rows.
-  const filteredLogs = logs.filter(l => {
-    const childMatches = selectedChildren.includes(l.child_id);
-    const activityMatches = !filterActivity || (activityNameMap.get(filterActivity)?.includes(l.activity_id) ?? false);
-    return childMatches && activityMatches;
-  });
+    const activityOptions = Array.from(new Set(childActivities.map(activityLabel))).sort();
+    const activeActivity = activityOptions.includes(filterActivity) ? filterActivity : "";
 
-  // Sortable value for each column key
-  function sortValue(log: LogWithDetails, key: string): string {
-    switch (key) {
-      case "dateTime": return `${log.date.slice(0, 10)} ${log.start_time ?? ""}`;
-      case "child": return log.child?.name ?? children.find(c => c.id === log.child_id)?.name ?? "";
-      case "activity": return log.activity?.activity_name ?? "";
-      case "institution": return log.activity?.institution ?? "";
-      case "level": return log.level ?? log.activity?.level ?? "";
-      case "coach": return log.instructor_name ?? "";
-      case "lessonType": return log.lesson_type ?? "";
-      case "sentBy": return log.sent_by ?? "";
-      case "fetcher": return log.fetcher ?? "";
-      case "absenceReason": return (log.status === "absent" || log.status === "cancelled_by_provider") ? (log.absence_reason ?? "") : "";
-      case "status": return ATTENDANCE_STATUS_LABELS[log.status] ?? log.status;
-      default: return "";
-    }
-  }
+    const inActivity = childActivities.filter(a => !activeActivity || activityLabel(a) === activeActivity);
 
-  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const institutionOptions = Array.from(new Set(inActivity.map(a => a.institution))).sort();
+    const activeInstitution = institutionOptions.includes(filterInstitution) ? filterInstitution : "";
+
+    // The set of activities passing every active filter — one lookup drives the table.
+    const matchingActivityIds = new Set(
+      inActivity
+        .filter(a => !activeInstitution || a.institution === activeInstitution)
+        .map(a => a.id)
+    );
+
+    return { activityOptions, activeActivity, institutionOptions, activeInstitution, matchingActivityIds };
+  }, [activities, selectedChildren, filterActivity, filterInstitution]);
+
+  const filteredLogs = useMemo(
+    () => logs.filter(l => matchingActivityIds.has(l.activity_id)),
+    [logs, matchingActivityIds]
+  );
+
+  // Sorting several hundred rows is not free, and without this it re-ran on every
+  // render — including each toggle of the column picker.
+  const sortedLogs = useMemo(() => [...filteredLogs].sort((a, b) => {
     const av = sortValue(a, sort.key);
     const bv = sortValue(b, sort.key);
     // Push empty values to the bottom regardless of direction
@@ -175,12 +205,18 @@ export default function AttendancePage() {
     if (av && !bv) return -1;
     const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
     return sort.dir === "asc" ? cmp : -cmp;
-  });
+  }), [filteredLogs, sort.key, sort.dir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedLogs = sortedLogs.slice(pageStart, pageStart + PAGE_SIZE);
 
   function toggleSort(key: string) {
     setSort(s => s.key === key
       ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
       : { key, dir: key === "dateTime" ? "desc" : "asc" });
+    setPage(1);
   }
 
   const SortIcon = ({ col }: { col: string }) =>
@@ -193,10 +229,56 @@ export default function AttendancePage() {
       <Header title="Attendance" subtitle="Every session, captured 📋" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Child filter pills + actions */}
+        {/* Filters — one row, matching the other tabs */}
+        <FilterBar stretch className="mb-4">
+          <FilterField label="Child">
+            <MultiSelect
+              className="w-44"
+              ariaLabel="Filter by child"
+              allLabel="All Children"
+              emptyLabel="No Children"
+              pluralNoun="Children"
+              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
+              selected={selectedChildren}
+              onToggle={toggleChild}
+            />
+          </FilterField>
+          <FilterField label="Activity">
+            <SingleSelect
+              className="w-44"
+              ariaLabel="Filter by activity"
+              value={activeActivity}
+              onChange={v => { setFilterActivity(v); setFilterInstitution(""); setPage(1); }}
+              options={[
+                { value: "", label: "All Activities" },
+                ...activityOptions.map(name => ({ value: name, label: name })),
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Institution">
+            <SingleSelect
+              className="w-44"
+              ariaLabel="Filter by institution"
+              value={activeInstitution}
+              onChange={v => { setFilterInstitution(v); setPage(1); }}
+              options={[
+                { value: "", label: "All Institutions" },
+                ...institutionOptions.map(name => ({ value: name, label: name })),
+              ]}
+            />
+          </FilterField>
+        </FilterBar>
+
+        {/* Actions — record count sits opposite the buttons so the two never collide */}
         <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
-          <ChildFilter children={children} selected={selectedChildren} onToggle={toggleChild} />
-          <div className="flex gap-1.5 shrink-0">
+          <p className="text-xs text-[var(--text-muted)]">
+            {sortedLogs.length === 0
+              ? "No records"
+              : sortedLogs.length > PAGE_SIZE
+                ? `Showing ${pageStart + 1}–${pageStart + pagedLogs.length} of ${sortedLogs.length} records`
+                : `${sortedLogs.length} record${sortedLogs.length === 1 ? "" : "s"}`}
+          </p>
+          <div className="flex gap-1.5 shrink-0 ml-auto">
             <button
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
@@ -246,41 +328,6 @@ export default function AttendancePage() {
           </div>
         )}
 
-        {/* Activity filter pills */}
-        <div className="mb-6">
-          <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-2">Activity</label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setFilterActivity("")}
-              className={`h-9 px-3.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${
-                filterActivity === ""
-                  ? "bg-[var(--text-primary)] text-white border-transparent"
-                  : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              All
-            </button>
-            {uniqueActivities.map(name => {
-              const active = filterActivity === name;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setFilterActivity(name)}
-                  className={`h-9 px-3.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${
-                    active
-                      ? "bg-[var(--accent-primary)] text-white border-[var(--accent-primary)]"
-                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-                  }`}
-                >
-                  {name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Table */}
         {loading ? (
           <div className="space-y-2">
@@ -311,7 +358,7 @@ export default function AttendancePage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedLogs.map(log => (
+                {pagedLogs.map(log => (
                   <tr
                     key={log.id}
                     className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
@@ -373,6 +420,31 @@ export default function AttendancePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination — only surfaces once the filtered set outgrows one page */}
+        {!loading && sortedLogs.length > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={14} /> Prev
+            </Button>
+            <span className="text-xs text-[var(--text-secondary)] tabular-nums">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next <ChevronRight size={14} />
+            </Button>
           </div>
         )}
 

@@ -30,7 +30,7 @@ export async function PATCH(req: Request, { params }: Params) {
       },
     });
     return NextResponse.json(serialize(activity));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update activity" },
       { status: 500 }
@@ -45,7 +45,7 @@ export async function DELETE(_req: Request, { params }: Params) {
       where: { id },
     });
     return new NextResponse(null, { status: 204 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to delete activity" },
       { status: 500 }

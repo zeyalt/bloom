@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       },
     });
     return NextResponse.json(serialize(category));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update category" },
       { status: 500 }

@@ -11,7 +11,10 @@ export async function GET(req: Request) {
     const activityId = url.searchParams.get("activity_id");
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
-    const limit = parseInt(url.searchParams.get("limit") || "100");
+    // `limit=all` returns every matching row — used by views that must show a
+    // complete history (Attendance). Any other value keeps the default cap.
+    const limitParam = url.searchParams.get("limit");
+    const take = limitParam === "all" ? undefined : parseInt(limitParam || "100");
     const offset = parseInt(url.searchParams.get("offset") || "0");
 
     const where: any = {};
@@ -23,26 +26,25 @@ export async function GET(req: Request) {
       if (to) where.date.lte = new Date(to);
     }
 
-    const [data, count] = await Promise.all([
-      prisma.attendanceLog.findMany({
-        where,
-        include: {
-          activity: {
-            include: {
-              category: true,
-            },
-          },
-          child: true,
-        },
-        orderBy: { date: "desc" },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.attendanceLog.count({ where }),
-    ]);
+    // Scalars only. The activity (with its category) and the child used to be
+    // embedded on every row, repeating the same handful of objects hundreds of
+    // times — ~1.4 KB per row. Both are already cached client-side by their own
+    // endpoints, so `useAttendanceLogs` re-attaches them by id after fetching.
+    const data = await prisma.attendanceLog.findMany({
+      where,
+      orderBy: { date: "desc" },
+      take,
+      skip: offset,
+    });
+
+    // An unlimited query already knows its own total; only a windowed one needs
+    // the extra round trip.
+    const count = take === undefined
+      ? data.length
+      : await prisma.attendanceLog.count({ where });
 
     return NextResponse.json(serialize({ data, count }));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch attendance logs", data: [], count: 0 },
       { status: 500 }
@@ -84,7 +86,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(log), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create attendance log" },
       { status: 500 }

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory } from "./types";
 
@@ -47,25 +48,79 @@ export function useActivities() {
   });
 }
 
-export function useAttendanceLogs(options?: { limit?: number; from?: string; to?: string; childId?: string; activityId?: string }) {
-  const queryKey = ["attendance-logs", options];
+/**
+ * The whole attendance history, fetched once under a single key.
+ *
+ * Every tab used to fetch its own window (`{limit:300}`, `{limit:"all"}`,
+ * `{from,to}`…), and because the options object is part of the query key those
+ * were four separate cache entries of the same few hundred rows — a fresh
+ * download and JSON parse on each tab switch, and again on every week arrow.
+ * One shared entry means the second tab reads from cache.
+ */
+function useAllAttendanceLogs() {
   return useQuery({
-    queryKey,
+    queryKey: ["attendance-logs"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (options?.limit) params.append("limit", String(options.limit));
-      if (options?.from) params.append("from", options.from);
-      if (options?.to) params.append("to", options.to);
-      if (options?.childId) params.append("child_id", options.childId);
-      if (options?.activityId) params.append("activity_id", options.activityId);
-
-      const url = `/api/attendance-logs${params.toString() ? "?" + params.toString() : ""}`;
-      const res = await fetch(url);
+      const res = await fetch("/api/attendance-logs?limit=all");
       if (!res.ok) throw new Error("Failed to fetch attendance logs");
       const data = await res.json();
       return data.data as AttendanceLog[];
     },
   });
+}
+
+/**
+ * Attendance logs narrowed to a window, with `activity` (including its
+ * category) and `child` re-attached from the caches that already hold them.
+ * The filtering that the API used to do server-side now happens here against
+ * the shared dataset — same shape out, no extra request.
+ *
+ * `limit` counts from the most recent log, matching the API's `date desc`
+ * ordering, and is applied after the other filters.
+ */
+export function useAttendanceLogs(options?: { limit?: number | "all"; from?: string; to?: string; childId?: string; activityId?: string }) {
+  const logsQuery = useAllAttendanceLogs();
+  const childrenQuery = useChildren();
+  const activitiesQuery = useActivities();
+
+  const { limit, from, to, childId, activityId } = options ?? {};
+  const allLogs = logsQuery.data;
+  const children = childrenQuery.data;
+  const activities = activitiesQuery.data;
+
+  const data = useMemo(() => {
+    if (!allLogs) return undefined;
+
+    const activityById = new Map((activities ?? []).map(a => [a.id, a]));
+    const childById = new Map((children ?? []).map(c => [c.id, c]));
+
+    const filtered = allLogs.filter(log => {
+      if (childId && log.child_id !== childId) return false;
+      if (activityId && log.activity_id !== activityId) return false;
+      // Dates are ISO strings, so a lexical compare on the date part is a
+      // correct inclusive range check.
+      const day = log.date.slice(0, 10);
+      if (from && day < from.slice(0, 10)) return false;
+      if (to && day > to.slice(0, 10)) return false;
+      return true;
+    });
+
+    const windowed = typeof limit === "number" ? filtered.slice(0, limit) : filtered;
+
+    return windowed.map(log => ({
+      ...log,
+      activity: activityById.get(log.activity_id),
+      child: childById.get(log.child_id),
+    }));
+  }, [allLogs, activities, children, limit, from, to, childId, activityId]);
+
+  return {
+    ...logsQuery,
+    data,
+    // Rows would otherwise render with blank activity/child names for a frame
+    // while the lookup queries are still in flight.
+    isLoading: logsQuery.isLoading || childrenQuery.isLoading || activitiesQuery.isLoading,
+  };
 }
 
 export function useExpenses(options?: { limit?: number; childId?: string; year?: number }) {

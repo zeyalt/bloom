@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(serialize(milestones || []));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch milestones" },
       { status: 500 }
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(milestone), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create milestone" },
       { status: 500 }

@@ -10,7 +10,7 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
     return NextResponse.json(serialize(children));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch children" },
       { status: 500 }
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(child), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create child" },
       { status: 500 }

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Pencil, NotebookPen, ChevronDown, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
-import { ChildFilter } from "@/components/ui/ChildFilter";
 import { Segmented } from "@/components/ui/Segmented";
-import { Select } from "@/components/ui/Select";
+import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
-import { formatDate, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
 
@@ -87,25 +87,32 @@ export default function JournalPage() {
 
   const childName = (id?: string) => children.find(c => c.id === id)?.name;
 
-  const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(hasReflection).map(l => l.activity_id));
-  const scopeActivities = activities
-    .filter(a => reflectionActivityIds.has(a.id) && selectedChildren.includes(a.child_id))
-    .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
+  // Only activities that actually have a reflection are worth offering as filters.
+  const scopeActivities = useMemo(() => {
+    const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(hasReflection).map(l => l.activity_id));
+    return activities
+      .filter(a => reflectionActivityIds.has(a.id) && selectedChildren.includes(a.child_id))
+      .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
+  }, [logsData, activities, selectedChildren]);
 
-  const entries = (logsData as LogWithDetails[])
-    .filter(hasReflection)
-    .filter(l => selectedChildren.includes(l.child_id))
-    .filter(l => !filterActivity || l.activity_id === filterActivity)
-    .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
+  // Matching entries, grouped by month for a light, scannable structure. The
+  // date parsing here runs per entry, so it stays out of the render path.
+  const { entries, groups } = useMemo(() => {
+    const entries = (logsData as LogWithDetails[])
+      .filter(hasReflection)
+      .filter(l => selectedChildren.includes(l.child_id))
+      .filter(l => !filterActivity || l.activity_id === filterActivity)
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
 
-  // Group reflections by month for a light, scannable structure
-  const groups: { label: string; items: LogWithDetails[] }[] = [];
-  for (const log of entries) {
-    const label = format(parseISO(log.date.slice(0, 10)), "MMMM yyyy");
-    const last = groups[groups.length - 1];
-    if (last && last.label === label) last.items.push(log);
-    else groups.push({ label, items: [log] });
-  }
+    const groups: { label: string; items: LogWithDetails[] }[] = [];
+    for (const log of entries) {
+      const label = format(parseISO(log.date.slice(0, 10)), "MMMM yyyy");
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.items.push(log);
+      else groups.push({ label, items: [log] });
+    }
+    return { entries, groups };
+  }, [logsData, selectedChildren, filterActivity]);
 
   const selectedActivity = filterActivity ? activities.find(a => a.id === filterActivity) : undefined;
   const singleChild = selectedChildren.length === 1 ? selectedChildren[0] : "";
@@ -123,17 +130,36 @@ export default function JournalPage() {
       <Header title="Journal" subtitle="Little wins and big breakthroughs ✨" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
+        {/* Filters — pick child(ren), then narrow by activity */}
+        <FilterBar stretch className="mb-4">
+          <FilterField label="Child">
+            <MultiSelect
+              className="w-44"
+              ariaLabel="Filter by child"
+              allLabel="All Children"
+              emptyLabel="No Children"
+              pluralNoun="Children"
+              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
+              selected={selectedChildren}
+              onToggle={toggleChild}
+            />
+          </FilterField>
+          <FilterField label="Activity">
+            <SingleSelect
+              className="w-44"
+              ariaLabel="Filter by activity"
+              value={filterActivity}
+              onChange={setFilterActivity}
+              options={[
+                { value: "", label: "All Activities" },
+                ...scopeActivities.map(a => ({ value: a.id, label: a.activity_name || a.institution })),
+              ]}
+            />
+          </FilterField>
+        </FilterBar>
+
         {/* Sub-tabs — stretch full width */}
         <Segmented className="mb-5" fullWidth value={subTab} onChange={setSubTab} options={subTabs} />
-
-        {/* Filters — pick child(ren), then narrow by activity */}
-        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        <Select className="mb-6" value={filterActivity} onChange={e => setFilterActivity(e.target.value)}>
-          <option value="">All activities</option>
-          {scopeActivities.map(a => (
-            <option key={a.id} value={a.id}>{a.activity_name || a.institution}</option>
-          ))}
-        </Select>
 
         {/* ── Reflections ── */}
         {subTab === "reflections" && (

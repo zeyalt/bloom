@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(serialize(schedules));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch schedules" },
       { status: 500 }
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(schedule), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create schedule" },
       { status: 500 }

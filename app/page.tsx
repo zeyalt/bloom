@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays } from "lucide-react";
 import { startOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,8 +34,10 @@ export default function AgendaPage() {
   const todayRef = useRef<HTMLDivElement>(null);
   const hasScrolledToToday = useRef(false);
 
-  const range = getWeekRange(weekOffset);
-  const week = getWeekDays(weekOffset);
+  // Rebuilt only when the user moves weeks — these feed the memoised derivations
+  // below, which would otherwise miss on every render.
+  const range = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
+  const week = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
 
   // Fetch data using React Query hooks
   const { data: childrenData = [] } = useChildren();
@@ -71,45 +73,16 @@ export default function AgendaPage() {
     }
   }, [loading, weekOffset]);
 
-  async function fetchData() {
-    // Invalidate queries to refetch fresh data
-    await queryClient.invalidateQueries({ queryKey: ["children"] });
-    await queryClient.invalidateQueries({ queryKey: ["schedules"] });
-    await queryClient.invalidateQueries({ queryKey: ["activities"] });
+  // Refetch only what the save actually changed — invalidating everything
+  // pulled the whole attendance history back down after each edit.
+  async function refetchLogs() {
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
   }
 
-  // Index logs by occurrence key
-  const logsByKey = new Map<string, LogWithDetails>();
-  for (const log of logs) {
-    logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
+  async function refetchSchedules() {
+    await queryClient.invalidateQueries({ queryKey: ["schedules"] });
   }
 
-  const childMatch = (childId: string) => selectedChildren.includes(childId);
-
-  async function quickAttend(s: ScheduleWithDetails, day: WeekDay) {
-    const a = s.activity!;
-    try {
-      const res = await fetch("/api/attendance-logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          activity_id: a.id,
-          child_id: a.child_id,
-          date: day.iso,
-          status: "attended",
-          start_time: s.start_time,
-          end_time: s.end_time,
-          instructor_name: a.instructor_name,
-          location: s.location,
-        }),
-      });
-      if (!res.ok) throw new Error("Save failed");
-      fetchData();
-    } catch (e) {
-      console.error("Failed to save attendance:", e);
-    }
-  }
 
   function openAbsentModal(s: ScheduleWithDetails, day: WeekDay) {
     const a = s.activity!;
@@ -126,20 +99,6 @@ export default function AgendaPage() {
     setModalOpen(true);
   }
 
-  function openConfirm(s: ScheduleWithDetails, day: WeekDay) {
-    const a = s.activity!;
-    setPrefill({
-      activity_id: a.id,
-      child_id: a.child_id,
-      date: day.iso,
-      status: "attended",
-      start_time: s.start_time,
-      end_time: s.end_time,
-      instructor_name: a.instructor_name,
-      location: s.location,
-    });
-    setModalOpen(true);
-  }
 
   function openEditLog(log: LogWithDetails) {
     setPrefill({
@@ -175,40 +134,54 @@ export default function AgendaPage() {
     setWeekOffset(Math.round(differenceInCalendarDays(pickedStart, currentStart) / 7));
   }
 
-  // Build per-day items
-  const scheduledKeys = new Set<string>();
-  const dayBlocks = week.map(day => {
-    const occ = schedules
-      .filter(s => {
-        if (!s.is_active || !s.activity) return false;
-        if (!scheduleOccursOn(s, day)) return false;
-        if (!childMatch(s.activity.child_id)) return false;
-        // Check if the occurrence date is within the activity's date range
-        const a = s.activity;
-        if (a.start_date && day.iso < a.start_date.slice(0, 10)) return false;
-        if (a.end_date && day.iso > a.end_date.slice(0, 10)) return false;
-        return true;
-      })
-      .map(s => {
-        const key = occurrenceKey(s.activity!.id, s.activity!.child_id, day.iso, s.start_time);
-        scheduledKeys.add(key);
-        return { key, schedule: s };
-      })
-      .sort((a, b) => (a.schedule.start_time || "").localeCompare(b.schedule.start_time || ""));
-    return { day, occ };
-  });
+  // The week's agenda: which scheduled occurrences fall on each day, the log
+  // recorded against each one, and any ad-hoc logs that match no occurrence.
+  // Rebuilt only when the week, the data, or the child filter changes — opening
+  // a modal or scrolling no longer re-walks every schedule.
+  const { logsByKey, dayBlocks, adhocByDay } = useMemo(() => {
+    const logsByKey = new Map<string, LogWithDetails>();
+    for (const log of logs) {
+      logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
+    }
 
-  // Ad-hoc logs = logs in the week not tied to a scheduled occurrence
-  const adhocByDay = new Map<string, LogWithDetails[]>();
-  for (const log of logs) {
-    const iso = log.date.slice(0, 10);
-    const key = occurrenceKey(log.activity_id, log.child_id, iso, log.start_time);
-    if (scheduledKeys.has(key)) continue;
-    if (!childMatch(log.child_id)) continue;
-    const arr = adhocByDay.get(iso) ?? [];
-    arr.push(log);
-    adhocByDay.set(iso, arr);
-  }
+    const inFilter = (childId: string) => selectedChildren.includes(childId);
+
+    const scheduledKeys = new Set<string>();
+    const dayBlocks = week.map(day => {
+      const occ = schedules
+        .filter(s => {
+          if (!s.is_active || !s.activity) return false;
+          if (!scheduleOccursOn(s, day)) return false;
+          if (!inFilter(s.activity.child_id)) return false;
+          // Check if the occurrence date is within the activity's date range
+          const a = s.activity;
+          if (a.start_date && day.iso < a.start_date.slice(0, 10)) return false;
+          if (a.end_date && day.iso > a.end_date.slice(0, 10)) return false;
+          return true;
+        })
+        .map(s => {
+          const key = occurrenceKey(s.activity!.id, s.activity!.child_id, day.iso, s.start_time);
+          scheduledKeys.add(key);
+          return { key, schedule: s };
+        })
+        .sort((a, b) => (a.schedule.start_time || "").localeCompare(b.schedule.start_time || ""));
+      return { day, occ };
+    });
+
+    // Ad-hoc logs = logs in the week not tied to a scheduled occurrence
+    const adhocByDay = new Map<string, LogWithDetails[]>();
+    for (const log of logs) {
+      const iso = log.date.slice(0, 10);
+      const key = occurrenceKey(log.activity_id, log.child_id, iso, log.start_time);
+      if (scheduledKeys.has(key)) continue;
+      if (!inFilter(log.child_id)) continue;
+      const arr = adhocByDay.get(iso) ?? [];
+      arr.push(log);
+      adhocByDay.set(iso, arr);
+    }
+
+    return { logsByKey, dayBlocks, adhocByDay };
+  }, [logs, schedules, week, selectedChildren]);
 
   return (
     <div className="max-w-[1000px] mx-auto w-full">
@@ -407,7 +380,7 @@ export default function AgendaPage() {
         children={children}
         activities={activities}
         prefill={prefill}
-        onSaved={fetchData}
+        onSaved={refetchLogs}
       />
 
       <ScheduleSlotModal
@@ -415,7 +388,7 @@ export default function AgendaPage() {
         onClose={() => setSlotEdit(null)}
         schedule={slotEdit}
         title={slotEdit?.activity ? [slotEdit.activity.activity_name, slotEdit.activity.institution].filter(Boolean).join(" · ") : undefined}
-        onSaved={fetchData}
+        onSaved={refetchSchedules}
       />
     </div>
   );

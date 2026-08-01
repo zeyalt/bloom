@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, Pencil } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -10,9 +10,9 @@ import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
 import { PAYERS } from "@/lib/constants";
-import { Select } from "@/components/ui/Select";
-import { ChildFilter } from "@/components/ui/ChildFilter";
-import { useExpenses, useChildren, useCategories, useActivities } from "@/lib/api-hooks";
+import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { useExpenses, useChildren, useActivities } from "@/lib/api-hooks";
 import type { Expense, Child, ActivityCategory } from "@/lib/types";
 
 interface ExpenseWithDetails extends Expense {
@@ -60,7 +60,6 @@ export default function ExpensesPage() {
   // instant tab switches). Refresh via invalidation after saves.
   const { data: yearExpenses = [], isLoading: loading } = useExpenses({ year: Number(filterYear), limit: 500 });
   const { data: children = [] } = useChildren();
-  const { data: categories = [] } = useCategories();
   const { data: activities = [] } = useActivities();
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -73,12 +72,17 @@ export default function ExpensesPage() {
     }
   }, [children]);
 
-  const expenses = (yearExpenses as ExpenseWithDetails[]).filter(e =>
-    selectedChildren.includes(e.child_id) &&
-    (!filterPayer || e.paid_by === filterPayer)
+  // Kept out of the render path so typing in the add/edit form doesn't re-filter
+  // and re-total the year on every keystroke.
+  const expenses = useMemo(
+    () => (yearExpenses as ExpenseWithDetails[]).filter(e =>
+      selectedChildren.includes(e.child_id) &&
+      (!filterPayer || e.paid_by === filterPayer)
+    ),
+    [yearExpenses, selectedChildren, filterPayer]
   );
 
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const total = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
 
   function openAdd() {
     setEditingId(null);
@@ -182,28 +186,45 @@ export default function ExpensesPage() {
       <Header title="Expenses" subtitle="Where the enrichment budget grows 💰" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Child filter — multi-select (none selected = everyone) */}
-        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
+        {/* Filters — one row, matching the other tabs */}
+        <FilterBar stretch className="mb-4">
+          <FilterField label="Child">
+            <MultiSelect
+              className="w-44"
+              ariaLabel="Filter by child"
+              allLabel="All Children"
+              emptyLabel="No Children"
+              pluralNoun="Children"
+              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
+              selected={selectedChildren}
+              onToggle={toggleChild}
+            />
+          </FilterField>
+          <FilterField label="Year">
+            <SingleSelect
+              className="w-32"
+              ariaLabel="Filter by year"
+              value={filterYear}
+              onChange={setFilterYear}
+              options={years.map(y => ({ value: String(y), label: String(y) }))}
+            />
+          </FilterField>
+          <FilterField label="Payer">
+            <SingleSelect
+              className="w-40"
+              ariaLabel="Filter by payer"
+              value={filterPayer}
+              onChange={setFilterPayer}
+              options={[
+                { value: "", label: "All Payers" },
+                ...PAYERS.map(p => ({ value: p, label: p })),
+              ]}
+            />
+          </FilterField>
+        </FilterBar>
 
-        {/* Filters and actions - single row on desktop, wraps on mobile */}
-        <div className="flex flex-wrap gap-2 mb-8 items-end">
-          <div className="flex-1 min-w-[110px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">Year</label>
-            <Select value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">Payer</label>
-            <Select value={filterPayer} onChange={e => setFilterPayer(e.target.value)}>
-              <option value="">All payers</option>
-              {PAYERS.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </Select>
-          </div>
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 mb-8 items-center justify-end">
           <div className="flex gap-1.5 shrink-0">
             <Button onClick={() => exportExpensesCSV(expenses, `expenses-${filterYear}.csv`)} variant="secondary" size="sm">
               <Download size={14} /> Export

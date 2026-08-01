@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       },
     });
     return NextResponse.json(serialize(child));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update child" },
       { status: 500 }

@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json(serialize({ data, count }));
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch expenses", data: [], count: 0 },
       { status: 500 }
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(serialize(expense), { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create expense" },
       { status: 500 }
