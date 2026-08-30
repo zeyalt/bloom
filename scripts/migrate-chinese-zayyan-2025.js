@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Chinese Tuition (Berries, 谢老师) for Zayyan — 2025, held at Downtown East.
+// Chinese Tuition (Berries, 许老师) for Zayyan — 2025, held at Downtown East.
 const ACTIVITY = 'cmqrzjksf0003dz83ke18a7t2';
 const CHILD = '79b47f32-639f-4953-92b4-e4849971e17d';
 const LEVEL = 'P1 (Distinction)';
@@ -78,7 +78,7 @@ async function migrate() {
         status: 'attended',
         activityId: ACTIVITY,
         childId: CHILD,
-        instructorName: '谢老师',
+        instructorName: '许老师',
         lessonType: row.type ?? 'Normal',
         level: LEVEL,
         location: LOCATION,
