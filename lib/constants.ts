@@ -29,11 +29,14 @@ export const ATTENDANCE_STATUS_COLORS: Record<string, string> = {
   league_game: "#22C55E",
 };
 
-// Who pays expenses
+// Who pays expenses — the children appear too, for fees paid from their own
+// savings accounts.
 export const PAYERS = [
   "Zeya",
   "Atiqah",
   "Zeya & Atiqah",
+  "Zayyan",
+  "Zara",
 ] as const;
 
 // Days of the week (0=Sun, 1=Mon … 6=Sat) — display starting Monday
