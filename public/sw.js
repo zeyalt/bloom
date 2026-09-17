@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bloom-v3';
+const CACHE_NAME = 'bloom-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -64,19 +64,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Page navigations: network first so app code stays fresh (avoids
-  // installed PWAs running stale bundles after a deploy)
+  // App-shell navigations (reload / first launch). Tab taps no longer
+  // hit here — they are client-side replaceState. Cache-first so a PWA
+  // relaunch isn't blocked on the network; refresh the shell in the background.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() =>
-          caches.match(request).then((r) => r || caches.match('/offline.html'))
-        )
+      caches.match(request).then((cached) => {
+        const fetched = fetch(request)
+          .then((response) => {
+            if (response && response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => cached || caches.match('/') || caches.match('/offline.html'));
+        return cached || fetched;
+      })
     );
     return;
   }

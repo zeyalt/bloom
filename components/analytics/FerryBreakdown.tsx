@@ -9,7 +9,7 @@ interface LogWithDetails extends AttendanceLog {
   child?: Child;
 }
 
-const PERSON_PALETTE = ["#0066cc", "#10b981", "#f59e0b", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#6366F1"];
+const PERSON_PALETTE = ["#2f6f4e", "#1a2c22", "#b45309", "#3d6b7a", "#6b5344", "#4a6741", "#8b5a2b", "#5c7a6a"];
 
 type Role = "sender" | "fetcher";
 type Style = "stacked" | "paired" | "heatmap";
@@ -125,9 +125,9 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
 
       <div className="space-y-6">
         {perChild.map(({ child, activities }) => (
-          <div key={child.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 md:p-5 shadow-[var(--shadow-xs)]">
+          <div key={child.id} className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-5">
             <div className="flex items-center gap-2 mb-4">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: child.color_code }} />
+              <span className="w-2.5 h-2.5" style={{ backgroundColor: child.color_code }} />
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">{child.name}</h4>
             </div>
 
@@ -185,7 +185,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
               );
               const grid = (title: string, get: (a: ActivityRec) => Map<string, number>) => (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">{title}</p>
+                  <p className="text-sm text-[var(--ink-faint)] mb-1.5">{title}</p>
                   <div className="grid gap-1 text-xs" style={{ gridTemplateColumns: `5.5rem repeat(${people.length}, minmax(0, 1fr))` }}>
                     <div />
                     {people.map(p => (

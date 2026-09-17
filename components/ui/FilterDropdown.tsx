@@ -95,7 +95,7 @@ function DropdownShell({
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={toggleOpen}
-        className="flex items-center w-full h-10 pl-4 pr-9 text-sm text-left rounded-full border border-[var(--border)] bg-white text-[var(--text-primary)] cursor-pointer transition-all focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/25"
+        className="flex items-center w-full h-10 pl-3.5 pr-9 text-sm text-left rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] cursor-pointer focus:outline-none focus:border-[var(--stem)]"
       >
         <span className="truncate">{label}</span>
       </button>
@@ -114,7 +114,7 @@ function DropdownShell({
           style={{ top: anchor.top, left: anchor.left, minWidth: anchor.width, maxHeight: anchor.maxHeight }}
           // A always-visible slim scrollbar: macOS overlay scrollbars render
           // nothing until you scroll, which makes a long list look truncated.
-          className="fixed z-50 w-max overflow-y-auto p-1 rounded-xl border border-[var(--border)] bg-white shadow-lg [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[var(--border)]"
+          className="fixed z-50 w-max overflow-y-auto p-1 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] [scrollbar-width:thin] [scrollbar-color:var(--rule)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-[var(--rule)]"
         >
           {children(() => setOpen(false))}
         </div>,
@@ -160,7 +160,7 @@ export function SingleSelect({
               {selected && <Check size={14} />}
             </span>
             {opt.colorCode && (
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} />
+              <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
             )}
             <span className="whitespace-nowrap">{opt.label}</span>
           </button>
@@ -215,7 +215,7 @@ export function MultiSelect({
               className="w-3.5 shrink-0 rounded cursor-pointer"
             />
             {opt.colorCode && (
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} />
+              <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
             )}
             <span className="whitespace-nowrap">{opt.label}</span>
           </label>

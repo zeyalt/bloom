@@ -36,8 +36,8 @@ import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
 import { FerryBreakdown } from "@/components/analytics/FerryBreakdown";
 import type { Expense, AttendanceLog, Activity, Child } from "@/lib/types";
 
-const DISPLAY_FONT = "var(--font-display)";
-const PALETTE = ["#0066cc", "#10b981", "#f59e0b", "#ef4444", "#8B5CF6", "#F97316", "#EC4899", "#14B8A6", "#6366F1", "#D946EF"];
+const DISPLAY_FONT = "var(--font-bricolage), ui-sans-serif, system-ui, sans-serif";
+const PALETTE = ["#2f6f4e", "#1a2c22", "#b45309", "#b42318", "#3d6b7a", "#6b5344", "#4a6741", "#8b5a2b", "#5c7a6a", "#3d4a40"];
 
 // Statuses that represent the child actually showing up (counted toward hours).
 const isAttendedLike = (status: string) => status !== "absent" && status !== "cancelled_by_provider";
@@ -92,7 +92,7 @@ const recordBucket = (dateStr: string, gran: "week" | "month") =>
 
 function ChartCard({ title, subtitle, children, className = "" }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-[var(--border)]/70 bg-[var(--bg-card)] p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 ${className}`}>
+    <div className={`border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6 ${className}`}>
       <div className="mb-4">
         <h3 className="text-base font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{title}</h3>
         {subtitle && <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>}
@@ -105,11 +105,11 @@ function ChartCard({ title, subtitle, children, className = "" }: { title: strin
 function ChartTooltip({ active, payload, label, formatter }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 shadow-lg">
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
       {label != null && <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 text-xs">
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color || p.payload?.fill }} />
+          <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.color || p.payload?.fill }} />
           <span className="text-[var(--text-secondary)]">{p.name}</span>
           <span className="ml-auto font-semibold tabular-nums text-[var(--text-primary)]">
             {formatter ? formatter(p.value) : p.value}
@@ -125,7 +125,7 @@ function DeltaPill({ delta, suffix = "%" }: { delta: number | null; suffix?: str
   const up = delta >= 0;
   const Icon = up ? TrendingUp : TrendingDown;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${up ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold tabular-nums ${up ? "text-[var(--stem)]" : "text-[var(--margin)]"}`}>
       <Icon size={12} />
       {up ? "+" : ""}{Math.round(delta)}{suffix}
     </span>
@@ -140,9 +140,9 @@ function KpiCard({ label, value, delta, deltaSuffix = "%", spark, color, icon, a
   const id = `spark-${label.replace(/\s+/g, "")}`;
   const hasSpark = spark.some(v => v > 0);
   return (
-    <div className="rounded-2xl border border-[var(--border)]/70 bg-[var(--bg-card)] p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
+        <span className="text-sm text-[var(--ink-faint)]">{label}</span>
         <span className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: `${color}1a`, color }}>{icon}</span>
       </div>
       <div className="mt-2 text-2xl font-bold tabular-nums text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{value}</div>
@@ -170,12 +170,12 @@ function KpiCard({ label, value, delta, deltaSuffix = "%", spark, color, icon, a
 
 function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div className="inline-flex p-0.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)]/70">
-      {options.map(o => (
+    <div className="inline-flex border border-[var(--rule)] bg-[var(--sheet)]">
+      {options.map((o, i) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 ${value === o.value ? "bg-white text-[var(--text-primary)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+          className={`px-3 py-1 text-xs font-medium cursor-pointer ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${value === o.value ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"}`}
         >
           {o.label}
         </button>
@@ -200,13 +200,13 @@ function Donut({ data, center, sub, formatter, animate }: { data: DonutDatum[]; 
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-xl font-bold tabular-nums text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{center}</span>
-          <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{sub}</span>
+          <span className="text-[11px] text-[var(--ink-faint)]">{sub}</span>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
         {data.map((d, i) => (
           <div key={i} className="flex items-center gap-1.5 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+            <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: d.color }} />
             <span className="text-[var(--text-secondary)]">{d.name}</span>
             <span className="font-semibold tabular-nums text-[var(--text-primary)]">{formatter(d.value)}</span>
           </div>
@@ -420,7 +420,7 @@ export function AnalyticsDashboard() {
   const k = data.kpis;
 
   // Matches the pill trigger of the filter dropdowns so the whole row sits level.
-  const monthInputCls = "w-40 h-10 px-4 text-sm border border-[var(--border)] rounded-full bg-white text-[var(--text-primary)] cursor-pointer focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/25 transition-all";
+  const monthInputCls = "w-40 h-10 px-4 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] text-[var(--ink)] cursor-pointer focus:outline-none focus:border-[var(--stem)]";
   const sectionHead = (title: string, sub: string) => (
     <div className="flex items-baseline gap-3 mb-1">
       <h2 className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{title}</h2>
@@ -433,8 +433,8 @@ export function AnalyticsDashboard() {
   if (loading) {
     return (
       <div className="px-5 md:px-8 space-y-6 pb-8 pt-4 md:pt-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] rounded-2xl animate-pulse" />)}</div>
-        {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] rounded-2xl animate-pulse" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}</div>
+        {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] animate-pulse" />)}
       </div>
     );
   }
@@ -466,10 +466,10 @@ export function AnalyticsDashboard() {
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#0066cc" icon={<Receipt size={16} />} animate={animate} />
-          <KpiCard label="Attendance rate" value={fmtPct(k.attRate)} delta={k.rateDelta} deltaSuffix="pp" spark={k.rateByMonth} color="#10b981" icon={<CalendarCheck size={16} />} animate={animate} />
-          <KpiCard label="Sessions attended" value={String(k.sessions)} delta={k.sessionsDelta} spark={k.sessionsByMonth} color="#f59e0b" icon={<ListChecks size={16} />} animate={animate} />
-          <KpiCard label="Hours attended" value={fmtHours(k.totalHours)} delta={k.hoursDelta} spark={k.hoursByMonth} color="#8B5CF6" icon={<Clock size={16} />} animate={animate} />
+          <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#2f6f4e" icon={<Receipt size={16} />} animate={animate} />
+          <KpiCard label="Attendance rate" value={fmtPct(k.attRate)} delta={k.rateDelta} deltaSuffix="pp" spark={k.rateByMonth} color="#1a2c22" icon={<CalendarCheck size={16} />} animate={animate} />
+          <KpiCard label="Sessions attended" value={String(k.sessions)} delta={k.sessionsDelta} spark={k.sessionsByMonth} color="#b45309" icon={<ListChecks size={16} />} animate={animate} />
+          <KpiCard label="Hours attended" value={fmtHours(k.totalHours)} delta={k.hoursDelta} spark={k.hoursByMonth} color="#3d6b7a" icon={<Clock size={16} />} animate={animate} />
         </div>
 
         {/* ── Section 1: Spending ── */}
@@ -534,7 +534,7 @@ export function AnalyticsDashboard() {
                     <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
                     <YAxis type="category" dataKey="name" {...axisProps} width={130} />
                     <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
-                    <Bar dataKey="value" name="Spend" radius={[0, 8, 8, 0]} fill="#0066cc" isAnimationActive={animate} animationDuration={700} />
+                    <Bar dataKey="value" name="Spend" radius={[0, 0, 0, 0]} fill="#2f6f4e" isAnimationActive={animate} animationDuration={700} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -628,7 +628,7 @@ export function AnalyticsDashboard() {
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
                 {hoursViz.groupNames.map((g, i) => (
                   <div key={g} className="flex items-center gap-1.5 text-xs">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
+                    <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
                     <span className="text-[var(--text-secondary)]">{g}</span>
                   </div>
                 ))}

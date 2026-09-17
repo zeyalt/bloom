@@ -1,39 +1,44 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
-/* Light Theme (default) — Professional, modern, sleek */
+/* School-register ledger — cool paper, garden ink, kids' colours as chroma */
 :root {
-  --bg-primary: #fafaf9;
-  --bg-secondary: #f5f5f5;
-  --bg-card: #ffffff;
-  --text-primary: #1a1410;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --border: #e9e6e2;
-  --accent-primary: #0066cc;
-  --accent-secondary: #10b981;
-  --accent-success: #10b981;
-  --accent-warning: #f59e0b;
-  --accent-danger: #ef4444;
-  --accent-muted: #6b7280;
-  --ring: #0066cc;
+  --paper: #eef2ec;
+  --sheet: #f7faf6;
+  --ink: #1a2c22;
+  --ink-soft: #4a5c52;
+  --ink-faint: #7a8c82;
+  --rule: #c9d4c8;
+  --stem: #2f6f4e;
+  --margin: #b42318;
 
-  /* Soft, layered elevation — warm-tinted so shadows feel gentle, not gray */
-  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
-  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04), 0 3px 10px rgba(28, 25, 23, 0.045);
-  --shadow-card-hover: 0 2px 6px rgba(28, 25, 23, 0.06), 0 10px 26px rgba(28, 25, 23, 0.08);
-  --shadow-pop: 0 10px 34px rgba(28, 25, 23, 0.14);
+  --bg-primary: var(--paper);
+  --bg-secondary: #e4ebe3;
+  --bg-card: var(--sheet);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-soft);
+  --text-muted: var(--ink-faint);
+  --border: var(--rule);
+  --accent-primary: var(--stem);
+  --accent-secondary: var(--stem);
+  --accent-success: var(--stem);
+  --accent-warning: #b45309;
+  --accent-danger: var(--margin);
+  --accent-muted: var(--ink-faint);
+  --ring: var(--stem);
 
-  /* Radius scale */
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --shadow-xs: none;
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-pop: none;
+
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
 }
 
-
 @theme inline {
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Sora", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
   --color-bg-card: var(--bg-card);
@@ -43,23 +48,6 @@
   --color-border: var(--border);
 }
 
-/* Extended palette — Professional & modern */
-:root {
-  --color-blue-light: #dbeafe;
-  --color-blue: #0066cc;
-  --color-blue-dark: #0052a3;
-  --color-green-light: #d1fae5;
-  --color-green: #10b981;
-  --color-green-dark: #047857;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-600: #4b5563;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-}
-
 html,
 body {
   height: 100%;
@@ -67,23 +55,20 @@ body {
 }
 
 html {
-  /* Disable pinch-zoom and double-tap zoom (keep normal scrolling) */
   touch-action: pan-x pan-y;
-  scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 16px;
-  transition: background-color 200ms ease-out, color 200ms ease-out;
+  line-height: 1.5;
 }
 
-/* App-like lockdown: no text selection / copy callout, except in editable fields */
 * {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -100,60 +85,23 @@ select,
   user-select: text;
 }
 
-/* Typography system — Sora display headings paired with Hanken body */
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Sora", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-family: inherit;
   font-weight: 600;
-  letter-spacing: -0.015em;
-  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
-h1 { font-size: 1.875rem; line-height: 1.2; margin-bottom: 0.5rem; }
-h2 { font-size: 1.5rem; line-height: 1.25; margin-bottom: 0.5rem; }
-h3 { font-size: 1.125rem; line-height: 1.35; margin-bottom: 0.25rem; }
-h4 { font-size: 1rem; line-height: 1.4; margin-bottom: 0.25rem; }
+h1 { font-size: 1.75rem; line-height: 1.15; margin-bottom: 0.25rem; }
+h2 { font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem; }
+h3 { font-size: 1.0625rem; line-height: 1.3; margin-bottom: 0.15rem; }
 
-/* Semantic typography — reasonable, readable */
-.text-display { font-size: 1.875rem; font-weight: 700; line-height: 1.2; }
-.text-headline { font-size: 1.5rem; font-weight: 600; line-height: 1.25; }
-.text-title { font-size: 1.125rem; font-weight: 600; line-height: 1.35; }
-.text-body { font-size: 0.9375rem; font-weight: 400; line-height: 1.6; }
-.text-label { font-size: 0.8125rem; font-weight: 500; line-height: 1.4; }
-.text-caption { font-size: 0.75rem; font-weight: 500; line-height: 1.4; text-transform: uppercase; opacity: 0.7; }
-
-p, body {
-  font-weight: 400;
-  line-height: 1.6;
-  font-size: 0.9375rem;
-}
-
-/* Mobile typography — scale down slightly */
 @media (max-width: 640px) {
   h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; }
-  h3 { font-size: 1rem; }
-  p, body { font-size: 0.9375rem; }
+  h2 { font-size: 1.125rem; }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Respect reduced-motion: near-instant, no smooth scroll */
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -161,37 +109,19 @@ p, body {
   }
 }
 
-/* Focus ring — only for keyboard navigation, not mouse/touch */
 :focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--stem);
   outline-offset: 2px;
 }
 :focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Selection */
 ::selection {
-  background-color: var(--accent-primary);
-  color: var(--bg-card);
+  background-color: #c5ddc8;
+  color: var(--ink);
 }
 
-/* Disable text selection on interactive elements and containers */
-button, [role="button"], .select-none,
-[class*="card"], [class*="modal"], [class*="tab"], .cursor-pointer {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* Re-enable text selection on inputs and text areas */
-input, textarea, [contenteditable="true"] {
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -200,9 +130,6 @@ input, textarea, [contenteditable="true"] {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--rule);
+  border-radius: 2px;
 }

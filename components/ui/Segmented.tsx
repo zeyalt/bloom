@@ -10,11 +10,11 @@ interface SegmentedProps<T extends string> {
   fullWidth?: boolean;
 }
 
-/** Pill-track view switch — white thumb marks the active segment. */
+/** Hairline view switch — the active option is ink on paper. */
 export function Segmented<T extends string>({ value, onChange, options, className, fullWidth }: SegmentedProps<T>) {
   return (
-    <div className={cn(fullWidth ? "flex w-full" : "inline-flex", "p-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)]", className)}>
-      {options.map(o => {
+    <div className={cn(fullWidth ? "flex w-full" : "inline-flex", "border border-[var(--rule)] bg-[var(--sheet)]", className)}>
+      {options.map((o, i) => {
         const active = value === o.value;
         return (
           <button
@@ -22,11 +22,12 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             type="button"
             onClick={() => onChange(o.value)}
             className={cn(
-              "px-4 py-2 rounded-full text-sm transition-all duration-150 cursor-pointer",
+              "px-4 py-2 text-sm cursor-pointer",
+              i > 0 && "border-l border-[var(--rule)]",
               fullWidth && "flex-1",
               active
-                ? "bg-white text-[var(--text-primary)] font-semibold shadow-[var(--shadow-xs)]"
-                : "text-[var(--text-secondary)] font-medium hover:text-[var(--text-primary)]"
+                ? "bg-[var(--ink)] text-[var(--sheet)] font-semibold"
+                : "text-[var(--ink-soft)] font-medium hover:text-[var(--ink)]"
             )}
           >
             {o.label}

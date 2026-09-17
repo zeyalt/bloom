@@ -41,7 +41,7 @@ export function EngagementTimeline({ activities, children }: Props) {
   const dated = activities.filter(a => a.start_date);
   const missing = activities.length - dated.length;
 
-  const card = "rounded-2xl border border-[var(--border)]/70 bg-[var(--bg-card)] p-5 md:p-6 shadow-sm";
+  const card = "border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6";
 
   if (dated.length === 0) {
     return (
@@ -89,7 +89,7 @@ export function EngagementTimeline({ activities, children }: Props) {
           {/* Month / year header */}
           <div className="flex">
             <div className="sticky left-0 z-20 bg-[var(--bg-card)] shrink-0 flex items-end pb-1" style={{ width: LABEL_W }}>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Activity</span>
+              <span className="text-[11px] font-medium text-[var(--ink-faint)]">Activity</span>
             </div>
             <div className="relative shrink-0" style={{ width: totalWidth }}>
               <div className="flex">
@@ -104,7 +104,7 @@ export function EngagementTimeline({ activities, children }: Props) {
               </div>
               {/* Today pill */}
               <div className="absolute -top-0.5" style={{ left: todayOffset, transform: "translateX(-50%)" }}>
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--text-primary)] text-white whitespace-nowrap">Today</span>
+                <span className="text-[11px] font-medium text-[var(--ink)] whitespace-nowrap">Today</span>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export function EngagementTimeline({ activities, children }: Props) {
               {/* Child group header */}
               <div className="flex">
                 <div className="sticky left-0 z-20 bg-[var(--bg-card)] shrink-0 flex items-center gap-2 py-2" style={{ width: LABEL_W }}>
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: child.color_code }} />
                   <span className="text-sm font-semibold text-[var(--text-primary)]">{child.name}</span>
                 </div>
                 <div className="shrink-0" style={{ width: totalWidth }} />
@@ -145,7 +145,7 @@ export function EngagementTimeline({ activities, children }: Props) {
                       {/* engagement bar */}
                       <div
                         title={tip}
-                        className="absolute rounded-full"
+                        className="absolute"
                         style={{
                           left,
                           width,

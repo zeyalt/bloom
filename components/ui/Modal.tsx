@@ -19,14 +19,12 @@ const sizeStyles = {
 };
 
 export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     if (open) document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  // Prevent background scroll
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -36,31 +34,27 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-out"
+        className="absolute inset-0 bg-[var(--ink)]/40"
         onClick={onClose}
       />
-      {/* Panel — centered on all screen sizes */}
       <div
         className={cn(
-          "relative w-full bg-white rounded-[20px] shadow-[var(--shadow-pop)]",
+          "relative w-full bg-[var(--sheet)] rounded-[var(--radius-lg)] border border-[var(--rule)]",
           "max-h-[90dvh] flex flex-col",
-          "animate-in fade-in zoom-in-95 duration-200 ease-out",
           sizeStyles[size]
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--rule)] shrink-0">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
+            aria-label="Close"
           >
             <X size={20} />
           </button>
         </div>
-        {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
       </div>
     </div>

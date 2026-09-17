@@ -1,98 +1,45 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Home,
-  ClipboardList,
-  NotebookPen,
-  Receipt,
-  BarChart3,
-  Settings,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/attendance", label: "Attendance", icon: ClipboardList },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/journal", label: "Journal", icon: NotebookPen },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { useSpaNav } from "@/components/layout/spa-nav";
+import { NAV_ITEMS } from "@/components/layout/nav-items";
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const { path, navigate } = useSpaNav();
 
   return (
-    <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-card)] h-screen sticky top-0">
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-[var(--border)]">
-        <Link href="/" className="flex items-center gap-3">
-          <img
-            src="/bloom-logo.png"
-            alt="Bloom Logo"
-            className="w-8 h-8 object-contain"
-          />
-          <span className="text-lg font-bold text-[var(--text-primary)]">
+    <aside className="hidden md:flex flex-col w-52 shrink-0 border-r border-[var(--rule)] bg-[var(--sheet)] h-screen sticky top-0">
+      <div className="px-5 py-6">
+        <button type="button" onClick={() => navigate("/")} className="text-left cursor-pointer">
+          <span className="block text-xl font-extrabold tracking-tight text-[var(--ink)] leading-none">
             Bloom
           </span>
-        </Link>
+          <span className="mt-1 block text-sm text-[var(--ink-faint)]">Class register</span>
+        </button>
       </div>
 
-      {/* Nav links */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+            href === "/" ? path === "/" : path.startsWith(href);
           return (
-            <Link
+            <button
+              type="button"
               key={href}
-              href={href}
+              onClick={() => navigate(href)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm transition-all duration-150",
+                "flex items-center gap-3 px-3 py-2 text-sm w-full text-left cursor-pointer",
                 active
-                  ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                  ? "text-[var(--stem)] font-semibold border-l-2 border-[var(--stem)] pl-[10px]"
+                  : "text-[var(--ink-soft)] font-medium border-l-2 border-transparent pl-[10px] hover:text-[var(--ink)]"
               )}
             >
-              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
+              <Icon size={16} strokeWidth={active ? 2.2 : 1.7} />
               {label}
-            </Link>
+            </button>
           );
         })}
       </nav>
-
-      {/* Children quick-links */}
-      <div className="px-3 py-4 border-t border-[var(--border)] space-y-0.5">
-        <p className="px-3 pb-1 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-          Children
-        </p>
-        <Link
-          href="/child/11111111-1111-1111-1111-111111111111"
-          className={cn(
-            "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150",
-            pathname.includes("11111111")
-              ? "bg-blue-50 text-blue-700"
-              : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-          )}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0" />
-          🌿 Zayyan
-        </Link>
-        <Link
-          href="/child/22222222-2222-2222-2222-222222222222"
-          className={cn(
-            "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150",
-            pathname.includes("22222222")
-              ? "bg-pink-50 text-pink-700"
-              : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-          )}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#DB2777] shrink-0" />
-          🌸 Zara
-        </Link>
-      </div>
     </aside>
   );
 }

@@ -199,7 +199,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   );
   const showSenderFetcher = form.status === "attended";
   const inputCls =
-    "w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20";
+    "w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] focus:outline-none focus:border-[var(--stem)]";
 
   return (
     <Modal open={open} onClose={onClose} title={title ?? (prefill?.id ? "Edit Attendance" : "Confirm Attendance")}>
@@ -207,13 +207,13 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-[var(--bg-secondary)]/60 rounded-xl border border-[var(--border)]/40">
-          {(["details", "reflections"] as const).map(t => (
+        <div className="flex border border-[var(--rule)]">
+          {(["details", "reflections"] as const).map((t, i) => (
             <button
               key={t}
               type="button"
               onClick={() => setActiveTab(t)}
-              className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${activeTab === t ? "bg-white text-[var(--text-primary)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              className={`flex-1 px-3 py-1.5 text-sm font-medium cursor-pointer ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${activeTab === t ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"}`}
             >
               {t === "details" ? "Details" : "Reflections"}
             </button>
@@ -284,10 +284,10 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                   key={lt}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, lesson_type: lt }))}
-                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                  className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
                     active
-                      ? "bg-[var(--text-primary)] text-white border-transparent"
-                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                      ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
+                      : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
                   }`}
                 >
                   {lt}
@@ -312,7 +312,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                 setCustomLesson("");
               }}
               placeholder="+ Add other"
-              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+              className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
             />
           </div>
         </div>
@@ -332,10 +332,10 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                         ...f,
                         sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
                       }))}
-                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                      className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
                         active
-                          ? "bg-[var(--text-primary)] text-white border-transparent"
-                          : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                          ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
+                          : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
                       }`}
                     >
                       {s}
@@ -360,7 +360,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                     setCustomSender("");
                   }}
                   placeholder="+ Add other"
-                  className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+                  className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
                 />
               </div>
             </div>
@@ -378,10 +378,10 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                         ...f,
                         fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
                       }))}
-                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                      className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
                         active
-                          ? "bg-[var(--text-primary)] text-white border-transparent"
-                          : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                          ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
+                          : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
                       }`}
                     >
                       {s}
@@ -406,7 +406,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                     setCustomFetcher("");
                   }}
                   placeholder="+ Add other"
-                  className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+                  className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
                 />
               </div>
             </div>

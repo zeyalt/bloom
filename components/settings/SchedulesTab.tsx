@@ -277,7 +277,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             {category.name}
           </span>
         ) : (
-          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Uncategorized</span>
+          <span className="text-sm font-medium text-[var(--ink-faint)]">Uncategorized</span>
         )}
       </div>
     );
@@ -369,17 +369,17 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
             <button
               key={child.id}
               onClick={() => setFilterChildId(child.id)}
-              style={active ? { backgroundColor: child.color_code } : undefined}
               className={cn(
-                "flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                "inline-flex items-center gap-2 h-9 text-sm font-medium border-b-2 cursor-pointer",
                 active
-                  ? "text-white border-transparent"
-                  : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                  ? "text-[var(--ink)]"
+                  : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-soft)]"
               )}
+              style={active ? { borderBottomColor: child.color_code } : undefined}
             >
               <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
               {child.name}
-              <span className={cn("text-xs", active ? "text-white/80" : "text-[var(--text-muted)]")}>{count}</span>
+              <span className={cn("text-xs", active ? "text-[var(--ink-soft)]" : "text-[var(--ink-faint)]")}>{count}</span>
             </button>
           );
         })}

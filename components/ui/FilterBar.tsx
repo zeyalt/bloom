@@ -17,7 +17,7 @@ export function FilterField({
 }) {
   return (
     <div className={cn("shrink-0", className)}>
-      <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5">
+      <label className="block text-sm text-[var(--ink-faint)] mb-1.5">
         {label}
       </label>
       {children}

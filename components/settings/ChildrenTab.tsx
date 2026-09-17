@@ -15,7 +15,7 @@ interface Props {
 
 const EMPTY_FORM = {
   name: "", nickname: "", date_of_birth: "",
-  school: "", color_code: "#1C1917", avatar_emoji: "🌱", avatar_key: null as string | null,
+  school: "", color_code: "#1a2c22", avatar_emoji: "🌱", avatar_key: null as string | null,
 };
 
 export function ChildrenTab({ children, onRefresh }: Props) {

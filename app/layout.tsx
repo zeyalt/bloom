@@ -1,14 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
-import { InteractionLock } from "@/components/layout/InteractionLock";
 import { QueryProvider } from "@/components/layout/QueryProvider";
+import { AppShell } from "@/components/layout/AppShell";
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Bloom — Enrichment Tracker",
-  description: "Track enrichment activities, attendance, and expenses for your growing seedlings",
+  title: "Bloom",
+  description: "Attendance, expenses, and notes for the kids' classes",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16A34A",
+  themeColor: "#eef2ec",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -31,20 +35,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full antialiased">
+    <html lang="en" className={`${bricolage.variable} h-full`}>
+      <body className={`${bricolage.className} h-full overflow-hidden antialiased`}>
         <QueryProvider>
-          <ServiceWorkerRegister />
-          <InteractionLock />
-          <div className="flex h-full">
-            <Sidebar />
-            <main className="flex-1 flex flex-col min-h-full overflow-x-hidden bg-[var(--bg-primary)]">
-              <div className="flex-1 pb-20 md:pb-0">
-                {children}
-              </div>
-            </main>
-          </div>
-          <BottomNav />
+          <AppShell>{children}</AppShell>
         </QueryProvider>
       </body>
     </html>
