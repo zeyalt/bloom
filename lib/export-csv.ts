@@ -1,4 +1,5 @@
 import { formatDate, formatCurrency } from "./utils";
+import { getReflectionText } from "./reflection";
 
 function downloadCSV(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -23,7 +24,7 @@ export function exportAttendanceCSV(logs: any[], filename = "attendance.csv") {
     "Instructor",
     "Level",
     "Lesson #",
-    "Diary Notes",
+    "Reflection",
   ];
 
   const rows = logs.map(log => [
@@ -36,7 +37,7 @@ export function exportAttendanceCSV(logs: any[], filename = "attendance.csv") {
     log.instructor_name || "",
     log.level || "",
     log.lesson_number || "",
-    (log.diary_notes || "").replace(/"/g, '""'), // Escape quotes
+    getReflectionText(log.learned, log.diary_notes).replace(/"/g, '""'),
   ]);
 
   const csv = [

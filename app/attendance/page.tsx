@@ -12,6 +12,7 @@ import { AttendanceModal, AttendancePrefill } from "@/components/attendance/Atte
 import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
+import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { useChildren, useActivities, useAttendanceLogs, useSchedules } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child, Schedule } from "@/lib/types";
 
@@ -156,8 +157,7 @@ export default function AttendancePage() {
       lesson_type: log.lesson_type,
       location: log.location ?? sched?.location ?? null,
       absence_reason: log.absence_reason,
-      learned: log.learned,
-      diary_notes: log.diary_notes,
+      diary_notes: getReflectionText(log.learned, log.diary_notes),
     });
     setModalOpen(true);
   }
@@ -400,8 +400,8 @@ export default function AttendancePage() {
                     )}
                     {visibleColumns.notes && (
                       <td className="px-1.5 py-2 text-center">
-                        {(log.learned || log.diary_notes) ? (
-                          <span title={[log.learned && `Learned: ${log.learned}`, log.diary_notes && `Reflection: ${log.diary_notes}`].filter(Boolean).join("\n")}>
+                        {hasReflection(log.learned, log.diary_notes) ? (
+                          <span title={getReflectionText(log.learned, log.diary_notes)}>
                             <NotebookPen size={14} className="inline text-[var(--text-secondary)]" />
                           </span>
                         ) : <span className="text-[var(--text-muted)]">—</span>}

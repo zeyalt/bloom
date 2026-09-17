@@ -10,6 +10,7 @@ import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { ScheduleSlotModal } from "@/components/schedule/ScheduleSlotModal";
 import { cn, formatTime } from "@/lib/utils";
+import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
 import { useChildren, useSchedules, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { Schedule, Activity, ActivityCategory, Child, AttendanceLog } from "@/lib/types";
@@ -115,8 +116,7 @@ export default function AgendaPage() {
       lesson_type: log.lesson_type,
       location: log.location,
       absence_reason: log.absence_reason,
-      learned: log.learned,
-      diary_notes: log.diary_notes,
+      diary_notes: getReflectionText(log.learned, log.diary_notes),
     });
     setModalOpen(true);
   }
@@ -294,7 +294,7 @@ export default function AgendaPage() {
                                       <Check size={12} /> Updated
                                     </span>
                                   )}
-                                  {log && (log.learned || log.diary_notes) && (
+                                  {log && hasReflection(log.learned, log.diary_notes) && (
                                     <NotebookPen size={13} className="text-[var(--text-muted)]" aria-label="Has reflection" />
                                   )}
                                 </div>
@@ -356,7 +356,7 @@ export default function AgendaPage() {
                                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">
                                     <Check size={12} /> Updated
                                   </span>
-                                  {(log.learned || log.diary_notes) && (
+                                  {hasReflection(log.learned, log.diary_notes) && (
                                     <NotebookPen size={13} className="text-[var(--text-muted)]" aria-label="Has reflection" />
                                   )}
                                 </div>

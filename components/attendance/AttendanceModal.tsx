@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { Activity, Child, AttendanceStatus } from "@/lib/types";
+import { getReflectionText } from "@/lib/reflection";
 
 export interface AttendancePrefill {
   id?: string;            // present → edit existing log (PATCH); absent → create (POST)
@@ -36,12 +37,11 @@ interface AttForm {
   lesson_type: string;
   location: string;
   absence_reason: string;
-  learned: string;
-  diary_notes: string;
+  reflection: string;
 }
 
 const ABSENCE_REASON_OPTIONS = ["Sick", "Conflict", "Overseas", "Other"];
-const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online", "Sparring"];
+const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 const FETCHER_OPTIONS = SENT_BY_OPTIONS;
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
@@ -58,7 +58,7 @@ const blankForm = (): AttForm => ({
   start_time: "", end_time: "", sent_by: [], fetcher: [],
   instructor_name: "", lesson_type: "",
   location: "", absence_reason: "",
-  learned: "", diary_notes: "",
+  reflection: "",
 });
 
 function fromPrefill(p?: AttendancePrefill): AttForm {
@@ -80,8 +80,7 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     lesson_type: p.lesson_type || "",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
-    learned: p.learned ?? "",
-    diary_notes: p.diary_notes ?? "",
+    reflection: getReflectionText(p.learned, p.diary_notes),
   };
 }
 
@@ -127,6 +126,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     }
     setSaving(true);
     setError("");
+    const includeSenderFetcher = form.status === "attended";
     try {
       const payload = {
         activity_id: form.activity_id,
@@ -135,8 +135,8 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         status: form.status,
         start_time: form.start_time || null,
         end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
-        sent_by: form.sent_by.length ? form.sent_by.join(", ") : null,
-        fetcher: form.fetcher.length ? form.fetcher.join(", ") : null,
+        sent_by: includeSenderFetcher && form.sent_by.length ? form.sent_by.join(", ") : null,
+        fetcher: includeSenderFetcher && form.fetcher.length ? form.fetcher.join(", ") : null,
         instructor_name: form.instructor_name || null,
         lesson_type: form.lesson_type || null,
         location: form.location || null,
@@ -144,8 +144,8 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         absence_reason: (form.status === "absent" || form.status === "cancelled_by_provider")
           ? form.absence_reason || null
           : null,
-        learned: form.learned.trim() || null,
-        diary_notes: form.diary_notes.trim() || null,
+        learned: null,
+        diary_notes: form.reflection.trim() || null,
       };
       const editing = !!prefill?.id;
       const res = await fetch(
@@ -197,6 +197,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     a => (!form.child_id || a.child_id === form.child_id)
       && (a.status === "active" || a.id === form.activity_id)
   );
+  const showSenderFetcher = form.status === "attended";
   const inputCls =
     "w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20";
 
@@ -316,97 +317,101 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sender</label>
-          <div className="flex flex-wrap items-center gap-2">
-            {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
-              const active = form.sent_by.includes(s);
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setForm(f => ({
-                    ...f,
-                    sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
-                  }))}
-                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
-                    active
-                      ? "bg-[var(--text-primary)] text-white border-transparent"
-                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-                  }`}
-                >
-                  {s}
-                </button>
-              );
-            })}
-            <input
-              type="text"
-              value={customSender}
-              onChange={e => setCustomSender(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const v = customSender.trim();
-                  if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
-                  setCustomSender("");
-                }
-              }}
-              onBlur={() => {
-                const v = customSender.trim();
-                if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
-                setCustomSender("");
-              }}
-              placeholder="+ Add other"
-              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
-            />
-          </div>
-        </div>
+        {showSenderFetcher && (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sender</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
+                  const active = form.sent_by.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
+                      }))}
+                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                        active
+                          ? "bg-[var(--text-primary)] text-white border-transparent"
+                          : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+                <input
+                  type="text"
+                  value={customSender}
+                  onChange={e => setCustomSender(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = customSender.trim();
+                      if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
+                      setCustomSender("");
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = customSender.trim();
+                    if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
+                    setCustomSender("");
+                  }}
+                  placeholder="+ Add other"
+                  className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+                />
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Fetcher</label>
-          <div className="flex flex-wrap items-center gap-2">
-            {[...FETCHER_OPTIONS, ...form.fetcher.filter(s => !FETCHER_OPTIONS.includes(s))].map(s => {
-              const active = form.fetcher.includes(s);
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setForm(f => ({
-                    ...f,
-                    fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
-                  }))}
-                  className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
-                    active
-                      ? "bg-[var(--text-primary)] text-white border-transparent"
-                      : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
-                  }`}
-                >
-                  {s}
-                </button>
-              );
-            })}
-            <input
-              type="text"
-              value={customFetcher}
-              onChange={e => setCustomFetcher(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const v = customFetcher.trim();
-                  if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
-                  setCustomFetcher("");
-                }
-              }}
-              onBlur={() => {
-                const v = customFetcher.trim();
-                if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
-                setCustomFetcher("");
-              }}
-              placeholder="+ Add other"
-              className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
-            />
-          </div>
-        </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Fetcher</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {[...FETCHER_OPTIONS, ...form.fetcher.filter(s => !FETCHER_OPTIONS.includes(s))].map(s => {
+                  const active = form.fetcher.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
+                      }))}
+                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-150 ${
+                        active
+                          ? "bg-[var(--text-primary)] text-white border-transparent"
+                          : "bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-muted)]"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+                <input
+                  type="text"
+                  value={customFetcher}
+                  onChange={e => setCustomFetcher(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = customFetcher.trim();
+                      if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
+                      setCustomFetcher("");
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = customFetcher.trim();
+                    if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
+                    setCustomFetcher("");
+                  }}
+                  placeholder="+ Add other"
+                  className="w-28 px-3.5 py-2 text-sm rounded-full border border-dashed border-[var(--border)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:w-36 transition-all duration-150"
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {form.status === "absent" && (
           <div>
@@ -435,27 +440,15 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         )}
 
         {activeTab === "reflections" && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">What was learned</label>
-            <textarea
-              value={form.learned}
-              onChange={e => setForm(f => ({ ...f, learned: e.target.value }))}
-              placeholder="Skills or topics from this session…"
-              rows={4}
-              className={`${inputCls} resize-y`}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection / Notes</label>
-            <textarea
-              value={form.diary_notes}
-              onChange={e => setForm(f => ({ ...f, diary_notes: e.target.value }))}
-              placeholder="How did it go? Highlights, struggles, mood…"
-              rows={10}
-              className={`${inputCls} resize-y`}
-            />
-          </div>
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection</label>
+          <textarea
+            value={form.reflection}
+            onChange={e => setForm(f => ({ ...f, reflection: e.target.value }))}
+            placeholder="What they practiced or learned, and anything worth remembering about the session…"
+            rows={10}
+            className={`${inputCls} resize-y`}
+          />
         </div>
         )}
 

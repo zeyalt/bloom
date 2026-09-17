@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { getReflectionText, hasReflection } from "@/lib/reflection";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
         prisma.attendanceLog.findMany({ where: { activityId: activity_id }, orderBy: { date: "asc" } }),
         prisma.milestone.findMany({ where: { activityId: activity_id }, orderBy: { date: "asc" } }),
       ]);
-      const reflections = logs.filter(l => l.learned || l.diaryNotes);
+      const reflections = logs.filter(l => hasReflection(l.learned, l.diaryNotes));
       if (reflections.length === 0) return NextResponse.json({ error: "Add some reflections for this activity first." }, { status: 400 });
 
       const attended = logs.filter(l => l.status === "attended").length;
@@ -75,8 +76,8 @@ export async function POST(req: Request) {
         dates.length ? `Date range: ${dates[0]} → ${dates[dates.length - 1]}` : "",
         milestones.length ? `Milestones:\n${milestones.map(m => `- ${iso(m.date)}: ${m.title}${m.result ? ` — ${m.result}` : ""}`).join("\n")}` : "",
         "",
-        "Chronological reflections (date — learned — reflection):",
-        ...reflections.map(l => `- ${iso(l.date)} — ${[l.learned && `Learned: ${l.learned}`, l.diaryNotes && `Reflection: ${l.diaryNotes}`].filter(Boolean).join(" | ")}`),
+        "Chronological reflections (date — note):",
+        ...reflections.map(l => `- ${iso(l.date)} — ${getReflectionText(l.learned, l.diaryNotes)}`),
       ].filter(Boolean).join("\n");
     } else {
       // ── Overview + highlights (child or all) ──
@@ -97,11 +98,10 @@ export async function POST(req: Request) {
         `You are helping a parent see what ${who} have been learning across activities. Write a warm, concise summary grounded ONLY in the notes provided — do not invent anything. Use these exact plain-text section headers on their own lines:\nOverview\nKey highlights\n` +
         `Under 'Overview' write 2–4 sentences on recent learning themes and progress${multiChild ? " (mention each child)" : ""}. Under 'Key highlights' give 4–8 '- ' bullets of genuine standout moments — each naming the activity${multiChild ? " and child" : ""} and roughly when.`;
       context = [
-        "Recent reflections (date · " + (multiChild ? "child · " : "") + "activity — learned — reflection):",
+        "Recent reflections (date · " + (multiChild ? "child · " : "") + "activity — note):",
         ...chrono.map(l => {
           const act = l.activity?.activityName || l.activity?.institution || "Activity";
-          const parts = [l.learned && `Learned: ${l.learned}`, l.diaryNotes && `Reflection: ${l.diaryNotes}`].filter(Boolean).join(" | ");
-          return `- ${iso(l.date)} · ${multiChild ? `${l.child?.name ?? "?"} · ` : ""}${act} — ${parts}`;
+          return `- ${iso(l.date)} · ${multiChild ? `${l.child?.name ?? "?"} · ` : ""}${act} — ${getReflectionText(l.learned, l.diaryNotes)}`;
         }),
       ].join("\n");
     }

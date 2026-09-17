@@ -11,6 +11,7 @@ import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
 import { cn } from "@/lib/utils";
+import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
 
@@ -19,7 +20,7 @@ interface LogWithDetails extends AttendanceLog {
   child?: Child;
 }
 
-const hasReflection = (l: AttendanceLog) => !!(l.learned || l.diary_notes);
+
 type SubTab = "reflections" | "highlights";
 
 export default function JournalPage() {
@@ -79,8 +80,7 @@ export default function JournalPage() {
       lesson_type: log.lesson_type,
       location: log.location,
       absence_reason: log.absence_reason,
-      learned: log.learned,
-      diary_notes: log.diary_notes,
+      diary_notes: getReflectionText(log.learned, log.diary_notes),
     });
     setModalOpen(true);
   }
@@ -89,7 +89,7 @@ export default function JournalPage() {
 
   // Only activities that actually have a reflection are worth offering as filters.
   const scopeActivities = useMemo(() => {
-    const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(hasReflection).map(l => l.activity_id));
+    const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(l => hasReflection(l.learned, l.diary_notes)).map(l => l.activity_id));
     return activities
       .filter(a => reflectionActivityIds.has(a.id) && selectedChildren.includes(a.child_id))
       .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
@@ -99,7 +99,7 @@ export default function JournalPage() {
   // date parsing here runs per entry, so it stays out of the render path.
   const { entries, groups } = useMemo(() => {
     const entries = (logsData as LogWithDetails[])
-      .filter(hasReflection)
+      .filter(l => hasReflection(l.learned, l.diary_notes))
       .filter(l => selectedChildren.includes(l.child_id))
       .filter(l => !filterActivity || l.activity_id === filterActivity)
       .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
@@ -169,7 +169,7 @@ export default function JournalPage() {
             <div className="text-center py-16 text-[var(--text-muted)]">
               <NotebookPen size={28} className="mx-auto mb-3 opacity-60" />
               <p className="text-sm">No reflections yet.</p>
-              <p className="text-xs mt-1">Add “What was learned” or a reflection when confirming a session.</p>
+              <p className="text-xs mt-1">Add a reflection when confirming a session.</p>
             </div>
           ) : (
             <div className="space-y-5">
@@ -181,7 +181,7 @@ export default function JournalPage() {
                       const child = log.child ?? children.find(c => c.id === log.child_id);
                       const title = log.activity?.activity_name || log.activity?.institution || "Activity";
                       const isOpen = expanded.has(log.id);
-                      const snippet = log.learned || log.diary_notes || "";
+                      const snippet = getReflectionText(log.learned, log.diary_notes);
                       return (
                         <div key={log.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-xs)] overflow-hidden">
                           <button onClick={() => toggle(log.id)} className="w-full text-left px-3.5 py-2.5 flex items-center gap-2.5 cursor-pointer">
@@ -193,18 +193,7 @@ export default function JournalPage() {
                           </button>
                           {isOpen && (
                             <div className="px-3.5 pb-3 pt-0.5 border-t border-[var(--border)]/60">
-                              {log.learned && (
-                                <div className="mt-2">
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Learned</p>
-                                  <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap mt-0.5">{log.learned}</p>
-                                </div>
-                              )}
-                              {log.diary_notes && (
-                                <div className="mt-2">
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Reflection</p>
-                                  <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap mt-0.5">{log.diary_notes}</p>
-                                </div>
-                              )}
+                              <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap mt-2">{snippet}</p>
                               <button onClick={() => openEdit(log)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-primary)] hover:opacity-80">
                                 <Pencil size={13} /> Edit
                               </button>
