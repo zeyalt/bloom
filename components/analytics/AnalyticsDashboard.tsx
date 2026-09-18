@@ -27,8 +27,8 @@ import {
   differenceInCalendarMonths,
   isWithinInterval,
 } from "date-fns";
-import { MultiSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from "@/lib/constants";
 import { useExpenses, useAttendanceLogs, useActivities, useChildren } from "@/lib/api-hooks";
@@ -443,26 +443,21 @@ export function AnalyticsDashboard() {
     <>
       <div className="px-5 md:px-8 space-y-10 pb-8 pt-4 md:pt-6">
         {/* Filter bar */}
-        <FilterBar stretch>
-          <FilterField label="Child">
-            <MultiSelect
-              className="w-44"
-              ariaLabel="Filter by child"
-              allLabel="All Children"
-              emptyLabel="No Children"
-              pluralNoun="Children"
-              options={(childrenData as Child[]).map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
-              selected={selectedChildren}
-              onToggle={toggleChild}
-            />
-          </FilterField>
-          <FilterField label="From">
+        <div className="space-y-3">
+          <ChildFilter
+            children={childrenData as Child[]}
+            selected={selectedChildren}
+            onToggle={toggleChild}
+          />
+          <FilterBar stretch>
+            <FilterField label="From">
             <input type="month" aria-label="From month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={monthInputCls} />
           </FilterField>
           <FilterField label="To">
             <input type="month" aria-label="To month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={monthInputCls} />
           </FilterField>
         </FilterBar>
+        </div>
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -6,8 +6,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
@@ -229,20 +230,8 @@ export default function AttendancePage() {
       <Header title="Attendance" subtitle="Session log" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Filters — one row, matching the other tabs */}
+        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
-          <FilterField label="Child">
-            <MultiSelect
-              className="w-44"
-              ariaLabel="Filter by child"
-              allLabel="All Children"
-              emptyLabel="No Children"
-              pluralNoun="Children"
-              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
-              selected={selectedChildren}
-              onToggle={toggleChild}
-            />
-          </FilterField>
           <FilterField label="Activity">
             <SingleSelect
               className="w-44"

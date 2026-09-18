@@ -6,8 +6,9 @@ import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Segmented } from "@/components/ui/Segmented";
-import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
 import { cn } from "@/lib/utils";
@@ -130,20 +131,8 @@ export default function JournalPage() {
       <Header title="Journal" subtitle="Notes from class" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
-        {/* Filters — pick child(ren), then narrow by activity */}
+        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
-          <FilterField label="Child">
-            <MultiSelect
-              className="w-44"
-              ariaLabel="Filter by child"
-              allLabel="All Children"
-              emptyLabel="No Children"
-              pluralNoun="Children"
-              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
-              selected={selectedChildren}
-              onToggle={toggleChild}
-            />
-          </FilterField>
           <FilterField label="Activity">
             <SingleSelect
               className="w-44"

@@ -10,8 +10,9 @@ import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
 import { PAYERS } from "@/lib/constants";
-import { MultiSelect, SingleSelect } from "@/components/ui/FilterDropdown";
+import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
 import { useExpenses, useChildren, useActivities } from "@/lib/api-hooks";
 import type { Expense, Child, ActivityCategory } from "@/lib/types";
 
@@ -186,20 +187,8 @@ export default function ExpensesPage() {
       <Header title="Expenses" subtitle="Class fees" />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6">
-        {/* Filters — one row, matching the other tabs */}
+        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
-          <FilterField label="Child">
-            <MultiSelect
-              className="w-44"
-              ariaLabel="Filter by child"
-              allLabel="All Children"
-              emptyLabel="No Children"
-              pluralNoun="Children"
-              options={children.map(c => ({ value: c.id, label: c.name, colorCode: c.color_code }))}
-              selected={selectedChildren}
-              onToggle={toggleChild}
-            />
-          </FilterField>
           <FilterField label="Year">
             <SingleSelect
               className="w-32"
