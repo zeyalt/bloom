@@ -15,22 +15,9 @@ import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { useExpenses, useChildren, useActivities } from "@/lib/api-hooks";
-import type { Expense, Child, ActivityCategory } from "@/lib/types";
+import type { Expense, Activity } from "@/lib/types";
 
-interface ExpenseWithDetails extends Expense {
-  child?: Child;
-  category?: ActivityCategory;
-  activity?: Activity;
-}
-
-interface Activity {
-  id: string;
-  activity_name?: string | null;
-  institution: string;
-  child_id: string;
-  category_id: string;
-  status?: string;
-}
+type ExpenseWithDetails = Expense;
 
 const EMPTY_FORM = {
   child_id: "",

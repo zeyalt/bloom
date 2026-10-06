@@ -124,6 +124,7 @@ export interface Expense {
   paid_by: string;
   year: number;
   num_lessons?: number | null;
+  expense_type: string;
   receipt_notes: string | null;
   created_at: string;
   updated_at: string;
