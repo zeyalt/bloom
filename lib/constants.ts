@@ -29,6 +29,21 @@ export const ATTENDANCE_STATUS_COLORS: Record<string, string> = {
   league_game: "#22C55E",
 };
 
+/** Lesson type pills in the attendance form (spreadsheet “Normal Lesson” → Normal). */
+export const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online"] as const;
+
+export function normalizeLessonType(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = raw.trim();
+  if (!t) return null;
+  const lower = t.toLowerCase();
+  if (lower === "normal" || lower === "normal lesson") return "Normal";
+  if (lower === "trial" || lower === "trial lesson") return "Trial";
+  if (lower === "replacement" || lower === "replacement lesson") return "Replacement";
+  if (lower === "online" || lower === "online lesson") return "Online";
+  return t;
+}
+
 // Who pays expenses — the children appear too, for fees paid from their own
 // savings accounts.
 export const PAYERS = [
@@ -38,6 +53,35 @@ export const PAYERS = [
   "Zayyan",
   "Zara",
 ] as const;
+
+export const EXPENSE_TYPES = [
+  "Lesson",
+  "Grading",
+  "Competition",
+  "Registration",
+  "Miscellaneous",
+] as const;
+
+export type ExpenseType = (typeof EXPENSE_TYPES)[number];
+
+export const EXPENSE_TYPE_COLORS: Record<ExpenseType, string> = {
+  Lesson: "#2f6f4e",
+  Grading: "#8B5CF6",
+  Competition: "#DB2777",
+  Registration: "#b45309",
+  Miscellaneous: "#6b5344",
+};
+
+export function inferExpenseType(description: string): ExpenseType {
+  const d = (description || "").toLowerCase();
+  if (/\bgrading\b/.test(d)) return "Grading";
+  if (/competition|championship|jssl/.test(d)) return "Competition";
+  if (/exchange trip/.test(d)) return "Miscellaneous";
+  if (/jersey|re-?regist|\bregistration\b|miscellaneous fees|programme fees|refundable deposit/.test(d)) {
+    return "Registration";
+  }
+  return "Lesson";
+}
 
 // Days of the week (0=Sun, 1=Mon … 6=Sat) — display starting Monday
 export const DAYS_OF_WEEK = [

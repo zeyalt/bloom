@@ -30,7 +30,8 @@ import {
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from "@/lib/constants";
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, EXPENSE_TYPES, EXPENSE_TYPE_COLORS } from "@/lib/constants";
+import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { useExpenses, useAttendanceLogs, useActivities, useChildren } from "@/lib/api-hooks";
 import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
 import { FerryBreakdown } from "@/components/analytics/FerryBreakdown";
@@ -255,6 +256,8 @@ export function AnalyticsDashboard() {
     }
   }, [childrenData]);
 
+  const [filterExpenseType, setFilterExpenseType] = useState("");
+
   const data = useMemo(() => {
     const childOk = (id: string) => selectedChildren.includes(id);
     // Effective range (guard from > to by swapping).
@@ -268,8 +271,9 @@ export function AnalyticsDashboard() {
 
     const inRange = (d: string, lo: Date, hi: Date) => isWithinInterval(parseISO(d.slice(0, 10)), { start: lo, end: hi });
 
-    const expIn = (expensesData as Expense[]).filter(e => childOk(e.child_id) && inRange(e.payment_date, from, to));
-    const expPrev = (expensesData as Expense[]).filter(e => childOk(e.child_id) && inRange(e.payment_date, prevFrom, prevTo));
+    const typeOk = (e: Expense) => !filterExpenseType || (e.expense_type || "Lesson") === filterExpenseType;
+    const expIn = (expensesData as Expense[]).filter(e => childOk(e.child_id) && typeOk(e) && inRange(e.payment_date, from, to));
+    const expPrev = (expensesData as Expense[]).filter(e => childOk(e.child_id) && typeOk(e) && inRange(e.payment_date, prevFrom, prevTo));
     const logIn = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, from, to));
     const logPrev = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, prevFrom, prevTo));
 
@@ -342,6 +346,19 @@ export function AnalyticsDashboard() {
     for (const e of expIn) { const n = e.paid_by || "—"; byPayer.set(n, (byPayer.get(n) || 0) + e.amount); }
     const payerSplit: DonutDatum[] = [...byPayer.entries()].map(([name, value], i) => ({ name, value, color: PALETTE[i % PALETTE.length] }));
 
+    const byExpenseType = new Map<string, number>();
+    for (const e of expIn) {
+      const n = e.expense_type || "Lesson";
+      byExpenseType.set(n, (byExpenseType.get(n) || 0) + e.amount);
+    }
+    const spendByExpenseType: DonutDatum[] = [...byExpenseType.entries()]
+      .sort((x, y) => y[1] - x[1])
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: EXPENSE_TYPE_COLORS[name as keyof typeof EXPENSE_TYPE_COLORS] || PALETTE[0],
+      }));
+
     // ── Attendance ──
     const statusCounts = new Map<string, number>();
     for (const l of logIn) statusCounts.set(l.status, (statusCounts.get(l.status) || 0) + 1);
@@ -374,12 +391,12 @@ export function AnalyticsDashboard() {
         spendByMonth, sessionsByMonth, hoursByMonth, rateByMonth,
       },
       childNames, childColor, colorForCat,
-      spendTrend, spendByCategory, spendByChild, topActivitiesSpend, payerSplit,
+      spendTrend, spendByCategory, spendByChild, topActivitiesSpend, payerSplit, spendByExpenseType,
       statusMix, attendanceByChild, absenceReasons, sessionsByActivity,
       // raw for hours section (depends on its own toggles)
       logIn,
     };
-  }, [expensesData, logsData, activitiesData, childrenData, fromMonth, toMonth, selectedChildren]);
+  }, [expensesData, logsData, activitiesData, childrenData, fromMonth, toMonth, selectedChildren, filterExpenseType]);
 
   // ── Hours section (its own toggles) ──
   const [hoursGroup, setHoursGroup] = useState<"category" | "activity">("category");
@@ -456,6 +473,18 @@ export function AnalyticsDashboard() {
           <FilterField label="To">
             <input type="month" aria-label="To month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={monthInputCls} />
           </FilterField>
+          <FilterField label="Type">
+            <SingleSelect
+              className="w-40"
+              ariaLabel="Filter by expense type"
+              value={filterExpenseType}
+              onChange={setFilterExpenseType}
+              options={[
+                { value: "", label: "All Types" },
+                ...EXPENSE_TYPES.map(t => ({ value: t, label: t })),
+              ]}
+            />
+          </FilterField>
         </FilterBar>
         </div>
 
@@ -494,7 +523,12 @@ export function AnalyticsDashboard() {
             </ChartCard>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {data.spendByExpenseType.length > 0 && (
+              <ChartCard title="Spend by Type" subtitle="Lesson vs extras">
+                <Donut data={data.spendByExpenseType} center={formatCurrency(data.spendByExpenseType.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
+              </ChartCard>
+            )}
             {data.spendByCategory.length > 0 && (
               <ChartCard title="Spend by Category">
                 <Donut data={data.spendByCategory} center={formatCurrency(data.spendByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />

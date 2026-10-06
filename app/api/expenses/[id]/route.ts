@@ -23,9 +23,10 @@ export async function PATCH(req: Request, { params }: Params) {
         paymentDate: (body.payment_date || body.paymentDate) ? new Date(body.payment_date || body.paymentDate) : undefined,
         paidBy: (body.paid_by !== undefined || body.paidBy !== undefined) ? (body.paid_by ?? body.paidBy) : undefined,
         year: body.year !== undefined ? body.year : undefined,
-        termStartDate: body.term_start_date !== undefined ? (body.term_start_date ? new Date(body.term_start_date) : null) : undefined,
-        termEndDate: body.term_end_date !== undefined ? (body.term_end_date ? new Date(body.term_end_date) : null) : undefined,
         numLessons: body.num_lessons !== undefined ? (body.num_lessons ? parseInt(body.num_lessons) : null) : undefined,
+        expenseType: (body.expense_type !== undefined || body.expenseType !== undefined)
+          ? (body.expense_type || body.expenseType || "Lesson")
+          : undefined,
       },
       include: {
         child: true,

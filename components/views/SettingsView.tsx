@@ -44,7 +44,7 @@ export default function SettingsPage() {
     <div className="max-w-[860px] mx-auto w-full">
       <Header title="Settings" subtitle={activeTabConfig?.subtitle || "Manage settings"} />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         {/* Tab bar — tabs share width so they fit without scrolling */}
         <div className="flex mb-8 border-b border-[var(--rule)]">
           {TABS.map(tab => (

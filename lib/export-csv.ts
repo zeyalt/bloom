@@ -52,6 +52,7 @@ export function exportExpensesCSV(expenses: any[], filename = "expenses.csv") {
   const headers = [
     "Date",
     "Child",
+    "Activity",
     "Institution",
     "Category",
     "Description",
@@ -63,6 +64,7 @@ export function exportExpensesCSV(expenses: any[], filename = "expenses.csv") {
   const rows = expenses.map(exp => [
     formatDate(exp.payment_date),
     exp.child?.name || "",
+    exp.activity?.activity_name || exp.activity?.institution || "",
     exp.institution || "",
     exp.category?.name || "",
     (exp.description || "").replace(/"/g, '""'),

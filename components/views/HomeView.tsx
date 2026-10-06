@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { startOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
+import { DAYS_OF_WEEK } from "@/lib/constants";
 import { cn, formatTime } from "@/lib/utils";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
@@ -32,6 +34,14 @@ export default function AgendaPage() {
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const todayRef = useRef<HTMLDivElement>(null);
   const hasScrolledToToday = useRef(false);
+
+  // Editing/deleting the underlying recurring schedule slot behind an occurrence card.
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, start_time: "", end_time: "", location: "" });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
+  const [confirmDeleteSchedule, setConfirmDeleteSchedule] = useState<Schedule | null>(null);
+  const [deletingSchedule, setDeletingSchedule] = useState(false);
 
   // Rebuilt only when the user moves weeks — these feed the memoised derivations
   // below, which would otherwise miss on every render.
@@ -112,6 +122,48 @@ export default function AgendaPage() {
       diary_notes: getReflectionText(log.learned, log.diary_notes),
     });
     setModalOpen(true);
+  }
+
+  function openEditSchedule(s: Schedule) {
+    setScheduleForm({
+      day_of_week: s.day_of_week,
+      start_time: s.start_time,
+      end_time: s.end_time ?? "",
+      location: s.location ?? "",
+    });
+    setScheduleError("");
+    setEditingSchedule(s);
+  }
+
+  async function saveSchedule() {
+    if (!editingSchedule || !scheduleForm.start_time) { setScheduleError("Start time is required."); return; }
+    setSavingSchedule(true); setScheduleError("");
+    try {
+      const res = await fetch(`/api/schedules/${editingSchedule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          day_of_week: scheduleForm.day_of_week,
+          start_time: scheduleForm.start_time,
+          end_time: scheduleForm.end_time.trim() || null,
+          location: scheduleForm.location.trim() || null,
+        }),
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
+      setEditingSchedule(null);
+      await queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    } catch (e) { setScheduleError((e as Error).message); }
+    finally { setSavingSchedule(false); }
+  }
+
+  async function deleteSchedule() {
+    if (!confirmDeleteSchedule) return;
+    setDeletingSchedule(true);
+    try {
+      await fetch(`/api/schedules/${confirmDeleteSchedule.id}`, { method: "DELETE" });
+      setConfirmDeleteSchedule(null);
+      await queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    } finally { setDeletingSchedule(false); }
   }
 
   function openAdhoc() {
@@ -250,7 +302,7 @@ export default function AgendaPage() {
                         const log = logsByKey.get(key);
                         const title = a.activity_name || a.institution;
                         return (
-                          <div key={s.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-x-3 items-start py-3 px-1">
+                          <div key={s.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] gap-x-3 items-start py-3 px-1">
                             <time className="tabular-nums text-[0.9375rem] text-[var(--ink-soft)] pt-0.5">
                               {s.start_time ? formatTime(s.start_time) : "—"}
                             </time>
@@ -293,6 +345,18 @@ export default function AgendaPage() {
                               {log && hasReflection(log.learned, log.diary_notes) && (
                                 <NotebookPen size={13} className="text-[var(--ink-faint)]" aria-label="Has reflection" />
                               )}
+                            </div>
+                            <div className="shrink-0 flex items-center gap-0.5 pt-0.5">
+                              <button
+                                onClick={() => openEditSchedule(s)}
+                                className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
+                                title="Edit schedule"
+                              ><Pencil size={13} /></button>
+                              <button
+                                onClick={() => setConfirmDeleteSchedule(s)}
+                                className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer"
+                                title="Delete schedule"
+                              ><Trash2 size={13} /></button>
                             </div>
                           </div>
                         );
@@ -351,6 +415,69 @@ export default function AgendaPage() {
         prefill={prefill}
         onSaved={refetchLogs}
       />
+
+      <Modal open={!!editingSchedule} onClose={() => setEditingSchedule(null)} title="Edit Schedule" size="sm">
+        <div className="space-y-4">
+          {scheduleError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{scheduleError}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Day *</label>
+              <select
+                value={scheduleForm.day_of_week}
+                onChange={e => setScheduleForm(f => ({ ...f, day_of_week: Number(e.target.value) }))}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              >
+                {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
+              <input
+                type="text"
+                value={scheduleForm.location}
+                onChange={e => setScheduleForm(f => ({ ...f, location: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time *</label>
+              <input
+                type="time"
+                value={scheduleForm.start_time}
+                onChange={e => setScheduleForm(f => ({ ...f, start_time: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
+              <input
+                type="time"
+                value={scheduleForm.end_time}
+                onChange={e => setScheduleForm(f => ({ ...f, end_time: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="secondary" className="flex-1" onClick={() => setEditingSchedule(null)}>Cancel</Button>
+            <Button className="flex-1" onClick={saveSchedule} loading={savingSchedule}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={!!confirmDeleteSchedule} onClose={() => setConfirmDeleteSchedule(null)} title="Delete schedule?" size="sm">
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
+          This removes the recurring slot entirely — every future and past week showing{" "}
+          <strong>{confirmDeleteSchedule ? DAYS_OF_WEEK.find(d => d.value === confirmDeleteSchedule.day_of_week)?.label : ""}</strong>{" "}
+          at <strong>{confirmDeleteSchedule ? formatTime(confirmDeleteSchedule.start_time) : ""}</strong> for this activity will lose it. Attendance already logged is unaffected.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="secondary" className="flex-1" onClick={() => setConfirmDeleteSchedule(null)}>Cancel</Button>
+          <Button variant="danger" className="flex-1" onClick={deleteSchedule} loading={deletingSchedule}>Delete</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

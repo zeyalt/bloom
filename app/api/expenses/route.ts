@@ -24,6 +24,7 @@ export async function GET(req: Request) {
         include: {
           child: true,
           category: true,
+          activity: true,
         },
         orderBy: { paymentDate: "desc" },
         take: limit,
@@ -55,8 +56,6 @@ export async function POST(req: Request) {
         paymentDate: new Date(body.payment_date || body.paymentDate),
         paidBy: body.paid_by || body.paidBy,
         year: body.year,
-        termStartDate: body.term_start_date ? new Date(body.term_start_date) : null,
-        termEndDate: body.term_end_date ? new Date(body.term_end_date) : null,
         numLessons: body.num_lessons ? parseInt(body.num_lessons) : null,
         receiptNotes: body.receipt_notes || body.receiptNotes || null,
       },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Download, Pencil, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
+import { Plus, Download, Pencil, Trash2, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -10,9 +10,10 @@ import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
+import { Modal } from "@/components/ui/Modal";
 import { formatDate, formatTime } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
-import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
+import { ATTENDANCE_STATUS_LABELS, normalizeLessonType } from "@/lib/constants";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { useChildren, useActivities, useAttendanceLogs, useSchedules } from "@/lib/api-hooks";
 import type { AttendanceLog, Activity, ActivityCategory, Child, Schedule } from "@/lib/types";
@@ -36,7 +37,7 @@ function sortValue(log: LogWithDetails, key: string): string {
     case "institution": return log.activity?.institution ?? "";
     case "level": return log.level ?? log.activity?.level ?? "";
     case "coach": return log.instructor_name ?? "";
-    case "lessonType": return log.lesson_type ?? "";
+    case "lessonType": return normalizeLessonType(log.lesson_type) ?? "";
     case "sentBy": return log.sent_by ?? "";
     case "fetcher": return log.fetcher ?? "";
     case "absenceReason": return (log.status === "absent" || log.status === "cancelled_by_provider") ? (log.absence_reason ?? "") : "";
@@ -49,6 +50,9 @@ export default function AttendancePage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
+  const [confirmDelete, setConfirmDelete] = useState<LogWithDetails | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const childrenInit = useRef(false);
   // Every filter/sort change returns the user to the first page.
@@ -140,6 +144,25 @@ export default function AttendancePage() {
     setModalOpen(true);
   }
 
+  async function deleteAttendance() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/attendance-logs/${confirmDelete.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Delete failed");
+      }
+      setConfirmDelete(null);
+      await fetchAll();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function openEdit(log: LogWithDetails) {
     // Back-fill time/location from the recurring schedule when the log itself
     // is missing them (e.g. older records saved before end_time persisted).
@@ -229,7 +252,7 @@ export default function AttendancePage() {
     <div className="max-w-[1400px] mx-auto w-full">
       <Header title="Attendance" subtitle="Session log" />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
           <FilterField label="Activity">
@@ -375,7 +398,7 @@ export default function AttendancePage() {
                     {visibleColumns.institution && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
                     {visibleColumns.level && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.level || log.activity?.level || "—"}</td>}
                     {visibleColumns.coach && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
-                    {visibleColumns.lessonType && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.lesson_type || "—"}</td>}
+                    {visibleColumns.lessonType && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{normalizeLessonType(log.lesson_type) || "—"}</td>}
                     {visibleColumns.sentBy && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
                     {visibleColumns.fetcher && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
                     {visibleColumns.absenceReason && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
@@ -397,13 +420,22 @@ export default function AttendancePage() {
                       </td>
                     )}
                     <td className="px-1.5 py-2 text-center">
-                      <button
-                        onClick={() => openEdit(log)}
-                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
-                        title="Edit attendance"
-                      >
-                        <Pencil size={14} />
-                      </button>
+                      <div className="inline-flex items-center gap-0.5">
+                        <button
+                          onClick={() => openEdit(log)}
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                          title="Edit attendance"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => { setDeleteError(""); setConfirmDelete(log); }}
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                          title="Delete attendance"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -436,6 +468,26 @@ export default function AttendancePage() {
             </Button>
           </div>
         )}
+
+        <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete attendance?" size="sm">
+          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
+          <p className="text-sm text-[var(--text-secondary)] mb-4">
+            Delete the {confirmDelete ? formatDate(confirmDelete.date) : ""}{" "}
+            {confirmDelete?.start_time ? `at ${formatTime(confirmDelete.start_time)} ` : ""}
+            record for{" "}
+            <strong>
+              {confirmDelete?.child?.name ?? children.find(c => c.id === confirmDelete?.child_id)?.name ?? "—"}
+            </strong>
+            {confirmDelete?.activity
+              ? ` (${activityLabel(confirmDelete.activity)} @ ${confirmDelete.activity.institution})`
+              : ""}
+            ?
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="danger" className="flex-1" onClick={deleteAttendance} loading={deleting}>Delete</Button>
+          </div>
+        </Modal>
 
         <AttendanceModal
           open={modalOpen}

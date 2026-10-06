@@ -123,8 +123,6 @@ export interface Expense {
   payment_date: string;
   paid_by: string;
   year: number;
-  term_start_date?: string | null;
-  term_end_date?: string | null;
   num_lessons?: number | null;
   receipt_notes: string | null;
   created_at: string;
@@ -132,6 +130,7 @@ export interface Expense {
   // Joined fields
   child?: Child;
   category?: ActivityCategory;
+  activity?: Activity;
 }
 
 export interface Milestone {

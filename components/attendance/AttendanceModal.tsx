@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { Activity, Child, AttendanceStatus } from "@/lib/types";
 import { getReflectionText } from "@/lib/reflection";
+import { LESSON_TYPE_OPTIONS, normalizeLessonType } from "@/lib/constants";
 
 export interface AttendancePrefill {
   id?: string;            // present → edit existing log (PATCH); absent → create (POST)
@@ -41,7 +42,6 @@ interface AttForm {
 }
 
 const ABSENCE_REASON_OPTIONS = ["Sick", "Conflict", "Overseas", "Other"];
-const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 const FETCHER_OPTIONS = SENT_BY_OPTIONS;
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
@@ -77,7 +77,7 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     sent_by: senders,
     fetcher: fetchers,
     instructor_name: p.instructor_name ?? "",
-    lesson_type: p.lesson_type || "",
+    lesson_type: normalizeLessonType(p.lesson_type) ?? "",
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
     reflection: getReflectionText(p.learned, p.diary_notes),
@@ -138,7 +138,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         sent_by: includeSenderFetcher && form.sent_by.length ? form.sent_by.join(", ") : null,
         fetcher: includeSenderFetcher && form.fetcher.length ? form.fetcher.join(", ") : null,
         instructor_name: form.instructor_name || null,
-        lesson_type: form.lesson_type || null,
+        lesson_type: normalizeLessonType(form.lesson_type) || null,
         location: form.location || null,
         // Same column stores the absence reason (absent) or cancellation reason (cancelled).
         absence_reason: (form.status === "absent" || form.status === "cancelled_by_provider")
@@ -277,8 +277,15 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         <div>
           <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
           <div className="flex flex-wrap items-center gap-2">
-            {[...LESSON_TYPE_OPTIONS, ...(form.lesson_type && !LESSON_TYPE_OPTIONS.includes(form.lesson_type) ? [form.lesson_type] : [])].map(lt => {
-              const active = form.lesson_type === lt;
+            {(() => {
+              const norm = normalizeLessonType(form.lesson_type);
+              const extras =
+                form.lesson_type && norm && !(LESSON_TYPE_OPTIONS as readonly string[]).includes(norm)
+                  ? [form.lesson_type]
+                  : [];
+              return [...LESSON_TYPE_OPTIONS, ...extras];
+            })().map(lt => {
+              const active = (normalizeLessonType(form.lesson_type) ?? form.lesson_type) === lt;
               return (
                 <button
                   key={lt}

@@ -53,14 +53,14 @@ function TabScreens() {
         const active = path === href;
         if (href === "/analytics") {
           return active ? (
-            <div key="analytics" className="h-full overflow-y-auto">
+            <div key="analytics" className="absolute inset-0 overflow-y-auto overscroll-y-contain">
               <View />
             </div>
           ) : null;
         }
         if (!active && !visited.has(href)) return null;
         return (
-          <div key={href} hidden={!active} className="h-full overflow-y-auto">
+          <div key={href} hidden={!active} className="absolute inset-0 overflow-y-auto overscroll-y-contain">
             <View />
           </div>
         );

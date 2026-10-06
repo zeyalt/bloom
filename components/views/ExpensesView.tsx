@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Pencil } from "lucide-react";
+import { Plus, Download, Pencil, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
-import { PAYERS } from "@/lib/constants";
+import { PAYERS, EXPENSE_TYPES, EXPENSE_TYPE_COLORS, inferExpenseType } from "@/lib/constants";
+import { Badge } from "@/components/ui/Badge";
 import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
@@ -19,6 +20,7 @@ import type { Expense, Child, ActivityCategory } from "@/lib/types";
 interface ExpenseWithDetails extends Expense {
   child?: Child;
   category?: ActivityCategory;
+  activity?: Activity;
 }
 
 interface Activity {
@@ -38,9 +40,8 @@ const EMPTY_FORM = {
   amount: "",
   payment_date: new Date().toISOString().split('T')[0],
   paid_by: "Zeya",
-  term_start_date: "",
-  term_end_date: "",
   num_lessons: "",
+  expense_type: "Lesson",
 };
 
 export default function ExpensesPage() {
@@ -56,6 +57,10 @@ export default function ExpensesPage() {
   const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [filterYear, setFilterYear] = useState(String(getCurrentYear()));
   const [filterPayer, setFilterPayer] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<ExpenseWithDetails | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   // Cached via React Query (fetch per-year; filter child/payer client-side for
   // instant tab switches). Refresh via invalidation after saves.
@@ -78,9 +83,10 @@ export default function ExpensesPage() {
   const expenses = useMemo(
     () => (yearExpenses as ExpenseWithDetails[]).filter(e =>
       selectedChildren.includes(e.child_id) &&
-      (!filterPayer || e.paid_by === filterPayer)
+      (!filterPayer || e.paid_by === filterPayer) &&
+      (!filterType || (e.expense_type || "Lesson") === filterType)
     ),
-    [yearExpenses, selectedChildren, filterPayer]
+    [yearExpenses, selectedChildren, filterPayer, filterType]
   );
 
   const total = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
@@ -105,9 +111,8 @@ export default function ExpensesPage() {
       amount: String(exp.amount),
       payment_date: exp.payment_date.slice(0, 10),
       paid_by: exp.paid_by || "Zeya",
-      term_start_date: exp.term_start_date ? exp.term_start_date.slice(0, 10) : "",
-      term_end_date: exp.term_end_date ? exp.term_end_date.slice(0, 10) : "",
       num_lessons: exp.num_lessons != null ? String(exp.num_lessons) : "",
+      expense_type: exp.expense_type || "Lesson",
     });
     setError("");
     setShowForm(true);
@@ -155,9 +160,8 @@ export default function ExpensesPage() {
         payment_date: form.payment_date,
         paid_by: form.paid_by || null,
         year: year,
-        term_start_date: form.term_start_date || null,
-        term_end_date: form.term_end_date || null,
         num_lessons: form.num_lessons || null,
+        expense_type: form.expense_type || "Lesson",
       };
       const res = await fetch(
         editingId ? `/api/expenses/${editingId}` : "/api/expenses",
@@ -180,13 +184,37 @@ export default function ExpensesPage() {
     }
   }
 
+  async function deleteExpense() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/expenses/${confirmDelete.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Delete failed");
+      }
+      setConfirmDelete(null);
+      refresh();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const years = Array.from({ length: 5 }, (_, i) => getCurrentYear() - i);
+
+  function activityLabel(exp: ExpenseWithDetails) {
+    const act = exp.activity || activities.find(a => a.id === exp.activity_id);
+    return act?.activity_name || act?.institution || "—";
+  }
 
   return (
     <div className="max-w-[1200px] mx-auto w-full">
       <Header title="Expenses" subtitle="Class fees" />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
           <FilterField label="Year">
@@ -207,6 +235,18 @@ export default function ExpensesPage() {
               options={[
                 { value: "", label: "All Payers" },
                 ...PAYERS.map(p => ({ value: p, label: p })),
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Type">
+            <SingleSelect
+              className="w-40"
+              ariaLabel="Filter by expense type"
+              value={filterType}
+              onChange={setFilterType}
+              options={[
+                { value: "", label: "All Types" },
+                ...EXPENSE_TYPES.map(t => ({ value: t, label: t })),
               ]}
             />
           </FilterField>
@@ -248,7 +288,9 @@ export default function ExpensesPage() {
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
                   <th className="px-3 py-2 text-left font-semibold">Payment Date</th>
                   <th className="px-3 py-2 text-left font-semibold">Child</th>
+                  <th className="px-3 py-2 text-left font-semibold">Activity</th>
                   <th className="px-3 py-2 text-left font-semibold">Institution</th>
+                  <th className="px-3 py-2 text-left font-semibold">Type</th>
                   <th className="px-3 py-2 text-left font-semibold">Description</th>
                   <th className="px-3 py-2 text-right font-semibold">Amount</th>
                   <th className="px-3 py-2 text-right font-semibold">Cost / lesson</th>
@@ -269,7 +311,14 @@ export default function ExpensesPage() {
                     >
                       <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>
                       <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">{exp.child?.name || "—"}</td>
+                      <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">{activityLabel(exp)}</td>
                       <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <Badge
+                          label={exp.expense_type || "Lesson"}
+                          color={EXPENSE_TYPE_COLORS[(exp.expense_type || "Lesson") as keyof typeof EXPENSE_TYPE_COLORS]}
+                        />
+                      </td>
                       <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>
                       <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-right whitespace-nowrap">
                         {formatCurrency(exp.amount)}
@@ -277,13 +326,22 @@ export default function ExpensesPage() {
                       <td className="px-3 py-2 text-[var(--text-secondary)] text-right whitespace-nowrap">{costPerLesson}</td>
                       <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>
                       <td className="px-3 py-2 text-center">
-                        <button
-                          onClick={() => openEdit(exp)}
-                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
-                          title="Edit expense"
-                        >
-                          <Pencil size={14} />
-                        </button>
+                        <div className="inline-flex items-center gap-0.5">
+                          <button
+                            onClick={() => openEdit(exp)}
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                            title="Edit expense"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => { setDeleteError(""); setConfirmDelete(exp); }}
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                            title="Delete expense"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -351,18 +409,41 @@ export default function ExpensesPage() {
               </select>
             </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                Description
-              </label>
-              <input
-                type="text"
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="e.g. Term 2 fees, Registration"
-                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
-              />
+            {/* Type & Description */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  Type
+                </label>
+                <select
+                  value={form.expense_type}
+                  onChange={e => setForm(f => ({ ...f, expense_type: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                >
+                  {EXPENSE_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={e => {
+                    const description = e.target.value;
+                    setForm(f => ({
+                      ...f,
+                      description,
+                      expense_type: editingId ? f.expense_type : inferExpenseType(description),
+                    }));
+                  }}
+                  placeholder="e.g. Term 2 fees, Registration"
+                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                />
+              </div>
             </div>
 
             {/* Amount & Date */}
@@ -388,32 +469,6 @@ export default function ExpensesPage() {
                   type="date"
                   value={form.payment_date}
                   onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Term dates (optional) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Term Start
-                </label>
-                <input
-                  type="date"
-                  value={form.term_start_date}
-                  onChange={e => setForm(f => ({ ...f, term_start_date: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-                  Term End
-                </label>
-                <input
-                  type="date"
-                  value={form.term_end_date}
-                  onChange={e => setForm(f => ({ ...f, term_end_date: e.target.value }))}
                   className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
@@ -458,6 +513,19 @@ export default function ExpensesPage() {
                 Confirm
               </Button>
             </div>
+          </div>
+        </Modal>
+
+        <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete expense?" size="sm">
+          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
+          <p className="text-sm text-[var(--text-secondary)] mb-4">
+            Delete the {confirmDelete ? formatCurrency(confirmDelete.amount) : ""}{" "}
+            {confirmDelete ? activityLabel(confirmDelete) : ""} record
+            {confirmDelete?.description ? ` (${confirmDelete.description})` : ""}?
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="danger" className="flex-1" onClick={deleteExpense} loading={deleting}>Delete</Button>
           </div>
         </Modal>
       </div>
