@@ -193,34 +193,68 @@ export function MultiSelect({
   ariaLabel: string;
   className?: string;
 }) {
+  const allSelected = options.length > 0 && selected.length === options.length;
+
   const label =
     selected.length === 0
       ? emptyLabel
-      : selected.length === options.length
+      : allSelected
         ? allLabel
         : selected.length === 1
           ? options.find(o => o.value === selected[0])?.label ?? allLabel
           : `${selected.length} ${pluralNoun}`;
 
+  // One toggle in, one out: select-all turns every option on; clicking it again
+  // (now that all are selected) turns them all back off. `onToggle` already
+  // flips a single value against the latest state, so firing it once per
+  // option that needs to change is enough — no separate bulk-update prop.
+  function toggleAll() {
+    if (allSelected) {
+      selected.forEach(onToggle);
+    } else {
+      options.forEach(o => { if (!selected.includes(o.value)) onToggle(o.value); });
+    }
+  }
+
   return (
     <DropdownShell label={label} ariaLabel={ariaLabel} className={className}>
-      {() => options.map(opt => {
-        const checked = selected.includes(opt.value);
-        return (
-          <label key={opt.value} role="option" aria-selected={checked} className={optionRow}>
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={() => onToggle(opt.value)}
-              className="w-3.5 shrink-0 rounded cursor-pointer"
-            />
-            {opt.colorCode && (
-              <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
-            )}
-            <span className="whitespace-nowrap">{opt.label}</span>
-          </label>
-        );
-      })}
+      {() => (
+        <>
+          <button
+            type="button"
+            role="option"
+            aria-selected={allSelected}
+            onClick={toggleAll}
+            className={cn(optionRow, "font-medium border-b border-[var(--rule)] mb-1 pb-2.5")}
+          >
+            <span className="w-3.5 shrink-0 text-[var(--accent-primary)]">
+              {allSelected && <Check size={14} />}
+            </span>
+            <span className="whitespace-nowrap">Select All</span>
+          </button>
+          {options.map(opt => {
+            const checked = selected.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="option"
+                aria-selected={checked}
+                onClick={() => onToggle(opt.value)}
+                className={optionRow}
+              >
+                <span className="w-3.5 shrink-0 text-[var(--accent-primary)]">
+                  {checked && <Check size={14} />}
+                </span>
+                {opt.colorCode && (
+                  <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
+                )}
+                <span className="whitespace-nowrap">{opt.label}</span>
+              </button>
+            );
+          })}
+        </>
+      )}
     </DropdownShell>
   );
 }

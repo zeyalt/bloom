@@ -7,16 +7,14 @@ import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister
 import { InteractionLock } from "@/components/layout/InteractionLock";
 import { SpaNavProvider, TAB_PATHS, isTabPath, useSpaNav } from "@/components/layout/spa-nav";
 import HomeView from "@/components/views/HomeView";
-import AttendanceView from "@/components/views/AttendanceView";
-import ExpensesView from "@/components/views/ExpensesView";
+import HistoryView from "@/components/views/HistoryView";
 import AnalyticsView from "@/components/views/AnalyticsView";
 import JournalView from "@/components/views/JournalView";
 import SettingsView from "@/components/views/SettingsView";
 
 const TAB_VIEWS = {
   "/": HomeView,
-  "/attendance": AttendanceView,
-  "/expenses": ExpensesView,
+  "/history": HistoryView,
   "/analytics": AnalyticsView,
   "/journal": JournalView,
   "/settings": SettingsView,

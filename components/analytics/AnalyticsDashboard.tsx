@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Area,
   AreaChart,
@@ -23,19 +24,17 @@ import {
   startOfWeek,
   addMonths,
   addDays,
-  subMonths,
-  differenceInCalendarMonths,
-  isWithinInterval,
 } from "date-fns";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, EXPENSE_TYPES, EXPENSE_TYPE_COLORS } from "@/lib/constants";
-import { SingleSelect } from "@/components/ui/FilterDropdown";
-import { useExpenses, useAttendanceLogs, useActivities, useChildren } from "@/lib/api-hooks";
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, EXPENSE_TYPE_COLORS } from "@/lib/constants";
+import { MultiSelect } from "@/components/ui/FilterDropdown";
+import { useExpenses, useAttendanceLogs, useActivities, useChildren, useSchedules } from "@/lib/api-hooks";
 import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
 import { FerryBreakdown } from "@/components/analytics/FerryBreakdown";
-import type { Expense, AttendanceLog, Activity, Child } from "@/lib/types";
+import type { Expense, AttendanceLog, Activity, Child, Schedule } from "@/lib/types";
+import type { AnalyticsSegment } from "@/components/views/AnalyticsView";
 
 const DISPLAY_FONT = "var(--font-bricolage), ui-sans-serif, system-ui, sans-serif";
 const PALETTE = ["#2f6f4e", "#1a2c22", "#b45309", "#b42318", "#3d6b7a", "#6b5344", "#4a6741", "#8b5a2b", "#5c7a6a", "#3d4a40"];
@@ -49,6 +48,18 @@ function sessionMinutes(log: AttendanceLog): number {
   if (log.start_time && log.end_time) {
     const [sh, sm] = log.start_time.split(":").map(Number);
     const [eh, em] = log.end_time.split(":").map(Number);
+    const diff = eh * 60 + em - (sh * 60 + sm);
+    return diff > 0 ? diff : 0;
+  }
+  return 0;
+}
+
+// Minutes for a single weekly schedule slot: prefer stored duration, else derive from times.
+function scheduleMinutes(s: Schedule): number {
+  if (s.duration_minutes && s.duration_minutes > 0) return s.duration_minutes;
+  if (s.start_time && s.end_time) {
+    const [sh, sm] = s.start_time.split(":").map(Number);
+    const [eh, em] = s.end_time.split(":").map(Number);
     const diff = eh * 60 + em - (sh * 60 + sm);
     return diff > 0 ? diff : 0;
   }
@@ -226,11 +237,14 @@ const axisProps = {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
+  const router = useRouter();
+  const goToActivity = (id: string | null | undefined) => { if (id) router.push(`/activity/${id}`); };
   const { data: expensesData = [], isLoading: le } = useExpenses({ limit: 500 });
-  const { data: logsData = [], isLoading: ll } = useAttendanceLogs({ limit: 500 });
+  const { data: logsData = [], isLoading: ll } = useAttendanceLogs({ limit: "all" });
   const { data: activitiesData = [] } = useActivities();
   const { data: childrenData = [] } = useChildren();
+  const { data: schedulesData = [] } = useSchedules();
   const loading = le || ll;
 
   const [animate, setAnimate] = useState(false);
@@ -239,11 +253,10 @@ export function AnalyticsDashboard() {
     setAnimate(!reduce);
   }, []);
 
-  // Month-range filter (yyyy-MM); default Jan this year → current month.
-  const thisYear = getCurrentYear();
-  const nowMonth = format(new Date(), "yyyy-MM");
-  const [fromMonth, setFromMonth] = useState(`${thisYear}-01`);
-  const [toMonth, setToMonth] = useState(nowMonth);
+  // Year filter — multi-select, defaults to the current year. Empty = all years.
+  const [filterYears, setFilterYears] = useState<string[]>([String(getCurrentYear())]);
+  const toggleFilterYear = (year: string) => setFilterYears(prev => (prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year]));
+  const yearOptions = Array.from({ length: 5 }, (_, i) => getCurrentYear() - i);
 
   // Child filter — all selected by default; toggling a pill off hides that child.
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
@@ -256,26 +269,27 @@ export function AnalyticsDashboard() {
     }
   }, [childrenData]);
 
-  const [filterExpenseType, setFilterExpenseType] = useState("");
-
   const data = useMemo(() => {
     const childOk = (id: string) => selectedChildren.includes(id);
-    // Effective range (guard from > to by swapping).
-    const a = startOfMonth(parseISO(`${fromMonth}-01`));
-    const b = endOfMonth(parseISO(`${toMonth}-01`));
-    const from = a <= b ? a : startOfMonth(parseISO(`${toMonth}-01`));
-    const to = a <= b ? b : endOfMonth(parseISO(`${fromMonth}-01`));
-    const months = differenceInCalendarMonths(to, from) + 1;
-    const prevTo = endOfMonth(subMonths(from, 1));
-    const prevFrom = startOfMonth(subMonths(from, months));
 
-    const inRange = (d: string, lo: Date, hi: Date) => isWithinInterval(parseISO(d.slice(0, 10)), { start: lo, end: hi });
+    // Effective range spanning the selected years (all years, when none are selected).
+    const allYears = [
+      ...new Set([...(expensesData as Expense[]).map(e => e.payment_date.slice(0, 4)), ...(logsData as AttendanceLog[]).map(l => l.date.slice(0, 4))]),
+    ];
+    const activeYears = filterYears.length > 0 ? filterYears : allYears;
+    const minYear = activeYears.length ? Math.min(...activeYears.map(Number)) : getCurrentYear();
+    const maxYear = activeYears.length ? Math.max(...activeYears.map(Number)) : getCurrentYear();
+    const from = startOfMonth(parseISO(`${minYear}-01-01`));
+    const to = endOfMonth(parseISO(`${maxYear}-12-01`));
+    const prevYears = filterYears.map(y => String(Number(y) - 1));
 
-    const typeOk = (e: Expense) => !filterExpenseType || (e.expense_type || "Lesson") === filterExpenseType;
-    const expIn = (expensesData as Expense[]).filter(e => childOk(e.child_id) && typeOk(e) && inRange(e.payment_date, from, to));
-    const expPrev = (expensesData as Expense[]).filter(e => childOk(e.child_id) && typeOk(e) && inRange(e.payment_date, prevFrom, prevTo));
-    const logIn = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, from, to));
-    const logPrev = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && inRange(l.date, prevFrom, prevTo));
+    const yearOk = (d: string) => activeYears.includes(d.slice(0, 4));
+    const prevYearOk = (d: string) => filterYears.length > 0 && prevYears.includes(d.slice(0, 4));
+
+    const expIn = (expensesData as Expense[]).filter(e => childOk(e.child_id) && yearOk(e.payment_date));
+    const expPrev = (expensesData as Expense[]).filter(e => childOk(e.child_id) && prevYearOk(e.payment_date));
+    const logIn = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && yearOk(l.date));
+    const logPrev = (logsData as AttendanceLog[]).filter(l => childOk(l.child_id) && prevYearOk(l.date));
 
     // Lookups
     const actById = new Map((activitiesData as Activity[]).map(a2 => [a2.id, a2]));
@@ -310,8 +324,8 @@ export function AnalyticsDashboard() {
     const totalHours = hours(logIn);
     const prevHours = hours(logPrev);
 
-    // Monthly sparkline buckets
-    const monthBuckets = bucketsInRange(from, to, "month");
+    // Monthly sparkline buckets — only months that fall in a selected year (skips gap years).
+    const monthBuckets = bucketsInRange(from, to, "month").filter(bk => activeYears.includes(bk.key.slice(0, 4)));
     const spendByMonth = monthBuckets.map(bk => expIn.filter(e => recordBucket(e.payment_date, "month") === bk.key).reduce((s, e) => s + e.amount, 0));
     const sessionsByMonth = monthBuckets.map(bk => logIn.filter(l => l.status === "attended" && recordBucket(l.date, "month") === bk.key).length);
     const hoursByMonth = monthBuckets.map(bk => logIn.filter(l => isAttendedLike(l.status) && recordBucket(l.date, "month") === bk.key).reduce((s, l) => s + sessionMinutes(l), 0) / 60);
@@ -338,9 +352,14 @@ export function AnalyticsDashboard() {
     for (const e of expIn) { const n = e.child?.name || childById.get(e.child_id)?.name || "Unknown"; byChild.set(n, (byChild.get(n) || 0) + e.amount); }
     const spendByChild = [...byChild.entries()].map(([name, value]) => ({ name, value, color: childColor(name) }));
 
-    const byAct = new Map<string, number>();
-    for (const e of expIn) { const n = activityLabel(e.activity_id, e.institution); byAct.set(n, (byAct.get(n) || 0) + e.amount); }
-    const topActivitiesSpend = [...byAct.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
+    const byAct = new Map<string, { id: string | null; value: number }>();
+    for (const e of expIn) {
+      const n = activityLabel(e.activity_id, e.institution);
+      const cur = byAct.get(n) || { id: e.activity_id ?? null, value: 0 };
+      cur.value += e.amount;
+      byAct.set(n, cur);
+    }
+    const topActivitiesSpend = [...byAct.entries()].sort((x, y) => y[1].value - x[1].value).slice(0, 8).map(([name, v]) => ({ name, value: v.value, id: v.id }));
 
     const byPayer = new Map<string, number>();
     for (const e of expIn) { const n = e.paid_by || "—"; byPayer.set(n, (byPayer.get(n) || 0) + e.amount); }
@@ -377,12 +396,57 @@ export function AnalyticsDashboard() {
     for (const l of logIn) if (l.status === "absent") { const n = l.absence_reason || "Unspecified"; reasonMap.set(n, (reasonMap.get(n) || 0) + 1); }
     const absenceReasons = [...reasonMap.entries()].sort((x, y) => y[1] - x[1]).map(([name, value]) => ({ name, value }));
 
-    const sessByActMap = new Map<string, number>();
-    for (const l of logIn) { const n = l.activity?.activity_name || l.activity?.institution || activityLabel(l.activity_id); sessByActMap.set(n, (sessByActMap.get(n) || 0) + 1); }
-    const sessionsByActivity = [...sessByActMap.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
+    const sessByActMap = new Map<string, { id: string | null; value: number }>();
+    for (const l of logIn) {
+      const n = l.activity?.activity_name || l.activity?.institution || activityLabel(l.activity_id);
+      const cur = sessByActMap.get(n) || { id: l.activity_id ?? null, value: 0 };
+      cur.value += 1;
+      sessByActMap.set(n, cur);
+    }
+    const sessionsByActivity = [...sessByActMap.entries()].sort((x, y) => y[1].value - x[1].value).slice(0, 8).map(([name, v]) => ({ name, value: v.value, id: v.id }));
+
+    // Cost per hour, by activity — total spend over total attended hours for the same activity.
+    const spendByActId = new Map<string, number>();
+    const labelByActId = new Map<string, string>();
+    for (const e of expIn) {
+      if (!e.activity_id) continue;
+      spendByActId.set(e.activity_id, (spendByActId.get(e.activity_id) || 0) + e.amount);
+      if (!labelByActId.has(e.activity_id)) labelByActId.set(e.activity_id, activityLabel(e.activity_id, e.institution));
+    }
+    const hoursByActId = new Map<string, number>();
+    for (const l of logIn) {
+      if (!isAttendedLike(l.status) || !l.activity_id) continue;
+      hoursByActId.set(l.activity_id, (hoursByActId.get(l.activity_id) || 0) + sessionMinutes(l) / 60);
+      if (!labelByActId.has(l.activity_id)) labelByActId.set(l.activity_id, l.activity?.activity_name || l.activity?.institution || activityLabel(l.activity_id));
+    }
+    const costPerHourByActivity = [...labelByActId.entries()]
+      .map(([id, name]) => {
+        const spend = spendByActId.get(id) || 0;
+        const hrs = hoursByActId.get(id) || 0;
+        return hrs > 0 && spend > 0 ? { id, name, value: spend / hrs } : null;
+      })
+      .filter((x): x is { id: string; name: string; value: number } => x !== null)
+      .sort((x, y) => x.value - y.value)
+      .slice(0, 8);
+
+    // Weekly load, by day — attended hours per child landing on each day of the week.
+    const heatByChild = new Map<string, number[]>();
+    for (const l of logIn) {
+      if (!isAttendedLike(l.status)) continue;
+      const n = l.child?.name || childById.get(l.child_id)?.name || "Unknown";
+      const arr = heatByChild.get(n) || [0, 0, 0, 0, 0, 0, 0];
+      const dow = parseISO(l.date.slice(0, 10)).getDay();
+      arr[dow] += sessionMinutes(l) / 60;
+      heatByChild.set(n, arr);
+    }
+    const weeklyHeatmap = {
+      dayNames: ["S", "M", "T", "W", "T", "F", "S"],
+      rows: [...heatByChild.entries()].map(([name, hours]) => ({ name, hours, color: childColor(name) })),
+      max: Math.max(1, ...[...heatByChild.values()].flat()),
+    };
 
     return {
-      from, to,
+      from, to, activeYears,
       kpis: {
         totalSpend, spendDelta: pctDelta(totalSpend, prevSpend),
         attRate, rateDelta: prevRate === 0 && attRate === 0 ? null : attRate - prevRate,
@@ -391,12 +455,12 @@ export function AnalyticsDashboard() {
         spendByMonth, sessionsByMonth, hoursByMonth, rateByMonth,
       },
       childNames, childColor, colorForCat,
-      spendTrend, spendByCategory, spendByChild, topActivitiesSpend, payerSplit, spendByExpenseType,
-      statusMix, attendanceByChild, absenceReasons, sessionsByActivity,
+      spendTrend, spendByCategory, spendByChild, topActivitiesSpend, payerSplit, spendByExpenseType, costPerHourByActivity,
+      statusMix, attendanceByChild, absenceReasons, sessionsByActivity, weeklyHeatmap,
       // raw for hours section (depends on its own toggles)
       logIn,
     };
-  }, [expensesData, logsData, activitiesData, childrenData, fromMonth, toMonth, selectedChildren, filterExpenseType]);
+  }, [expensesData, logsData, activitiesData, childrenData, filterYears, selectedChildren]);
 
   // ── Hours section (its own toggles) ──
   const [hoursGroup, setHoursGroup] = useState<"category" | "activity">("category");
@@ -410,7 +474,7 @@ export function AnalyticsDashboard() {
         : (l.activity?.activity_name || l.activity?.institution || "Unknown");
 
     const groupNames = [...new Set(logIn.map(groupOf))];
-    const buckets = bucketsInRange(data.from, data.to, hoursGran);
+    const buckets = bucketsInRange(data.from, data.to, hoursGran).filter(bk => data.activeYears.includes(bk.key.slice(0, 4)));
     const overTime = buckets.map(bk => {
       const row: Record<string, number | string> = { label: bk.label };
       for (const g of groupNames) row[g] = 0;
@@ -434,10 +498,39 @@ export function AnalyticsDashboard() {
     return { groupNames, overTime, hoursByCategory, hoursByChild };
   }, [data, hoursGroup, hoursGran]);
 
+  // ── Weekly schedule load (a typical current week, independent of the date/year filter) ──
+  // `is_active` stays true on every past term's row once set, so a slot's terms pile up
+  // over the years unless we also keep only the one in effect today — and dedupe any
+  // exact (activity, day, time) repeat so a slot counts once per typical week.
+  const scheduleHeatmap = useMemo(() => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const inEffect = (s: Schedule) =>
+      (!s.effective_from || s.effective_from.slice(0, 10) <= todayStr) &&
+      (!s.effective_until || s.effective_until.slice(0, 10) >= todayStr);
+
+    const childColor = (name: string) => (childrenData as Child[]).find(c => c.name === name)?.color_code || PALETTE[0];
+    const heatByChild = new Map<string, number[]>();
+    const seenSlots = new Set<string>();
+    for (const s of schedulesData as Schedule[]) {
+      const childId = s.activity?.child_id;
+      if (!childId || !selectedChildren.includes(childId) || !inEffect(s)) continue;
+      const slotKey = `${s.activity_id}|${s.day_of_week}|${s.start_time}`;
+      if (seenSlots.has(slotKey)) continue;
+      seenSlots.add(slotKey);
+      const name = s.activity?.child?.name || "Unknown";
+      const arr = heatByChild.get(name) || [0, 0, 0, 0, 0, 0, 0];
+      arr[s.day_of_week] += scheduleMinutes(s) / 60;
+      heatByChild.set(name, arr);
+    }
+    return {
+      dayNames: ["S", "M", "T", "W", "T", "F", "S"],
+      rows: [...heatByChild.entries()].map(([name, hours]) => ({ name, hours, color: childColor(name) })),
+      max: Math.max(1, ...[...heatByChild.values()].flat()),
+    };
+  }, [schedulesData, childrenData, selectedChildren]);
+
   const k = data.kpis;
 
-  // Matches the pill trigger of the filter dropdowns so the whole row sits level.
-  const monthInputCls = "w-40 h-10 px-4 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] text-[var(--ink)] cursor-pointer focus:outline-none focus:border-[var(--stem)]";
   const sectionHead = (title: string, sub: string) => (
     <div className="flex items-baseline gap-3 mb-1">
       <h2 className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{title}</h2>
@@ -467,25 +560,19 @@ export function AnalyticsDashboard() {
             onToggle={toggleChild}
           />
           <FilterBar stretch>
-            <FilterField label="From">
-            <input type="month" aria-label="From month" value={fromMonth} max={toMonth} onChange={e => setFromMonth(e.target.value)} className={monthInputCls} />
-          </FilterField>
-          <FilterField label="To">
-            <input type="month" aria-label="To month" value={toMonth} min={fromMonth} max={nowMonth} onChange={e => setToMonth(e.target.value)} className={monthInputCls} />
-          </FilterField>
-          <FilterField label="Type">
-            <SingleSelect
-              className="w-40"
-              ariaLabel="Filter by expense type"
-              value={filterExpenseType}
-              onChange={setFilterExpenseType}
-              options={[
-                { value: "", label: "All Types" },
-                ...EXPENSE_TYPES.map(t => ({ value: t, label: t })),
-              ]}
-            />
-          </FilterField>
-        </FilterBar>
+            <FilterField label="Year">
+              <MultiSelect
+                className="w-32"
+                ariaLabel="Filter by year"
+                selected={filterYears}
+                onToggle={toggleFilterYear}
+                allLabel="All Years"
+                emptyLabel="All Years"
+                pluralNoun="Years"
+                options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
+              />
+            </FilterField>
+          </FilterBar>
         </div>
 
         {/* KPI strip */}
@@ -496,209 +583,289 @@ export function AnalyticsDashboard() {
           <KpiCard label="Hours attended" value={fmtHours(k.totalHours)} delta={k.hoursDelta} spark={k.hoursByMonth} color="#3d6b7a" icon={<Clock size={16} />} animate={animate} />
         </div>
 
-        {/* ── Section 1: Spending ── */}
-        <section className="space-y-4">
-          {sectionHead("Spending", "Where the money goes")}
-
-          {data.spendTrend.length > 0 && (
-            <ChartCard title="Monthly Spend Trend" subtitle="By child">
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={data.spendTrend} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
-                  <defs>
-                    {data.childNames.map((cn, ci) => (
-                      <linearGradient key={cn} id={`gc-${ci}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={data.childColor(cn)} stopOpacity={0.4} />
-                        <stop offset="100%" stopColor={data.childColor(cn)} stopOpacity={0} />
-                      </linearGradient>
+        {/* ── Overview ── */}
+        {segment === "overview" && (
+          <section className="space-y-10">
+            <div className="space-y-4">
+              {sectionHead("Time Commitment", "Hours spent over time")}
+              <ChartCard title="Hours Over Time" subtitle={`Grouped by ${hoursGroup}`}>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <Segmented value={hoursGroup} onChange={setHoursGroup} options={[{ value: "category", label: "By category" }, { value: "activity", label: "By activity" }]} />
+                  <Segmented value={hoursGran} onChange={setHoursGran} options={[{ value: "week", label: "Weekly" }, { value: "month", label: "Monthly" }]} />
+                </div>
+                {hoursViz.groupNames.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={hoursViz.overTime} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+                      <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={16} />
+                      <YAxis {...axisProps} width={36} tickFormatter={(v) => `${v}h`} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
+                      {hoursViz.groupNames.map((g, i) => {
+                        const isLast = i === hoursViz.groupNames.length - 1;
+                        return <Bar key={g} dataKey={g} name={g} stackId="h" fill={data.colorForCat(g, i)} radius={isLast ? [6, 6, 0, 0] : [0, 0, 0, 0]} isAnimationActive={animate} animationDuration={700} />;
+                      })}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-sm text-[var(--text-muted)]">No attended sessions in this period</div>
+                )}
+                {hoursViz.groupNames.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+                    {hoursViz.groupNames.map((g, i) => (
+                      <div key={g} className="flex items-center gap-1.5 text-xs">
+                        <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
+                        <span className="text-[var(--text-secondary)]">{g}</span>
+                      </div>
                     ))}
-                  </defs>
-                  <XAxis dataKey="label" {...axisProps} />
-                  <YAxis {...axisProps} width={48} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
-                  {data.childNames.map((cn, ci) => (
-                    <Area key={cn} type="monotone" dataKey={cn} name={cn} stackId="1" stroke={data.childColor(cn)} strokeWidth={2} fill={`url(#gc-${ci})`} isAnimationActive={animate} animationDuration={700} />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {data.spendByExpenseType.length > 0 && (
-              <ChartCard title="Spend by Type" subtitle="Lesson vs extras">
-                <Donut data={data.spendByExpenseType} center={formatCurrency(data.spendByExpenseType.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
-              </ChartCard>
-            )}
-            {data.spendByCategory.length > 0 && (
-              <ChartCard title="Spend by Category">
-                <Donut data={data.spendByCategory} center={formatCurrency(data.spendByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
-              </ChartCard>
-            )}
-            {data.payerSplit.length > 0 && (
-              <ChartCard title="Who Paid">
-                <Donut data={data.payerSplit} center={formatCurrency(data.payerSplit.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
-              </ChartCard>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {data.spendByChild.length > 0 && (
-              <ChartCard title="Spend by Child">
-                <ResponsiveContainer width="100%" height={Math.max(140, data.spendByChild.length * 60)}>
-                  <BarChart data={data.spendByChild} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={70} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
-                    <Bar dataKey="value" name="Spend" radius={[0, 8, 8, 0]} isAnimationActive={animate} animationDuration={700}>
-                      {data.spendByChild.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-            {data.topActivitiesSpend.length > 0 && (
-              <ChartCard title="Top Activities by Spend">
-                <ResponsiveContainer width="100%" height={Math.max(160, data.topActivitiesSpend.length * 36)}>
-                  <BarChart data={data.topActivitiesSpend} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={130} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
-                    <Bar dataKey="value" name="Spend" radius={[0, 0, 0, 0]} fill="#2f6f4e" isAnimationActive={animate} animationDuration={700} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-          </div>
-        </section>
-
-        {/* ── Section 2: Attendance ── */}
-        <section className="space-y-4">
-          {sectionHead("Attendance & Commitment", "Are they showing up")}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {data.statusMix.length > 0 && (
-              <ChartCard title="Status Mix">
-                <Donut data={data.statusMix} center={String(data.statusMix.reduce((s, d) => s + d.value, 0))} sub="logs" formatter={(v) => String(v)} animate={animate} />
-              </ChartCard>
-            )}
-            {data.attendanceByChild.length > 0 && (
-              <ChartCard title="Attendance by Child">
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={data.attendanceByChild} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
-                    <XAxis dataKey="child" {...axisProps} />
-                    <YAxis {...axisProps} width={32} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
-                    <Bar dataKey="attended" name="Attended" stackId="a" fill="#16A34A" radius={[0, 0, 0, 0]} isAnimationActive={animate} />
-                    <Bar dataKey="absent" name="Absent" stackId="a" fill="#DC2626" isAnimationActive={animate} />
-                    <Bar dataKey="other" name="Other" stackId="a" fill="#9ca3af" radius={[8, 8, 0, 0]} isAnimationActive={animate} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {data.sessionsByActivity.length > 0 && (
-              <ChartCard title="Sessions by Activity">
-                <ResponsiveContainer width="100%" height={Math.max(160, data.sessionsByActivity.length * 36)}>
-                  <BarChart data={data.sessionsByActivity} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <XAxis type="number" {...axisProps} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={130} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
-                    <Bar dataKey="value" name="Sessions" radius={[0, 8, 8, 0]} fill="#10b981" isAnimationActive={animate} animationDuration={700} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-            {data.absenceReasons.length > 0 ? (
-              <ChartCard title="Absence Reasons">
-                <ResponsiveContainer width="100%" height={Math.max(160, data.absenceReasons.length * 36)}>
-                  <BarChart data={data.absenceReasons} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <XAxis type="number" {...axisProps} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={110} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
-                    <Bar dataKey="value" name="Absences" radius={[0, 8, 8, 0]} fill="#DC2626" isAnimationActive={animate} animationDuration={700} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            ) : (
-              <ChartCard title="Absence Reasons">
-                <div className="h-[160px] flex items-center justify-center text-sm text-[var(--text-muted)]">No absences in this period 🎉</div>
-              </ChartCard>
-            )}
-          </div>
-        </section>
-
-        {/* ── Section 3: Hours over time ── */}
-        <section className="space-y-4">
-          {sectionHead("Time Commitment", "Hours spent over time")}
-
-          <ChartCard title="Hours Over Time" subtitle={`Grouped by ${hoursGroup}`}>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <Segmented value={hoursGroup} onChange={setHoursGroup} options={[{ value: "category", label: "By category" }, { value: "activity", label: "By activity" }]} />
-              <Segmented value={hoursGran} onChange={setHoursGran} options={[{ value: "week", label: "Weekly" }, { value: "month", label: "Monthly" }]} />
-            </div>
-            {hoursViz.groupNames.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={hoursViz.overTime} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
-                  <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={16} />
-                  <YAxis {...axisProps} width={36} tickFormatter={(v) => `${v}h`} />
-                  <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
-                  {hoursViz.groupNames.map((g, i) => {
-                    const isLast = i === hoursViz.groupNames.length - 1;
-                    return <Bar key={g} dataKey={g} name={g} stackId="h" fill={data.colorForCat(g, i)} radius={isLast ? [6, 6, 0, 0] : [0, 0, 0, 0]} isAnimationActive={animate} animationDuration={700} />;
-                  })}
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-sm text-[var(--text-muted)]">No attended sessions in this period</div>
-            )}
-            {hoursViz.groupNames.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-                {hoursViz.groupNames.map((g, i) => (
-                  <div key={g} className="flex items-center gap-1.5 text-xs">
-                    <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
-                    <span className="text-[var(--text-secondary)]">{g}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </ChartCard>
+                )}
+              </ChartCard>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {hoursViz.hoursByCategory.length > 0 && (
-              <ChartCard title="Hours by Category">
-                <Donut data={hoursViz.hoursByCategory} center={fmtHours(hoursViz.hoursByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => fmtHours(v)} animate={animate} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {hoursViz.hoursByCategory.length > 0 && (
+                  <ChartCard title="Hours by Category">
+                    <Donut data={hoursViz.hoursByCategory} center={fmtHours(hoursViz.hoursByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => fmtHours(v)} animate={animate} />
+                  </ChartCard>
+                )}
+                {hoursViz.hoursByChild.length > 0 && (
+                  <ChartCard title="Hours by Child">
+                    <ResponsiveContainer width="100%" height={Math.max(140, hoursViz.hoursByChild.length * 60)}>
+                      <BarChart data={hoursViz.hoursByChild} layout="vertical" margin={{ left: 8, right: 16 }}>
+                        <XAxis type="number" {...axisProps} tickFormatter={(v) => `${v}h`} />
+                        <YAxis type="category" dataKey="name" {...axisProps} width={70} />
+                        <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
+                        <Bar dataKey="value" name="Hours" radius={[0, 8, 8, 0]} isAnimationActive={animate} animationDuration={700}>
+                          {hoursViz.hoursByChild.map((d, i) => <Cell key={i} fill={d.color} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {sectionHead("Who Ferries Whom", "Sender & fetcher by activity, per child")}
+              <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
+            </div>
+
+            <div className="space-y-4">
+              {sectionHead("Activity Timeline", "How long each child has done each activity — tap a row to drill in")}
+              <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
+            </div>
+          </section>
+        )}
+
+        {/* ── Attendance ── */}
+        {segment === "attendance" && (
+          <section className="space-y-4">
+            {sectionHead("Attendance & Commitment", "Are they showing up")}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {data.statusMix.length > 0 && (
+                <ChartCard title="Status Mix">
+                  <Donut data={data.statusMix} center={String(data.statusMix.reduce((s, d) => s + d.value, 0))} sub="logs" formatter={(v) => String(v)} animate={animate} />
+                </ChartCard>
+              )}
+              {data.attendanceByChild.length > 0 && (
+                <ChartCard title="Attendance by Child">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={data.attendanceByChild} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+                      <XAxis dataKey="child" {...axisProps} />
+                      <YAxis {...axisProps} width={32} allowDecimals={false} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
+                      <Bar dataKey="attended" name="Attended" stackId="a" fill="#16A34A" radius={[0, 0, 0, 0]} isAnimationActive={animate} />
+                      <Bar dataKey="absent" name="Absent" stackId="a" fill="#DC2626" isAnimationActive={animate} />
+                      <Bar dataKey="other" name="Other" stackId="a" fill="#9ca3af" radius={[8, 8, 0, 0]} isAnimationActive={animate} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
+            </div>
+
+            {data.weeklyHeatmap.rows.length > 0 && (
+              <ChartCard title="Weekly Load, by Day" subtitle="Attended hours landing on each day of the week, this period">
+                <div className="space-y-2">
+                  {data.weeklyHeatmap.rows.map(row => (
+                    <div key={row.name} className="flex items-center gap-2">
+                      <span className="w-14 shrink-0 text-xs text-[var(--text-secondary)]">{row.name}</span>
+                      <div className="flex-1 grid grid-cols-7 gap-1">
+                        {row.hours.map((h, i) => (
+                          <div
+                            key={i}
+                            title={`${data.weeklyHeatmap.dayNames[i]} · ${fmtHours(h)}`}
+                            className="h-8 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
+                            style={{ backgroundColor: row.color, opacity: h > 0 ? Math.max(0.15, h / data.weeklyHeatmap.max) : 0.06 }}
+                          >
+                            {h > 0 ? h.toFixed(1) : ""}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 pl-16">
+                    <div className="flex-1 grid grid-cols-7 gap-1">
+                      {data.weeklyHeatmap.dayNames.map((d, i) => (
+                        <span key={i} className="text-center text-[10px] text-[var(--text-muted)]">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </ChartCard>
             )}
-            {hoursViz.hoursByChild.length > 0 && (
-              <ChartCard title="Hours by Child">
-                <ResponsiveContainer width="100%" height={Math.max(140, hoursViz.hoursByChild.length * 60)}>
-                  <BarChart data={hoursViz.hoursByChild} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `${v}h`} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={70} />
-                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
-                    <Bar dataKey="value" name="Hours" radius={[0, 8, 8, 0]} isAnimationActive={animate} animationDuration={700}>
-                      {hoursViz.hoursByChild.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Bar>
+
+            {scheduleHeatmap.rows.length > 0 && (
+              <ChartCard title="Weekly Schedule Load, by Day" subtitle="Scheduled hours of classes per day, based on the current active schedule — independent of the year filter">
+                <div className="space-y-2">
+                  {scheduleHeatmap.rows.map(row => (
+                    <div key={row.name} className="flex items-center gap-2">
+                      <span className="w-14 shrink-0 text-xs text-[var(--text-secondary)]">{row.name}</span>
+                      <div className="flex-1 grid grid-cols-7 gap-1">
+                        {row.hours.map((h, i) => (
+                          <div
+                            key={i}
+                            title={`${scheduleHeatmap.dayNames[i]} · ${fmtHours(h)}`}
+                            className="h-8 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
+                            style={{ backgroundColor: row.color, opacity: h > 0 ? Math.max(0.15, h / scheduleHeatmap.max) : 0.06 }}
+                          >
+                            {h > 0 ? h.toFixed(1) : ""}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 pl-16">
+                    <div className="flex-1 grid grid-cols-7 gap-1">
+                      {scheduleHeatmap.dayNames.map((d, i) => (
+                        <span key={i} className="text-center text-[10px] text-[var(--text-muted)]">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </ChartCard>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {data.sessionsByActivity.length > 0 && (
+                <ChartCard title="Sessions by Activity" subtitle="Tap a bar to see its full history">
+                  <ResponsiveContainer width="100%" height={Math.max(160, data.sessionsByActivity.length * 36)}>
+                    <BarChart data={data.sessionsByActivity} layout="vertical" margin={{ left: 8, right: 16 }}>
+                      <XAxis type="number" {...axisProps} allowDecimals={false} />
+                      <YAxis type="category" dataKey="name" {...axisProps} width={130} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
+                      <Bar dataKey="value" name="Sessions" radius={[0, 8, 8, 0]} fill="#10b981" isAnimationActive={animate} animationDuration={700} onClick={(d: any) => goToActivity(d?.id)} cursor="pointer" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
+              {data.absenceReasons.length > 0 ? (
+                <ChartCard title="Absence Reasons">
+                  <ResponsiveContainer width="100%" height={Math.max(160, data.absenceReasons.length * 36)}>
+                    <BarChart data={data.absenceReasons} layout="vertical" margin={{ left: 8, right: 16 }}>
+                      <XAxis type="number" {...axisProps} allowDecimals={false} />
+                      <YAxis type="category" dataKey="name" {...axisProps} width={110} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip />} />
+                      <Bar dataKey="value" name="Absences" radius={[0, 8, 8, 0]} fill="#DC2626" isAnimationActive={animate} animationDuration={700} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              ) : (
+                <ChartCard title="Absence Reasons">
+                  <div className="h-[160px] flex items-center justify-center text-sm text-[var(--text-muted)]">No absences in this period 🎉</div>
+                </ChartCard>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Spending ── */}
+        {segment === "spending" && (
+          <section className="space-y-4">
+            {sectionHead("Spending", "Where the money goes")}
+
+            {data.spendTrend.length > 0 && (
+              <ChartCard title="Monthly Spend Trend" subtitle="By child">
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={data.spendTrend} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+                    <defs>
+                      {data.childNames.map((cn, ci) => (
+                        <linearGradient key={cn} id={`gc-${ci}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={data.childColor(cn)} stopOpacity={0.4} />
+                          <stop offset="100%" stopColor={data.childColor(cn)} stopOpacity={0} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <XAxis dataKey="label" {...axisProps} />
+                    <YAxis {...axisProps} width={48} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
+                    {data.childNames.map((cn, ci) => (
+                      <Area key={cn} type="monotone" dataKey={cn} name={cn} stackId="1" stroke={data.childColor(cn)} strokeWidth={2} fill={`url(#gc-${ci})`} isAnimationActive={animate} animationDuration={700} />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            )}
+
+            {data.costPerHourByActivity.length > 0 && (
+              <ChartCard title="Cost per Hour, by Activity" subtitle="Cheapest to priciest — tap a bar to see its full history">
+                <ResponsiveContainer width="100%" height={Math.max(160, data.costPerHourByActivity.length * 36)}>
+                  <BarChart data={data.costPerHourByActivity} layout="vertical" margin={{ left: 8, right: 16 }}>
+                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
+                    <YAxis type="category" dataKey="name" {...axisProps} width={130} />
+                    <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => `${formatCurrency(v)}/hr`} />} />
+                    <Bar dataKey="value" name="$/hr" radius={[0, 8, 8, 0]} fill="#2f6f4e" isAnimationActive={animate} animationDuration={700} onClick={(d: any) => goToActivity(d?.id)} cursor="pointer" />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
             )}
-          </div>
-        </section>
 
-        {/* ── Section 4: Sender / Fetcher breakdown ── */}
-        <section className="space-y-4">
-          {sectionHead("Who Ferries Whom", "Sender & fetcher by activity, per child")}
-          <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
-        </section>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {data.spendByExpenseType.length > 0 && (
+                <ChartCard title="Spend by Type" subtitle="Lesson vs extras">
+                  <Donut data={data.spendByExpenseType} center={formatCurrency(data.spendByExpenseType.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
+                </ChartCard>
+              )}
+              {data.spendByCategory.length > 0 && (
+                <ChartCard title="Spend by Category">
+                  <Donut data={data.spendByCategory} center={formatCurrency(data.spendByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
+                </ChartCard>
+              )}
+              {data.payerSplit.length > 0 && (
+                <ChartCard title="Who Paid">
+                  <Donut data={data.payerSplit} center={formatCurrency(data.payerSplit.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
+                </ChartCard>
+              )}
+            </div>
 
-        {/* ── Section 5: Engagement Timeline (full history) ── */}
-        <section className="space-y-4">
-          {sectionHead("Activity Timeline", "How long each child has done each activity")}
-          <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
-        </section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {data.spendByChild.length > 0 && (
+                <ChartCard title="Spend by Child">
+                  <ResponsiveContainer width="100%" height={Math.max(140, data.spendByChild.length * 60)}>
+                    <BarChart data={data.spendByChild} layout="vertical" margin={{ left: 8, right: 16 }}>
+                      <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
+                      <YAxis type="category" dataKey="name" {...axisProps} width={70} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
+                      <Bar dataKey="value" name="Spend" radius={[0, 8, 8, 0]} isAnimationActive={animate} animationDuration={700}>
+                        {data.spendByChild.map((d, i) => <Cell key={i} fill={d.color} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
+              {data.topActivitiesSpend.length > 0 && (
+                <ChartCard title="Top Activities by Spend" subtitle="Tap a bar to see its full history">
+                  <ResponsiveContainer width="100%" height={Math.max(160, data.topActivitiesSpend.length * 36)}>
+                    <BarChart data={data.topActivitiesSpend} layout="vertical" margin={{ left: 8, right: 16 }}>
+                      <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
+                      <YAxis type="category" dataKey="name" {...axisProps} width={130} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => formatCurrency(v)} />} />
+                      <Bar dataKey="value" name="Spend" radius={[0, 0, 0, 0]} fill="#2f6f4e" isAnimationActive={animate} animationDuration={700} onClick={(d: any) => goToActivity(d?.id)} cursor="pointer" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </>
   );

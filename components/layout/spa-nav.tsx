@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-export const TAB_PATHS = ["/", "/attendance", "/expenses", "/analytics", "/journal", "/settings"] as const;
+export const TAB_PATHS = ["/", "/history", "/analytics", "/journal", "/settings"] as const;
 export type TabPath = (typeof TAB_PATHS)[number];
 
 export function isTabPath(path: string): path is TabPath {
@@ -24,14 +24,16 @@ export function useSpaNav() {
 }
 
 export function SpaNavProvider({ children }: { children: ReactNode }) {
-  const initial = usePathname() || "/";
-  const [path, setPath] = useState(initial);
+  const pathname = usePathname() || "/";
+  const [path, setPath] = useState(pathname);
 
+  // Real Next.js navigations (router.push, a Link, Back/Forward) land here.
+  // Tab switches below go through a separate channel that bypasses the
+  // router entirely, so this effect is what lets a non-tab route (e.g.
+  // /activity/[id]) ever become visible.
   useEffect(() => {
-    const sync = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
-  }, []);
+    setPath(pathname);
+  }, [pathname]);
 
   const navigate = useCallback((href: string) => {
     if (href === window.location.pathname) {

@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Download, Pencil, Trash2, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { SingleSelect } from "@/components/ui/FilterDropdown";
+import { MultiSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { Modal } from "@/components/ui/Modal";
-import { formatDate, formatTime } from "@/lib/utils";
+import { formatDate, formatTime, getCurrentYear } from "@/lib/utils";
 import { exportAttendanceCSV } from "@/lib/export-csv";
 import { ATTENDANCE_STATUS_LABELS, normalizeLessonType } from "@/lib/constants";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
@@ -46,7 +47,8 @@ function sortValue(log: LogWithDetails, key: string): string {
   }
 }
 
-export default function AttendancePage() {
+export default function AttendancePage({ embedded = false }: { embedded?: boolean } = {}) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
@@ -60,37 +62,50 @@ export default function AttendancePage() {
     setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
     setPage(1);
   };
-  const [filterActivity, setFilterActivity] = useState("");
-  const [filterInstitution, setFilterInstitution] = useState("");
+  // Activity + Institution are one filter: a composite "name|institution" key,
+  // since the same activity name can span institutions over time (e.g. a
+  // child's "Soccer" moving from one academy to another).
+  const [filterActivityKeys, setFilterActivityKeys] = useState<string[]>([]);
+  const [filterYears, setFilterYears] = useState<string[]>([String(getCurrentYear())]);
+  const toggleFilterActivityKey = (key: string) => {
+    setFilterActivityKeys(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
+    setPage(1);
+  };
+  const toggleFilterYear = (year: string) => {
+    setFilterYears(prev => (prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year]));
+    setPage(1);
+  };
   const [page, setPage] = useState(1);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "dateTime", dir: "desc" });
-  const [visibleColumns, setVisibleColumns] = useState({
-    dateTime: true,
-    child: true,
-    activity: true,
-    institution: true,
-    level: true,
-    coach: true,
-    lessonType: true,
-    sentBy: true,
-    fetcher: true,
-    notes: true,
-    absenceReason: true,
-    status: true,
+  // Read once at init (not in an effect) so there's no window where a save
+  // effect can fire with the still-default state and clobber what was saved.
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const defaults = {
+      dateTime: true,
+      child: true,
+      activity: true,
+      institution: true,
+      level: true,
+      coach: true,
+      lessonType: true,
+      sentBy: true,
+      fetcher: true,
+      notes: true,
+      absenceReason: true,
+      status: true,
+    };
+    if (typeof window === "undefined") return defaults;
+    try {
+      const saved = localStorage.getItem("attendance-visible-columns");
+      return saved ? { ...defaults, ...(JSON.parse(saved) as Partial<typeof defaults>) } : defaults;
+    } catch {
+      return defaults;
+    }
   });
 
   // Persist the user's chosen columns across visits.
-  const columnsLoaded = useRef(false);
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("attendance-visible-columns");
-      if (saved) setVisibleColumns(v => ({ ...v, ...JSON.parse(saved) }));
-    } catch { /* ignore */ }
-    columnsLoaded.current = true;
-  }, []);
-  useEffect(() => {
-    if (!columnsLoaded.current) return;
     try {
       localStorage.setItem("attendance-visible-columns", JSON.stringify(visibleColumns));
     } catch { /* ignore */ }
@@ -186,37 +201,44 @@ export default function AttendancePage() {
     setModalOpen(true);
   }
 
-  // Filters cascade: Child narrows Activity, and Child + Activity narrow Institution.
-  // Each stage is derived from `activities`, so options that would yield zero rows
-  // never appear.
+  // Activity options are derived from `activities` scoped to the selected
+  // children, keyed by "name|institution" since the same activity name can
+  // span institutions over time (e.g. Soccer moving academies).
   //
-  // A stored selection that has fallen out of its option list (e.g. after unchecking
-  // a child) falls back to "All", so the table never empties behind a filter the user
-  // can no longer see. Derived rather than reset in an effect — no cascading render.
-  const { activityOptions, activeActivity, institutionOptions, activeInstitution, matchingActivityIds } = useMemo(() => {
+  // A stored selection that has fallen out of its option list (e.g. after
+  // unchecking a child) is dropped, so the table never empties behind a
+  // filter the user can no longer see. Derived rather than reset in an
+  // effect — no cascading render. An empty selection means "all" — same
+  // convention as the Activity filter had as a single-select.
+  const { activityOptions, activeActivityKeys, matchingActivityIds } = useMemo(() => {
     const childActivities = activities.filter(a => selectedChildren.includes(a.child_id));
 
-    const activityOptions = Array.from(new Set(childActivities.map(activityLabel))).sort();
-    const activeActivity = activityOptions.includes(filterActivity) ? filterActivity : "";
+    const byKey = new Map<string, string>();
+    for (const a of childActivities) {
+      byKey.set(`${activityLabel(a)}|${a.institution}`, `${activityLabel(a)} — ${a.institution}`);
+    }
+    const activityOptions = [...byKey.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
 
-    const inActivity = childActivities.filter(a => !activeActivity || activityLabel(a) === activeActivity);
+    const activeActivityKeys = filterActivityKeys.filter(k => byKey.has(k));
 
-    const institutionOptions = Array.from(new Set(inActivity.map(a => a.institution))).sort();
-    const activeInstitution = institutionOptions.includes(filterInstitution) ? filterInstitution : "";
-
-    // The set of activities passing every active filter — one lookup drives the table.
     const matchingActivityIds = new Set(
-      inActivity
-        .filter(a => !activeInstitution || a.institution === activeInstitution)
+      childActivities
+        .filter(a => activeActivityKeys.length === 0 || activeActivityKeys.includes(`${activityLabel(a)}|${a.institution}`))
         .map(a => a.id)
     );
 
-    return { activityOptions, activeActivity, institutionOptions, activeInstitution, matchingActivityIds };
-  }, [activities, selectedChildren, filterActivity, filterInstitution]);
+    return { activityOptions, activeActivityKeys, matchingActivityIds };
+  }, [activities, selectedChildren, filterActivityKeys]);
 
+  // An empty year selection also means "all" rather than "none".
   const filteredLogs = useMemo(
-    () => logs.filter(l => matchingActivityIds.has(l.activity_id)),
-    [logs, matchingActivityIds]
+    () => logs.filter(l =>
+      matchingActivityIds.has(l.activity_id) &&
+      (filterYears.length === 0 || filterYears.includes(l.date.slice(0, 4)))
+    ),
+    [logs, matchingActivityIds, filterYears]
   );
 
   // Sorting several hundred rows is not free, and without this it re-ran on every
@@ -243,6 +265,8 @@ export default function AttendancePage() {
     setPage(1);
   }
 
+  const years = Array.from({ length: 5 }, (_, i) => getCurrentYear() - i);
+
   const SortIcon = ({ col }: { col: string }) =>
     sort.key !== col ? null : sort.dir === "asc"
       ? <ChevronUp size={12} className="inline ml-1 -mt-0.5" />
@@ -250,33 +274,33 @@ export default function AttendancePage() {
 
   return (
     <div className="max-w-[1400px] mx-auto w-full">
-      <Header title="Attendance" subtitle="Session log" />
+      {!embedded && <Header title="Attendance" subtitle="Session log" />}
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
+      <div className={embedded ? "px-5 md:px-8 pt-3 pb-24 md:pb-8" : "px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8"}>
         <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
         <FilterBar stretch className="mb-4">
-          <FilterField label="Activity">
-            <SingleSelect
-              className="w-44"
-              ariaLabel="Filter by activity"
-              value={activeActivity}
-              onChange={v => { setFilterActivity(v); setFilterInstitution(""); setPage(1); }}
-              options={[
-                { value: "", label: "All Activities" },
-                ...activityOptions.map(name => ({ value: name, label: name })),
-              ]}
+          <FilterField label="Year">
+            <MultiSelect
+              className="w-32"
+              ariaLabel="Filter by year"
+              selected={filterYears}
+              onToggle={toggleFilterYear}
+              allLabel="All Years"
+              emptyLabel="All Years"
+              pluralNoun="Years"
+              options={years.map(y => ({ value: String(y), label: String(y) }))}
             />
           </FilterField>
-          <FilterField label="Institution">
-            <SingleSelect
-              className="w-44"
-              ariaLabel="Filter by institution"
-              value={activeInstitution}
-              onChange={v => { setFilterInstitution(v); setPage(1); }}
-              options={[
-                { value: "", label: "All Institutions" },
-                ...institutionOptions.map(name => ({ value: name, label: name })),
-              ]}
+          <FilterField label="Activity">
+            <MultiSelect
+              className="w-56"
+              ariaLabel="Filter by activity"
+              selected={activeActivityKeys}
+              onToggle={toggleFilterActivityKey}
+              allLabel="All Activities"
+              emptyLabel="All Activities"
+              pluralNoun="Activities"
+              options={activityOptions.map(o => ({ value: o.key, label: o.label }))}
             />
           </FilterField>
         </FilterBar>
@@ -364,9 +388,9 @@ export default function AttendancePage() {
                   {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sender<SortIcon col="sentBy" /></th>}
                   {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Fetcher<SortIcon col="fetcher" /></th>}
                   {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
-                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-1.5 py-2 text-center font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
-                  {visibleColumns.notes && <th className="px-1.5 py-2 text-center font-semibold">Notes</th>}
-                  <th className="px-1.5 py-2 text-center font-semibold">Action</th>
+                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
+                  {visibleColumns.notes && <th className="px-1.5 py-2 text-left font-semibold">Notes</th>}
+                  <th className="px-1.5 py-2 text-left font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -394,7 +418,18 @@ export default function AttendancePage() {
                         {log.start_time && <div className="text-xs text-[var(--text-muted)]">{formatTime(log.start_time)}</div>}
                       </td>
                     )}
-                    {visibleColumns.activity && <td className="px-1.5 py-2 text-[var(--text-primary)]">{log.activity?.activity_name || "—"}</td>}
+                    {visibleColumns.activity && (
+                      <td className="px-1.5 py-2 text-[var(--text-primary)]">
+                        {log.activity ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); router.push(`/activity/${log.activity_id}`); }}
+                            className="font-medium text-[var(--stem)] hover:underline cursor-pointer text-left"
+                          >
+                            {log.activity.activity_name || log.activity.institution}
+                          </button>
+                        ) : "—"}
+                      </td>
+                    )}
                     {visibleColumns.institution && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
                     {visibleColumns.level && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.level || log.activity?.level || "—"}</td>}
                     {visibleColumns.coach && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
@@ -403,7 +438,7 @@ export default function AttendancePage() {
                     {visibleColumns.fetcher && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
                     {visibleColumns.absenceReason && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
-                      <td className="px-1.5 py-2 text-center">
+                      <td className="px-1.5 py-2 text-left">
                         <Badge
                           label={ATTENDANCE_STATUS_LABELS[log.status]}
                           variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
@@ -411,7 +446,7 @@ export default function AttendancePage() {
                       </td>
                     )}
                     {visibleColumns.notes && (
-                      <td className="px-1.5 py-2 text-center">
+                      <td className="px-1.5 py-2 text-left">
                         {hasReflection(log.learned, log.diary_notes) ? (
                           <span title={getReflectionText(log.learned, log.diary_notes)}>
                             <NotebookPen size={14} className="inline text-[var(--text-secondary)]" />
@@ -419,7 +454,7 @@ export default function AttendancePage() {
                         ) : <span className="text-[var(--text-muted)]">—</span>}
                       </td>
                     )}
-                    <td className="px-1.5 py-2 text-center">
+                    <td className="px-1.5 py-2 text-left">
                       <div className="inline-flex items-center gap-0.5">
                         <button
                           onClick={() => openEdit(log)}

@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
+import { LayoutDashboard, CalendarCheck, Receipt } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { cn } from "@/lib/utils";
+
+export type AnalyticsSegment = "overview" | "attendance" | "spending";
 
 /**
  * The dashboard pulls in recharts — ~400 KB, by far the largest dependency in
@@ -24,11 +29,37 @@ const AnalyticsDashboard = dynamic(
   }
 );
 
+function SegmentedControl({ value, onChange }: { value: AnalyticsSegment; onChange: (v: AnalyticsSegment) => void }) {
+  const options: { value: AnalyticsSegment; label: string; icon: typeof LayoutDashboard }[] = [
+    { value: "overview", label: "Overview", icon: LayoutDashboard },
+    { value: "attendance", label: "Attendance", icon: CalendarCheck },
+    { value: "spending", label: "Spending", icon: Receipt },
+  ];
+  return (
+    <div className="inline-flex border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)]">
+      {options.map(({ value: v, label, icon: Icon }, i) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={cn(
+            "flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium cursor-pointer",
+            i > 0 && "border-l border-[var(--rule)]",
+            value === v ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+          )}
+        >
+          <Icon size={14} /> {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
+  const [segment, setSegment] = useState<AnalyticsSegment>("overview");
   return (
     <div className="max-w-[1200px] mx-auto w-full">
-      <Header title="Analytics" subtitle="Spend and hours" />
-      <AnalyticsDashboard />
+      <Header title="Analytics" subtitle="Spend and hours" action={<SegmentedControl value={segment} onChange={setSegment} />} />
+      <AnalyticsDashboard segment={segment} />
     </div>
   );
 }

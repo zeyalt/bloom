@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { startOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ interface LogWithDetails extends AttendanceLog {
 }
 
 export default function AgendaPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
@@ -307,7 +309,12 @@ export default function AgendaPage() {
                               {s.start_time ? formatTime(s.start_time) : "—"}
                             </time>
                             <div className="min-w-0">
-                              <span className="block text-[0.975rem] font-semibold text-[var(--ink)] truncate leading-tight">{title}</span>
+                              <button
+                                onClick={() => router.push(`/activity/${a.id}`)}
+                                className="block text-[0.975rem] font-semibold text-[var(--stem)] truncate leading-tight hover:underline cursor-pointer text-left"
+                              >
+                                {title}
+                              </button>
                               {(a.institution || a.instructor_name) && (
                                 <div className="text-sm text-[var(--ink-faint)] truncate mt-0.5">{a.institution || a.instructor_name}</div>
                               )}
@@ -376,7 +383,16 @@ export default function AgendaPage() {
                               {log.start_time ? formatTime(log.start_time) : "—"}
                             </time>
                             <div className="min-w-0">
-                              <span className="block text-[0.975rem] font-semibold text-[var(--ink)] truncate leading-tight">{title}</span>
+                              {a ? (
+                                <button
+                                  onClick={e => { e.stopPropagation(); router.push(`/activity/${a.id}`); }}
+                                  className="block text-[0.975rem] font-semibold text-[var(--stem)] truncate leading-tight hover:underline cursor-pointer text-left"
+                                >
+                                  {title}
+                                </button>
+                              ) : (
+                                <span className="block text-[0.975rem] font-semibold text-[var(--ink)] truncate leading-tight">{title}</span>
+                              )}
                               {(a?.institution || a?.instructor_name) && (
                                 <div className="text-sm text-[var(--ink-faint)] truncate mt-0.5">{a?.institution || a?.instructor_name}</div>
                               )}

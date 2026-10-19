@@ -1,23 +1,28 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Pencil, Trash2 } from "lucide-react";
+import { Plus, Download, Pencil, Trash2, Columns3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getCurrentYear } from "@/lib/utils";
 import { exportExpensesCSV } from "@/lib/export-csv";
-import { PAYERS, EXPENSE_TYPES, EXPENSE_TYPE_COLORS, inferExpenseType } from "@/lib/constants";
+import { PAYERS, EXPENSE_TYPES, inferExpenseType } from "@/lib/constants";
 import { Badge } from "@/components/ui/Badge";
-import { SingleSelect } from "@/components/ui/FilterDropdown";
+import { MultiSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { useExpenses, useChildren, useActivities } from "@/lib/api-hooks";
 import type { Expense, Activity } from "@/lib/types";
 
 type ExpenseWithDetails = Expense;
+
+const PAGE_SIZE = 30;
+
+const actLabel = (a: Activity) => a.activity_name || a.institution;
 
 const EMPTY_FORM = {
   child_id: "",
@@ -31,8 +36,9 @@ const EMPTY_FORM = {
   expense_type: "Lesson",
 };
 
-export default function ExpensesPage() {
+export default function ExpensesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
@@ -41,17 +47,70 @@ export default function ExpensesPage() {
   const [error, setError] = useState("");
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const childrenInit = useRef(false);
-  const toggleChild = (id: string) => setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
-  const [filterYear, setFilterYear] = useState(String(getCurrentYear()));
-  const [filterPayer, setFilterPayer] = useState("");
-  const [filterType, setFilterType] = useState("");
+  const toggleChild = (id: string) => {
+    setSelectedChildren(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+    setPage(1);
+  };
+  const [filterYears, setFilterYears] = useState<string[]>([String(getCurrentYear())]);
+  // Activity + Institution are one filter: composite "name|institution" keys,
+  // since the same activity name can span institutions over time.
+  const [filterActivityKeys, setFilterActivityKeys] = useState<string[]>([]);
+  const [filterPayers, setFilterPayers] = useState<string[]>([]);
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
+  const toggleFilterYear = (year: string) => {
+    setFilterYears(prev => (prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year]));
+    setPage(1);
+  };
+  const toggleFilterActivityKey = (key: string) => {
+    setFilterActivityKeys(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
+    setPage(1);
+  };
+  const toggleFilterPayer = (payer: string) => {
+    setFilterPayers(prev => (prev.includes(payer) ? prev.filter(p => p !== payer) : [...prev, payer]));
+    setPage(1);
+  };
+  const toggleFilterType = (type: string) => {
+    setFilterTypes(prev => (prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]));
+    setPage(1);
+  };
   const [confirmDelete, setConfirmDelete] = useState<ExpenseWithDetails | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [page, setPage] = useState(1);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  // Read once at init (not in an effect) so there's no window where a save
+  // effect can fire with the still-default state and clobber what was saved.
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const defaults = {
+      child: true,
+      date: true,
+      activity: true,
+      institution: true,
+      type: true,
+      description: true,
+      amount: true,
+      costPerLesson: true,
+      paidBy: true,
+    };
+    if (typeof window === "undefined") return defaults;
+    try {
+      const saved = localStorage.getItem("expenses-visible-columns");
+      return saved ? { ...defaults, ...(JSON.parse(saved) as Partial<typeof defaults>) } : defaults;
+    } catch {
+      return defaults;
+    }
+  });
 
-  // Cached via React Query (fetch per-year; filter child/payer client-side for
-  // instant tab switches). Refresh via invalidation after saves.
-  const { data: yearExpenses = [], isLoading: loading } = useExpenses({ year: Number(filterYear), limit: 500 });
+  // Persist the user's chosen columns across visits.
+  useEffect(() => {
+    try {
+      localStorage.setItem("expenses-visible-columns", JSON.stringify(visibleColumns));
+    } catch { /* ignore */ }
+  }, [visibleColumns]);
+
+  // Cached via React Query (fetch everything once; filter year/child/activity/
+  // payer/category client-side so a multi-select year filter needs no refetch).
+  const { data: allExpenses = [], isLoading: loading } = useExpenses({ limit: 500 });
   const { data: children = [] } = useChildren();
   const { data: activities = [] } = useActivities();
 
@@ -65,18 +124,49 @@ export default function ExpensesPage() {
     }
   }, [children]);
 
+  // Activity options derived from `activities` scoped to the selected children,
+  // keyed by "name|institution" — same approach as the Sessions table, so the
+  // same activity name spanning institutions over time shows as distinct options.
+  // An empty selection on any of these filters means "all" rather than "none".
+  const { activityOptions, activeActivityKeys, matchingActivityIds } = useMemo(() => {
+    const childActivities = activities.filter(a => selectedChildren.includes(a.child_id));
+
+    const byKey = new Map<string, string>();
+    for (const a of childActivities) {
+      byKey.set(`${actLabel(a)}|${a.institution}`, `${actLabel(a)} — ${a.institution}`);
+    }
+    const activityOptions = [...byKey.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const activeActivityKeys = filterActivityKeys.filter(k => byKey.has(k));
+
+    const matchingActivityIds = new Set(
+      childActivities
+        .filter(a => activeActivityKeys.length === 0 || activeActivityKeys.includes(`${actLabel(a)}|${a.institution}`))
+        .map(a => a.id)
+    );
+
+    return { activityOptions, activeActivityKeys, matchingActivityIds };
+  }, [activities, selectedChildren, filterActivityKeys]);
+
   // Kept out of the render path so typing in the add/edit form doesn't re-filter
   // and re-total the year on every keystroke.
   const expenses = useMemo(
-    () => (yearExpenses as ExpenseWithDetails[]).filter(e =>
+    () => (allExpenses as ExpenseWithDetails[]).filter(e =>
       selectedChildren.includes(e.child_id) &&
-      (!filterPayer || e.paid_by === filterPayer) &&
-      (!filterType || (e.expense_type || "Lesson") === filterType)
+      (filterYears.length === 0 || filterYears.includes(String(e.year))) &&
+      (activeActivityKeys.length === 0 || matchingActivityIds.has(e.activity_id ?? "")) &&
+      (filterPayers.length === 0 || filterPayers.includes(e.paid_by)) &&
+      (filterTypes.length === 0 || filterTypes.includes(e.expense_type || "Lesson"))
     ),
-    [yearExpenses, selectedChildren, filterPayer, filterType]
+    [allExpenses, selectedChildren, filterYears, activeActivityKeys, matchingActivityIds, filterPayers, filterTypes]
   );
 
-  const total = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
+  const totalPages = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedExpenses = expenses.slice(pageStart, pageStart + PAGE_SIZE);
 
   function openAdd() {
     setEditingId(null);
@@ -199,50 +289,81 @@ export default function ExpensesPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto w-full">
-      <Header title="Expenses" subtitle="Class fees" />
+      {!embedded && <Header title="Expenses" subtitle="Class fees" />}
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
+      <div className={embedded ? "px-5 md:px-8 pt-3 pb-24 md:pb-8" : "px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8"}>
         <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        <FilterBar stretch className="mb-4">
+        <FilterBar stretch className="mb-2">
           <FilterField label="Year">
-            <SingleSelect
+            <MultiSelect
               className="w-32"
               ariaLabel="Filter by year"
-              value={filterYear}
-              onChange={setFilterYear}
+              selected={filterYears}
+              onToggle={toggleFilterYear}
+              allLabel="All Years"
+              emptyLabel="All Years"
+              pluralNoun="Years"
               options={years.map(y => ({ value: String(y), label: String(y) }))}
             />
           </FilterField>
-          <FilterField label="Payer">
-            <SingleSelect
-              className="w-40"
-              ariaLabel="Filter by payer"
-              value={filterPayer}
-              onChange={setFilterPayer}
-              options={[
-                { value: "", label: "All Payers" },
-                ...PAYERS.map(p => ({ value: p, label: p })),
-              ]}
+          <FilterField label="Activity">
+            <MultiSelect
+              className="w-56"
+              ariaLabel="Filter by activity"
+              selected={activeActivityKeys}
+              onToggle={toggleFilterActivityKey}
+              allLabel="All Activities"
+              emptyLabel="All Activities"
+              pluralNoun="Activities"
+              options={activityOptions.map(o => ({ value: o.key, label: o.label }))}
             />
           </FilterField>
-          <FilterField label="Type">
-            <SingleSelect
+        </FilterBar>
+        <FilterBar stretch className="mb-4">
+          <FilterField label="Expense Category">
+            <MultiSelect
               className="w-40"
-              ariaLabel="Filter by expense type"
-              value={filterType}
-              onChange={setFilterType}
-              options={[
-                { value: "", label: "All Types" },
-                ...EXPENSE_TYPES.map(t => ({ value: t, label: t })),
-              ]}
+              ariaLabel="Filter by expense category"
+              selected={filterTypes}
+              onToggle={toggleFilterType}
+              allLabel="All Categories"
+              emptyLabel="All Categories"
+              pluralNoun="Categories"
+              options={EXPENSE_TYPES.map(t => ({ value: t, label: t }))}
+            />
+          </FilterField>
+          <FilterField label="Payer">
+            <MultiSelect
+              className="w-40"
+              ariaLabel="Filter by payer"
+              selected={filterPayers}
+              onToggle={toggleFilterPayer}
+              allLabel="All Payers"
+              emptyLabel="All Payers"
+              pluralNoun="Payers"
+              options={PAYERS.map(p => ({ value: p, label: p }))}
             />
           </FilterField>
         </FilterBar>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 mb-8 items-center justify-end">
-          <div className="flex gap-1.5 shrink-0">
-            <Button onClick={() => exportExpensesCSV(expenses, `expenses-${filterYear}.csv`)} variant="secondary" size="sm">
+        {/* Actions — record count sits opposite the buttons so the two never collide */}
+        <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
+          <p className="text-xs text-[var(--text-muted)]">
+            {expenses.length === 0
+              ? "No records"
+              : expenses.length > PAGE_SIZE
+                ? `Showing ${pageStart + 1}–${pageStart + pagedExpenses.length} of ${expenses.length} records`
+                : `${expenses.length} record${expenses.length === 1 ? "" : "s"}`}
+          </p>
+          <div className="flex gap-1.5 shrink-0 ml-auto">
+            <button
+              onClick={() => setShowColumnPicker(!showColumnPicker)}
+              title="Show or hide table columns"
+              className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+            >
+              <Columns3 size={14} /> Columns
+            </button>
+            <Button onClick={() => exportExpensesCSV(expenses, `expenses-${filterYears.join("_") || "all"}.csv`)} variant="secondary" size="sm">
               <Download size={14} /> Export
             </Button>
             <Button variant="primary" onClick={openAdd} size="sm">
@@ -251,11 +372,35 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        {/* Summary */}
-        <div className="mb-6 p-4 bg-[var(--bg-secondary)] rounded-lg">
-          <div className="text-sm text-[var(--text-secondary)]">Total</div>
-          <div className="text-2xl font-semibold text-[var(--text-primary)]">{formatCurrency(total)}</div>
-        </div>
+        {/* Column picker */}
+        {showColumnPicker && (
+          <div className="mb-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+            <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[
+                { key: "child", label: "Child" },
+                { key: "date", label: "Payment Date" },
+                { key: "activity", label: "Activity" },
+                { key: "institution", label: "Institution" },
+                { key: "type", label: "Expense Category" },
+                { key: "description", label: "Description" },
+                { key: "amount", label: "Amount" },
+                { key: "costPerLesson", label: "Cost / lesson" },
+                { key: "paidBy", label: "Paid by" },
+              ].map(col => (
+                <label key={col.key} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns[col.key as keyof typeof visibleColumns]}
+                    onChange={e => setVisibleColumns(v => ({ ...v, [col.key]: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <span className="text-xs text-[var(--text-primary)]">{col.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         {loading ? (
@@ -273,20 +418,20 @@ export default function ExpensesPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
-                  <th className="px-3 py-2 text-left font-semibold">Payment Date</th>
-                  <th className="px-3 py-2 text-left font-semibold">Child</th>
-                  <th className="px-3 py-2 text-left font-semibold">Activity</th>
-                  <th className="px-3 py-2 text-left font-semibold">Institution</th>
-                  <th className="px-3 py-2 text-left font-semibold">Type</th>
-                  <th className="px-3 py-2 text-left font-semibold">Description</th>
-                  <th className="px-3 py-2 text-right font-semibold">Amount</th>
-                  <th className="px-3 py-2 text-right font-semibold">Cost / lesson</th>
-                  <th className="px-3 py-2 text-left font-semibold">Paid by</th>
-                  <th className="px-3 py-2 text-center font-semibold">Action</th>
+                  {visibleColumns.child && <th className="px-3 py-2 text-left font-semibold">Child</th>}
+                  {visibleColumns.date && <th className="px-3 py-2 text-left font-semibold">Payment Date</th>}
+                  {visibleColumns.activity && <th className="px-3 py-2 text-left font-semibold">Activity</th>}
+                  {visibleColumns.institution && <th className="px-3 py-2 text-left font-semibold">Institution</th>}
+                  {visibleColumns.type && <th className="px-3 py-2 text-left font-semibold">Expense Category</th>}
+                  {visibleColumns.description && <th className="px-3 py-2 text-left font-semibold">Description</th>}
+                  {visibleColumns.amount && <th className="px-3 py-2 text-left font-semibold">Amount</th>}
+                  {visibleColumns.costPerLesson && <th className="px-3 py-2 text-left font-semibold">Cost / lesson</th>}
+                  {visibleColumns.paidBy && <th className="px-3 py-2 text-left font-semibold">Paid by</th>}
+                  <th className="px-3 py-2 text-left font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {expenses.map(exp => {
+                {pagedExpenses.map(exp => {
                   const costPerLesson =
                     exp.num_lessons && exp.num_lessons > 0
                       ? formatCurrency(exp.amount / exp.num_lessons)
@@ -296,23 +441,44 @@ export default function ExpensesPage() {
                       key={exp.id}
                       className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
                     >
-                      <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>
-                      <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">{exp.child?.name || "—"}</td>
-                      <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">{activityLabel(exp)}</td>
-                      <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <Badge
-                          label={exp.expense_type || "Lesson"}
-                          color={EXPENSE_TYPE_COLORS[(exp.expense_type || "Lesson") as keyof typeof EXPENSE_TYPE_COLORS]}
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>
-                      <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-right whitespace-nowrap">
-                        {formatCurrency(exp.amount)}
-                      </td>
-                      <td className="px-3 py-2 text-[var(--text-secondary)] text-right whitespace-nowrap">{costPerLesson}</td>
-                      <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>
-                      <td className="px-3 py-2 text-center">
+                      {visibleColumns.child && (
+                        <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                          {exp.child ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: exp.child.color_code }} />
+                              {exp.child.name}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      )}
+                      {visibleColumns.date && <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>}
+                      {visibleColumns.activity && (
+                        <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">
+                          {exp.activity_id ? (
+                            <button
+                              onClick={e => { e.stopPropagation(); router.push(`/activity/${exp.activity_id}`); }}
+                              className="font-medium text-[var(--stem)] hover:underline cursor-pointer text-left"
+                            >
+                              {activityLabel(exp)}
+                            </button>
+                          ) : activityLabel(exp)}
+                        </td>
+                      )}
+                      {visibleColumns.institution && <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>}
+                      {visibleColumns.type && (
+                        <td className="px-3 py-2 text-left whitespace-nowrap">
+                          <Badge label={exp.expense_type || "Lesson"} />
+                        </td>
+                      )}
+                      {visibleColumns.description && <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>}
+                      {visibleColumns.amount && (
+                        <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-left whitespace-nowrap">
+                          {formatCurrency(exp.amount)}
+                        </td>
+                      )}
+                      {visibleColumns.costPerLesson && <td className="px-3 py-2 text-[var(--text-secondary)] text-left whitespace-nowrap">{costPerLesson}</td>}
+                      {visibleColumns.paidBy && <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>}
+                      <td className="px-3 py-2 text-left">
                         <div className="inline-flex items-center gap-0.5">
                           <button
                             onClick={() => openEdit(exp)}
@@ -335,6 +501,31 @@ export default function ExpensesPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination — only surfaces once the filtered set outgrows one page */}
+        {!loading && expenses.length > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={14} /> Prev
+            </Button>
+            <span className="text-xs text-[var(--text-secondary)] tabular-nums">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next <ChevronRight size={14} />
+            </Button>
           </div>
         )}
 

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory } from "./types";
+import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory, Milestone } from "./types";
 
 export async function fetchCategories() {
   const res = await fetch("/api/categories");
@@ -151,5 +151,18 @@ export function useExpenses(options?: { limit?: number; childId?: string; year?:
   return useQuery({
     queryKey,
     queryFn: () => fetchExpenses(options),
+  });
+}
+
+export async function fetchMilestones() {
+  const res = await fetch("/api/milestones");
+  if (!res.ok) throw new Error("Failed to fetch milestones");
+  return res.json() as Promise<Milestone[]>;
+}
+
+export function useMilestones() {
+  return useQuery({
+    queryKey: ["milestones"],
+    queryFn: fetchMilestones,
   });
 }
