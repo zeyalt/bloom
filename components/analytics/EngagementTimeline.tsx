@@ -83,7 +83,7 @@ export function EngagementTimeline({ activities, children }: Props) {
 
   const yearAxis = (
     <div className="flex gap-1 mb-1">
-      <div className="w-36 shrink-0" />
+      <div className="hidden sm:block w-36 shrink-0" />
       <div className="flex-1 flex">
         {years.map(y => (
           <span key={y} className="flex-1 text-[10px] font-medium text-[var(--text-muted)] text-center">{y}</span>
@@ -108,12 +108,13 @@ export function EngagementTimeline({ activities, children }: Props) {
 
             {yearAxis}
 
-            {/* Label column matches the Who Ferries Whom heatmap (9rem) so both cards line up. */}
-            <div className="space-y-1">
+            {/* Phones: label on its own line above a full-width bar. sm+: a 9rem label
+                column, matching the Who Ferries Whom heatmap so both cards line up. */}
+            <div className="space-y-1.5 sm:space-y-1">
               {rows.map(({ label, stints }) => (
-                <div key={label} className="flex items-center gap-1 h-7">
-                  <span className="w-36 shrink-0 text-xs text-[var(--text-secondary)] whitespace-nowrap truncate" title={label}>{label}</span>
-                  <div className="relative flex-1 h-5 bg-[var(--bg-secondary)] rounded-sm overflow-hidden">
+                <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 sm:h-7">
+                  <span className="sm:w-36 shrink-0 text-xs text-[var(--text-secondary)] whitespace-nowrap truncate" title={label}>{label}</span>
+                  <div className="relative w-full sm:flex-1 h-5 bg-[var(--bg-secondary)] rounded-sm overflow-hidden">
                     {stints.map(a => {
                       const start = parseISO(a.start_date!.slice(0, 10));
                       // `end_date` can be a planned/term end set while the activity is still

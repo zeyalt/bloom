@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { LayoutDashboard, CalendarCheck, Receipt } from "lucide-react";
+import { CalendarCheck, Receipt } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { cn } from "@/lib/utils";
 
-export type AnalyticsSegment = "overview" | "attendance" | "spending";
+export type AnalyticsSegment = "attendance" | "spending";
 
 /**
  * The dashboard pulls in recharts — ~400 KB, by far the largest dependency in
@@ -30,8 +30,7 @@ const AnalyticsDashboard = dynamic(
 );
 
 function SegmentedControl({ value, onChange }: { value: AnalyticsSegment; onChange: (v: AnalyticsSegment) => void }) {
-  const options: { value: AnalyticsSegment; label: string; icon: typeof LayoutDashboard }[] = [
-    { value: "overview", label: "Overview", icon: LayoutDashboard },
+  const options: { value: AnalyticsSegment; label: string; icon: typeof CalendarCheck }[] = [
     { value: "attendance", label: "Attendance", icon: CalendarCheck },
     { value: "spending", label: "Spending", icon: Receipt },
   ];
@@ -55,7 +54,7 @@ function SegmentedControl({ value, onChange }: { value: AnalyticsSegment; onChan
 }
 
 export default function AnalyticsPage() {
-  const [segment, setSegment] = useState<AnalyticsSegment>("overview");
+  const [segment, setSegment] = useState<AnalyticsSegment>("attendance");
   return (
     <div className="max-w-[1200px] mx-auto w-full">
       <Header title="Analytics" subtitle="Spend and hours" />

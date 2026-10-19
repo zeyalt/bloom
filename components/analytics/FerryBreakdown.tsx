@@ -103,13 +103,21 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
                 <h4 className="text-sm font-semibold text-[var(--text-primary)]">{child.name}</h4>
               </div>
 
-              <div className="grid gap-1 text-xs" style={{ gridTemplateColumns: `9rem repeat(${rankedPeople.length}, minmax(2.25rem, 1fr))` }}>
-                <div />
+              {/* Phones: each activity name gets its own full-width line above its cells, so the
+                  cells use the whole card width. sm+: a 9rem label column, aligned with Timeline. */}
+              <div
+                className="grid gap-x-1 gap-y-1 text-xs [grid-template-columns:var(--ferry-cols)] sm:[grid-template-columns:var(--ferry-cols-sm)]"
+                style={{
+                  "--ferry-cols": `repeat(${rankedPeople.length}, minmax(0, 1fr))`,
+                  "--ferry-cols-sm": `9rem repeat(${rankedPeople.length}, minmax(0, 1fr))`,
+                } as React.CSSProperties}
+              >
+                <div className="hidden sm:block" />
                 {rankedPeople.map(p => (
                   <div key={p} className="text-[10px] text-[var(--text-muted)] text-center truncate" title={p}>{p}</div>
                 ))}
                 {activities.map(a => (
-                  <FerryRow key={a.name} name={a.name} counts={a[role]} people={rankedPeople} maxCell={maxCell} />
+                  <FerryRow key={a.name} name={a.name} counts={a[role]} people={rankedPeople} maxCell={maxCell} color={child.color_code} />
                 ))}
               </div>
             </div>
@@ -120,11 +128,11 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
   );
 }
 
-function FerryRow({ name, counts, people, maxCell }: { name: string; counts: Map<string, number>; people: string[]; maxCell: number }) {
+function FerryRow({ name, counts, people, maxCell, color }: { name: string; counts: Map<string, number>; people: string[]; maxCell: number; color: string }) {
   return (
     <>
-      <div className="h-8 flex items-center pr-1 text-xs leading-tight text-[var(--text-secondary)]">
-        <span className="line-clamp-2" title={name}>{name}</span>
+      <div className="col-span-full sm:col-span-1 pt-1.5 sm:pt-0 sm:h-8 flex items-center pr-1 text-xs leading-tight text-[var(--text-secondary)]">
+        <span className="truncate" title={name}>{name}</span>
       </div>
       {people.map(p => {
         const c = counts.get(p) || 0;
@@ -132,9 +140,9 @@ function FerryRow({ name, counts, people, maxCell }: { name: string; counts: Map
         return (
           <div
             key={p}
-            className="h-8 rounded-[4px] flex items-center justify-center text-[11px] tabular-nums"
+            className="h-7 sm:h-8 rounded-[4px] flex items-center justify-center text-[11px] tabular-nums"
             style={{
-              backgroundColor: c === 0 ? "var(--bg-secondary)" : `rgba(0, 102, 204, ${alpha})`,
+              backgroundColor: c === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`,
               color: alpha > 0.55 ? "#fff" : "var(--text-muted)",
             }}
           >

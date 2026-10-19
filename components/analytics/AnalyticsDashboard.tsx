@@ -639,12 +639,10 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
           </FilterBar>
         </div>
 
-        {/* ── Overview ── */}
-        {segment === "overview" && (
-          <section className="space-y-10">
-            {/* KPI strip */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#2f6f4e" icon={<Receipt size={16} />} animate={animate} />
+        {/* ── Attendance ── */}
+        {segment === "attendance" && (
+          <section className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KpiCard label="Attendance rate" value={fmtPct(k.attRate)} delta={k.rateDelta} deltaSuffix="pp" spark={k.rateByMonth} color="#1a2c22" icon={<CalendarCheck size={16} />} animate={animate} />
               <MiniDonutKpi label="Sessions by Category" data={data.sessionsByCategoryKpi} center={String(k.sessions)} formatter={(v) => String(v)} animate={animate} />
               <MiniDonutKpi label="Hours by Category" data={data.hoursByCategoryKpi} center={fmtHours(k.totalHours)} formatter={(v) => fmtHours(v)} animate={animate} />
@@ -685,19 +683,6 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
               </ChartCard>
             </div>
 
-            <div className="space-y-4">
-              <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
-            </div>
-
-            <div className="space-y-4">
-              <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
-            </div>
-          </section>
-        )}
-
-        {/* ── Attendance ── */}
-        {segment === "attendance" && (
-          <section className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {data.statusMix.length > 0 && (
                 <ChartCard title="Status Mix">
@@ -812,12 +797,23 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                 </ChartCard>
               )}
             </div>
+            <div className="space-y-4">
+              <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
+            </div>
+
+            <div className="space-y-4">
+              <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
+            </div>
           </section>
         )}
 
         {/* ── Spending ── */}
         {segment === "spending" && (
           <section className="space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#2f6f4e" icon={<Receipt size={16} />} animate={animate} />
+            </div>
+
             {data.spendTrend.length > 0 && (
               <ChartCard title="Monthly Spend Trend">
                 <ResponsiveContainer width="100%" height={280}>
