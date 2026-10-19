@@ -236,10 +236,11 @@ export default function AgendaPage() {
         title="Home"
         subtitle={weekOffset === 0 ? "This week" : range.label}
         sticky
-        action={<Button size="sm" onClick={openAdhoc}><Plus size={14} /> Add event</Button>}
       />
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
+        <ChildFilter className="mb-4" children={children} selected={selectedChildren} onToggle={toggleChild} />
+
         <div className="flex items-center gap-2 mb-4">
           <button onClick={() => setWeekOffset(o => o - 1)} className="shrink-0 inline-flex items-center justify-center h-9 w-9 border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer" title="Previous week">
             <ChevronLeft size={16} />
@@ -269,7 +270,9 @@ export default function AgendaPage() {
           </button>
         </div>
 
-        <ChildFilter className="mb-6" children={children} selected={selectedChildren} onToggle={toggleChild} />
+        <div className="flex justify-end mb-4">
+          <Button size="sm" onClick={openAdhoc}><Plus size={14} /> Add event</Button>
+        </div>
 
         {loading ? (
           <div className="space-y-2">

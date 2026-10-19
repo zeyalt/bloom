@@ -19,7 +19,7 @@ const AnalyticsDashboard = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="px-5 md:px-8 space-y-6 pb-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 space-y-6 pb-24 md:pb-8 pt-4 md:pt-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}
         </div>
@@ -36,13 +36,13 @@ function SegmentedControl({ value, onChange }: { value: AnalyticsSegment; onChan
     { value: "spending", label: "Spending", icon: Receipt },
   ];
   return (
-    <div className="inline-flex border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)]">
+    <div className="flex border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)]">
       {options.map(({ value: v, label, icon: Icon }, i) => (
         <button
           key={v}
           onClick={() => onChange(v)}
           className={cn(
-            "flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium cursor-pointer",
+            "flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium cursor-pointer",
             i > 0 && "border-l border-[var(--rule)]",
             value === v ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
           )}
@@ -58,7 +58,10 @@ export default function AnalyticsPage() {
   const [segment, setSegment] = useState<AnalyticsSegment>("overview");
   return (
     <div className="max-w-[1200px] mx-auto w-full">
-      <Header title="Analytics" subtitle="Spend and hours" action={<SegmentedControl value={segment} onChange={setSegment} />} />
+      <Header title="Analytics" subtitle="Spend and hours" />
+      <div className="px-5 md:px-8 pb-3">
+        <SegmentedControl value={segment} onChange={setSegment} />
+      </div>
       <AnalyticsDashboard segment={segment} />
     </div>
   );

@@ -132,6 +132,26 @@ function ChartTooltip({ active, payload, label, formatter }: any) {
   );
 }
 
+// Donuts need a share-of-total alongside the value; `total` is passed in by the
+// caller since Recharts' Tooltip payload doesn't reliably expose Pie's percent.
+function DonutTooltip({ active, payload, formatter, total }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  const pct = total > 0 ? (p.value / total) * 100 : 0;
+  return (
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
+      <div className="flex items-center gap-2 text-xs">
+        <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.payload?.fill || p.color }} />
+        <span className="text-[var(--text-secondary)]">{p.name}</span>
+        <span className="ml-auto font-semibold tabular-nums text-[var(--text-primary)]">
+          {formatter ? formatter(p.value) : p.value}
+          <span className="ml-1 font-normal text-[var(--text-muted)]">({Math.round(pct)}%)</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function DeltaPill({ delta, suffix = "%" }: { delta: number | null; suffix?: string }) {
   if (delta === null) return <span className="text-[11px] text-[var(--text-muted)]">— no prior data</span>;
   const up = delta >= 0;
@@ -199,30 +219,64 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
 interface DonutDatum { name: string; value: number; color: string }
 
 function Donut({ data, center, sub, formatter, animate }: { data: DonutDatum[]; center: string; sub: string; formatter: (v: number) => string; animate: boolean }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div>
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={220}>
+    <div className="flex items-center gap-4">
+      <div className="relative shrink-0" style={{ width: 200 }}>
+        <ResponsiveContainer width="100%" height={200}>
           <PieChart>
-            <Pie data={data} dataKey="value" nameKey="name" innerRadius={68} outerRadius={96} paddingAngle={2} stroke="none" cornerRadius={6} isAnimationActive={animate} animationDuration={700}>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius={62} outerRadius={88} paddingAngle={2} stroke="none" cornerRadius={6} isAnimationActive={animate} animationDuration={700}>
               {data.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Pie>
-            <Tooltip content={<ChartTooltip formatter={formatter} />} />
+            <Tooltip content={<DonutTooltip formatter={formatter} total={total} />} />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-xl font-bold tabular-nums text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{center}</span>
+          <span className="text-2xl font-bold tabular-nums text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{center}</span>
           <span className="text-[11px] text-[var(--ink-faint)]">{sub}</span>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="flex flex-col gap-1.5 min-w-0">
         {data.map((d, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs">
+          <div key={i} className="flex items-center gap-1.5 text-xs min-w-0">
             <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: d.color }} />
-            <span className="text-[var(--text-secondary)]">{d.name}</span>
-            <span className="font-semibold tabular-nums text-[var(--text-primary)]">{formatter(d.value)}</span>
+            <span className="text-[var(--text-secondary)] truncate">{d.name}</span>
+            <span className="font-semibold tabular-nums text-[var(--text-primary)] shrink-0">{formatter(d.value)}</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// A KPI tile that shows a category breakdown as a mini donut instead of a single number + sparkline.
+function MiniDonutKpi({ label, data, center, formatter, animate }: { label: string; data: DonutDatum[]; center: string; formatter: (v: number) => string; animate: boolean }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  return (
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-5">
+      <span className="text-sm text-[var(--ink-faint)]">{label}</span>
+      <div className="mt-2 flex items-center justify-center gap-3">
+        <div className="relative w-24 h-24 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius={30} outerRadius={46} paddingAngle={2} stroke="none" isAnimationActive={animate} animationDuration={700}>
+                {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+              </Pie>
+              <Tooltip content={<DonutTooltip formatter={formatter} total={total} />} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">{center}</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          {data.map((d, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[11px] min-w-0">
+              <span className="w-2 h-2 shrink-0" style={{ backgroundColor: d.color }} />
+              <span className="truncate text-[var(--text-secondary)]">{d.name}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -405,6 +459,16 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
     }
     const sessionsByActivity = [...sessByActMap.entries()].sort((x, y) => y[1].value - x[1].value).slice(0, 8).map(([name, v]) => ({ name, value: v.value, id: v.id }));
 
+    // Sessions and hours by category — for the Overview KPI donuts (independent of the
+    // Hours Over Time chart's own group-by toggle, which can switch to "by activity").
+    const sessByCat = new Map<string, number>();
+    for (const l of logIn) { if (l.status !== "attended") continue; const g = l.activity?.category?.name || "Uncategorized"; sessByCat.set(g, (sessByCat.get(g) || 0) + 1); }
+    const sessionsByCategoryKpi: DonutDatum[] = [...sessByCat.entries()].sort((x, y) => y[1] - x[1]).map(([name, value], i) => ({ name, value, color: colorForCat(name, i) }));
+
+    const hoursByCat = new Map<string, number>();
+    for (const l of logIn) { if (!isAttendedLike(l.status)) continue; const g = l.activity?.category?.name || "Uncategorized"; hoursByCat.set(g, (hoursByCat.get(g) || 0) + sessionMinutes(l) / 60); }
+    const hoursByCategoryKpi: DonutDatum[] = [...hoursByCat.entries()].sort((x, y) => y[1] - x[1]).map(([name, value], i) => ({ name, value, color: colorForCat(name, i) }));
+
     // Cost per hour, by activity — total spend over total attended hours for the same activity.
     const spendByActId = new Map<string, number>();
     const labelByActId = new Map<string, string>();
@@ -456,7 +520,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
       },
       childNames, childColor, colorForCat,
       spendTrend, spendByCategory, spendByChild, topActivitiesSpend, payerSplit, spendByExpenseType, costPerHourByActivity,
-      statusMix, attendanceByChild, absenceReasons, sessionsByActivity, weeklyHeatmap,
+      statusMix, attendanceByChild, absenceReasons, sessionsByActivity, weeklyHeatmap, sessionsByCategoryKpi, hoursByCategoryKpi,
       // raw for hours section (depends on its own toggles)
       logIn,
     };
@@ -465,6 +529,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
   // ── Hours section (its own toggles) ──
   const [hoursGroup, setHoursGroup] = useState<"category" | "activity">("category");
   const [hoursGran, setHoursGran] = useState<"week" | "month">("month");
+  const [hoursView, setHoursView] = useState<"stacked" | "percent">("stacked");
 
   const hoursViz = useMemo(() => {
     const logIn = data.logIn.filter(l => isAttendedLike(l.status));
@@ -473,7 +538,11 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
         ? (l.activity?.category?.name || "Uncategorized")
         : (l.activity?.activity_name || l.activity?.institution || "Unknown");
 
-    const groupNames = [...new Set(logIn.map(groupOf))];
+    // Order groups by total hours, descending, so the first (bottom-most, since Recharts
+    // stacks bars in the order their <Bar> elements are given) is the biggest commitment.
+    const totalHoursByGroup = new Map<string, number>();
+    for (const l of logIn) { const g = groupOf(l); totalHoursByGroup.set(g, (totalHoursByGroup.get(g) || 0) + sessionMinutes(l) / 60); }
+    const groupNames = [...totalHoursByGroup.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
     const buckets = bucketsInRange(data.from, data.to, hoursGran).filter(bk => data.activeYears.includes(bk.key.slice(0, 4)));
     const overTime = buckets.map(bk => {
       const row: Record<string, number | string> = { label: bk.label };
@@ -487,15 +556,17 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
       return row;
     });
 
-    const byCat = new Map<string, number>();
-    for (const l of logIn) { const g = l.activity?.category?.name || "Uncategorized"; byCat.set(g, (byCat.get(g) || 0) + sessionMinutes(l) / 60); }
-    const hoursByCategory: DonutDatum[] = [...byCat.entries()].sort((x, y) => y[1] - x[1]).map(([name, value], i) => ({ name, value, color: data.colorForCat(name, i) }));
+    // Pre-normalize to fractions-of-bucket-total rather than relying on Recharts'
+    // stackOffset="expand" — that only rescales the drawn bar height, it doesn't
+    // change the values Tooltip/YAxis read, so they'd still show raw hours.
+    const overTimePercent = overTime.map(row => {
+      const total = groupNames.reduce((s, g) => s + (row[g] as number), 0);
+      const pctRow: Record<string, number | string> = { label: row.label };
+      for (const g of groupNames) pctRow[g] = total > 0 ? (row[g] as number) / total : 0;
+      return pctRow;
+    });
 
-    const byChild = new Map<string, number>();
-    for (const l of logIn) { const n = l.child?.name || "Unknown"; byChild.set(n, (byChild.get(n) || 0) + sessionMinutes(l) / 60); }
-    const hoursByChild = [...byChild.entries()].map(([name, value]) => ({ name, value, color: data.childColor(name) }));
-
-    return { groupNames, overTime, hoursByCategory, hoursByChild };
+    return { groupNames, overTime, overTimePercent };
   }, [data, hoursGroup, hoursGran]);
 
   // ── Weekly schedule load (a typical current week, independent of the date/year filter) ──
@@ -531,18 +602,11 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
 
   const k = data.kpis;
 
-  const sectionHead = (title: string, sub: string) => (
-    <div className="flex items-baseline gap-3 mb-1">
-      <h2 className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{title}</h2>
-      <span className="text-xs text-[var(--text-muted)]">{sub}</span>
-    </div>
-  );
-
   // The page shell (wrapper + Header) lives in the route; this component renders
   // the body only, behind the same skeleton the dynamic import shows.
   if (loading) {
     return (
-      <div className="px-5 md:px-8 space-y-6 pb-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 space-y-6 pb-24 md:pb-8 pt-1 md:pt-2">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}</div>
         {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] animate-pulse" />)}
       </div>
@@ -551,7 +615,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
 
   return (
     <>
-      <div className="px-5 md:px-8 space-y-10 pb-8 pt-4 md:pt-6">
+      <div className="px-5 md:px-8 space-y-10 pb-24 md:pb-8 pt-1 md:pt-2">
         {/* Filter bar */}
         <div className="space-y-3">
           <ChildFilter
@@ -575,30 +639,30 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
           </FilterBar>
         </div>
 
-        {/* KPI strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#2f6f4e" icon={<Receipt size={16} />} animate={animate} />
-          <KpiCard label="Attendance rate" value={fmtPct(k.attRate)} delta={k.rateDelta} deltaSuffix="pp" spark={k.rateByMonth} color="#1a2c22" icon={<CalendarCheck size={16} />} animate={animate} />
-          <KpiCard label="Sessions attended" value={String(k.sessions)} delta={k.sessionsDelta} spark={k.sessionsByMonth} color="#b45309" icon={<ListChecks size={16} />} animate={animate} />
-          <KpiCard label="Hours attended" value={fmtHours(k.totalHours)} delta={k.hoursDelta} spark={k.hoursByMonth} color="#3d6b7a" icon={<Clock size={16} />} animate={animate} />
-        </div>
-
         {/* ── Overview ── */}
         {segment === "overview" && (
           <section className="space-y-10">
+            {/* KPI strip */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard label="Total spend" value={formatCurrency(k.totalSpend)} delta={k.spendDelta} spark={k.spendByMonth} color="#2f6f4e" icon={<Receipt size={16} />} animate={animate} />
+              <KpiCard label="Attendance rate" value={fmtPct(k.attRate)} delta={k.rateDelta} deltaSuffix="pp" spark={k.rateByMonth} color="#1a2c22" icon={<CalendarCheck size={16} />} animate={animate} />
+              <MiniDonutKpi label="Sessions by Category" data={data.sessionsByCategoryKpi} center={String(k.sessions)} formatter={(v) => String(v)} animate={animate} />
+              <MiniDonutKpi label="Hours by Category" data={data.hoursByCategoryKpi} center={fmtHours(k.totalHours)} formatter={(v) => fmtHours(v)} animate={animate} />
+            </div>
+
             <div className="space-y-4">
-              {sectionHead("Time Commitment", "Hours spent over time")}
-              <ChartCard title="Hours Over Time" subtitle={`Grouped by ${hoursGroup}`}>
+              <ChartCard title="Hours Over Time">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   <Segmented value={hoursGroup} onChange={setHoursGroup} options={[{ value: "category", label: "By category" }, { value: "activity", label: "By activity" }]} />
                   <Segmented value={hoursGran} onChange={setHoursGran} options={[{ value: "week", label: "Weekly" }, { value: "month", label: "Monthly" }]} />
+                  <Segmented value={hoursView} onChange={setHoursView} options={[{ value: "stacked", label: "Stacked" }, { value: "percent", label: "100%" }]} />
                 </div>
                 {hoursViz.groupNames.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={hoursViz.overTime} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+                    <BarChart data={hoursView === "percent" ? hoursViz.overTimePercent : hoursViz.overTime} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
                       <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={16} />
-                      <YAxis {...axisProps} width={36} tickFormatter={(v) => `${v}h`} />
-                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
+                      <YAxis {...axisProps} width={36} tickFormatter={(v) => hoursView === "percent" ? `${Math.round(v * 100)}%` : `${v}h`} />
+                      <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => hoursView === "percent" ? fmtPct(v * 100) : fmtHours(v)} />} />
                       {hoursViz.groupNames.map((g, i) => {
                         const isLast = i === hoursViz.groupNames.length - 1;
                         return <Bar key={g} dataKey={g} name={g} stackId="h" fill={data.colorForCat(g, i)} radius={isLast ? [6, 6, 0, 0] : [0, 0, 0, 0]} isAnimationActive={animate} animationDuration={700} />;
@@ -619,37 +683,13 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                   </div>
                 )}
               </ChartCard>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {hoursViz.hoursByCategory.length > 0 && (
-                  <ChartCard title="Hours by Category">
-                    <Donut data={hoursViz.hoursByCategory} center={fmtHours(hoursViz.hoursByCategory.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => fmtHours(v)} animate={animate} />
-                  </ChartCard>
-                )}
-                {hoursViz.hoursByChild.length > 0 && (
-                  <ChartCard title="Hours by Child">
-                    <ResponsiveContainer width="100%" height={Math.max(140, hoursViz.hoursByChild.length * 60)}>
-                      <BarChart data={hoursViz.hoursByChild} layout="vertical" margin={{ left: 8, right: 16 }}>
-                        <XAxis type="number" {...axisProps} tickFormatter={(v) => `${v}h`} />
-                        <YAxis type="category" dataKey="name" {...axisProps} width={70} />
-                        <Tooltip cursor={{ fill: "var(--bg-secondary)" }} content={<ChartTooltip formatter={(v: number) => fmtHours(v)} />} />
-                        <Bar dataKey="value" name="Hours" radius={[0, 8, 8, 0]} isAnimationActive={animate} animationDuration={700}>
-                          {hoursViz.hoursByChild.map((d, i) => <Cell key={i} fill={d.color} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-                )}
-              </div>
             </div>
 
             <div className="space-y-4">
-              {sectionHead("Who Ferries Whom", "Sender & fetcher by activity, per child")}
               <FerryBreakdown logs={data.logIn} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
             </div>
 
             <div className="space-y-4">
-              {sectionHead("Activity Timeline", "How long each child has done each activity — tap a row to drill in")}
               <EngagementTimeline activities={activitiesData} children={(childrenData as Child[]).filter(c => selectedChildren.includes(c.id))} />
             </div>
           </section>
@@ -658,8 +698,6 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
         {/* ── Attendance ── */}
         {segment === "attendance" && (
           <section className="space-y-4">
-            {sectionHead("Attendance & Commitment", "Are they showing up")}
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {data.statusMix.length > 0 && (
                 <ChartCard title="Status Mix">
@@ -683,7 +721,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
             </div>
 
             {data.weeklyHeatmap.rows.length > 0 && (
-              <ChartCard title="Weekly Load, by Day" subtitle="Attended hours landing on each day of the week, this period">
+              <ChartCard title="Weekly Load, by Day">
                 <div className="space-y-2">
                   {data.weeklyHeatmap.rows.map(row => (
                     <div key={row.name} className="flex items-center gap-2">
@@ -714,7 +752,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
             )}
 
             {scheduleHeatmap.rows.length > 0 && (
-              <ChartCard title="Weekly Schedule Load, by Day" subtitle="Scheduled hours of classes per day, based on the current active schedule — independent of the year filter">
+              <ChartCard title="Weekly Schedule Load, by Day">
                 <div className="space-y-2">
                   {scheduleHeatmap.rows.map(row => (
                     <div key={row.name} className="flex items-center gap-2">
@@ -746,7 +784,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {data.sessionsByActivity.length > 0 && (
-                <ChartCard title="Sessions by Activity" subtitle="Tap a bar to see its full history">
+                <ChartCard title="Sessions by Activity">
                   <ResponsiveContainer width="100%" height={Math.max(160, data.sessionsByActivity.length * 36)}>
                     <BarChart data={data.sessionsByActivity} layout="vertical" margin={{ left: 8, right: 16 }}>
                       <XAxis type="number" {...axisProps} allowDecimals={false} />
@@ -780,10 +818,8 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
         {/* ── Spending ── */}
         {segment === "spending" && (
           <section className="space-y-4">
-            {sectionHead("Spending", "Where the money goes")}
-
             {data.spendTrend.length > 0 && (
-              <ChartCard title="Monthly Spend Trend" subtitle="By child">
+              <ChartCard title="Monthly Spend Trend">
                 <ResponsiveContainer width="100%" height={280}>
                   <AreaChart data={data.spendTrend} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
                     <defs>
@@ -806,7 +842,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
             )}
 
             {data.costPerHourByActivity.length > 0 && (
-              <ChartCard title="Cost per Hour, by Activity" subtitle="Cheapest to priciest — tap a bar to see its full history">
+              <ChartCard title="Cost per Hour, by Activity">
                 <ResponsiveContainer width="100%" height={Math.max(160, data.costPerHourByActivity.length * 36)}>
                   <BarChart data={data.costPerHourByActivity} layout="vertical" margin={{ left: 8, right: 16 }}>
                     <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
@@ -820,7 +856,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {data.spendByExpenseType.length > 0 && (
-                <ChartCard title="Spend by Type" subtitle="Lesson vs extras">
+                <ChartCard title="Spend by Type">
                   <Donut data={data.spendByExpenseType} center={formatCurrency(data.spendByExpenseType.reduce((s, d) => s + d.value, 0))} sub="total" formatter={(v) => formatCurrency(v)} animate={animate} />
                 </ChartCard>
               )}
@@ -852,7 +888,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                 </ChartCard>
               )}
               {data.topActivitiesSpend.length > 0 && (
-                <ChartCard title="Top Activities by Spend" subtitle="Tap a bar to see its full history">
+                <ChartCard title="Top Activities by Spend">
                   <ResponsiveContainer width="100%" height={Math.max(160, data.topActivitiesSpend.length * 36)}>
                     <BarChart data={data.topActivitiesSpend} layout="vertical" margin={{ left: 8, right: 16 }}>
                       <XAxis type="number" {...axisProps} tickFormatter={(v) => `$${v}`} />
