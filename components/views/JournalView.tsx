@@ -11,6 +11,7 @@ import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
+import { ChatPanel } from "@/components/journal/ChatPanel";
 import { cn } from "@/lib/utils";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
@@ -22,7 +23,7 @@ interface LogWithDetails extends AttendanceLog {
 }
 
 
-type SubTab = "reflections" | "highlights";
+type SubTab = "reflections" | "highlights" | "chat";
 
 export default function JournalPage() {
   const queryClient = useQueryClient();
@@ -124,15 +125,22 @@ export default function JournalPage() {
   const subTabs: { value: SubTab; label: string }[] = [
     { value: "reflections", label: "Reflections" },
     { value: "highlights", label: "AI Highlights" },
+    { value: "chat", label: "Chat" },
   ];
 
   return (
     <div className="max-w-[900px] mx-auto w-full">
       <Header title="Journal" subtitle="Notes from class" />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
-        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        <FilterBar stretch className="mb-4">
+      <div className={cn("px-5 md:px-8 pt-4 md:pt-6", subTab === "chat" ? "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-24 md:pb-8")}>
+        {subTab !== "chat" && (
+          <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
+        )}
+
+        {/* Sub-tabs — stretch full width */}
+        <Segmented className="mb-4" fullWidth value={subTab} onChange={setSubTab} options={subTabs} />
+
+        <FilterBar stretch className={subTab === "chat" ? "hidden" : "mb-5"}>
           <FilterField label="Activity">
             <SingleSelect
               className="w-44"
@@ -146,9 +154,6 @@ export default function JournalPage() {
             />
           </FilterField>
         </FilterBar>
-
-        {/* Sub-tabs — stretch full width */}
-        <Segmented className="mb-5" fullWidth value={subTab} onChange={setSubTab} options={subTabs} />
 
         {/* ── Reflections ── */}
         {subTab === "reflections" && (
@@ -225,6 +230,10 @@ export default function JournalPage() {
             </div>
           )
         )}
+
+        <div className={subTab === "chat" ? "" : "hidden"}>
+          <ChatPanel />
+        </div>
 
         <AttendanceModal
           open={modalOpen}
