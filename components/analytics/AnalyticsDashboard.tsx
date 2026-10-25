@@ -28,6 +28,7 @@ import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
 import { EXPENSE_TYPE_COLORS } from "@/lib/constants";
+import { costPerHour } from "@/lib/cost-per-hour";
 import { MultiSelect } from "@/components/ui/FilterDropdown";
 import { useExpenses, useAttendanceLogs, useActivities, useChildren, useSchedules } from "@/lib/api-hooks";
 import { EngagementTimeline } from "@/components/analytics/EngagementTimeline";
@@ -467,44 +468,28 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
     for (const l of logIn) { if (!isAttendedLike(l.status)) continue; const g = l.activity?.category?.name || "Uncategorized"; hoursByCat.set(g, (hoursByCat.get(g) || 0) + sessionMinutes(l) / 60); }
     const hoursByCategoryKpi: DonutDatum[] = [...hoursByCat.entries()].sort((x, y) => y[1] - x[1]).map(([name, value], i) => ({ name, value, color: colorForCat(name, i) }));
 
-    // Cost per hour, by activity, per child. Price comes from the activity's latest
-    // Lesson-type payment (amount ÷ lessons it covers), divided by the median length of
-    // its attended sessions. Restarted stints of the same activity are combined by name.
-    // Activities whose latest Lesson payment has no lesson count are left out.
-    const median = (xs: number[]) => {
-      const s = [...xs].sort((a, b) => a - b);
-      const m = Math.floor(s.length / 2);
-      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-    };
+    // Cost per hour, by activity, per child — see lib/cost-per-hour for the method.
+    // Restarted stints of the same activity are combined by name.
     const costPerHourByChild = (childrenData as Child[])
       .filter(c => selectedChildren.includes(c.id))
       .map(c => {
-        const latestLesson = new Map<string, Expense>();
+        const expByName = new Map<string, Expense[]>();
         for (const e of expIn) {
-          if (e.child_id !== c.id || !e.activity_id || (e.expense_type || "Lesson") !== "Lesson") continue;
+          if (e.child_id !== c.id || !e.activity_id) continue;
           const n = activityLabel(e.activity_id, e.institution);
-          const cur = latestLesson.get(n);
-          if (!cur || e.payment_date > cur.payment_date) latestLesson.set(n, e);
+          expByName.set(n, [...(expByName.get(n) || []), e]);
         }
-        const minutesByAct = new Map<string, number[]>();
+        const logsByName = new Map<string, AttendanceLog[]>();
         for (const l of logIn) {
-          if (l.child_id !== c.id || !isAttendedLike(l.status)) continue;
-          const m = sessionMinutes(l);
-          if (m <= 0) continue;
+          if (l.child_id !== c.id) continue;
           const n = l.activity?.activity_name || l.activity?.institution || activityLabel(l.activity_id);
-          minutesByAct.set(n, [...(minutesByAct.get(n) || []), m]);
+          logsByName.set(n, [...(logsByName.get(n) || []), l]);
         }
-        const rows = [...latestLesson.entries()].flatMap(([name, e]) => {
-          const mins = minutesByAct.get(name);
-          if (!e.num_lessons || e.num_lessons <= 0 || !mins?.length) return [];
-          const perLesson = e.amount / e.num_lessons;
-          const sessionMin = median(mins);
-          return [{
-            name,
-            id: e.activity_id ?? null,
-            value: perLesson / (sessionMin / 60),
-            detail: `${formatCurrency(perLesson)} per ${Math.round(sessionMin)}-min lesson`,
-          }];
+        const rows = [...expByName.entries()].flatMap(([name, exps]) => {
+          const cph = costPerHour(exps, logsByName.get(name) || []);
+          return cph
+            ? [{ name, id: cph.payment.activity_id ?? null, value: cph.perHour, detail: `${formatCurrency(cph.perLesson)} per ${Math.round(cph.sessionMinutes)}-min lesson` }]
+            : [];
         });
         return { id: c.id, name: c.name, color: c.color_code, rows };
       })

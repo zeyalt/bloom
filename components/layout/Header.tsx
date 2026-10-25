@@ -7,10 +7,12 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  /** Shown above the title, top-left — e.g. a Back link on a drill-down page. */
+  leading?: React.ReactNode;
   sticky?: boolean;
 }
 
-export function Header({ title, subtitle, action, sticky = false }: HeaderProps) {
+export function Header({ title, subtitle, action, leading, sticky = false }: HeaderProps) {
   const today = format(new Date(), "EEEE d MMM");
 
   return (
@@ -19,6 +21,7 @@ export function Header({ title, subtitle, action, sticky = false }: HeaderProps)
       sticky && "sticky top-0 z-30 bg-[var(--paper)]"
     )}>
       <div className="min-w-0">
+        {leading && <div className="mb-3">{leading}</div>}
         <h1 className="text-[1.85rem] md:text-[2.15rem] font-extrabold tracking-tight text-[var(--ink)] truncate leading-none">
           {title}
         </h1>

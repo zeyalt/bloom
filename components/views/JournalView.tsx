@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Pencil, NotebookPen, ChevronDown, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Pencil, NotebookPen, ChevronDown, Sparkles, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -26,6 +27,7 @@ interface LogWithDetails extends AttendanceLog {
 type SubTab = "reflections" | "highlights" | "chat";
 
 export default function JournalPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<SubTab>("reflections");
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
@@ -188,9 +190,14 @@ export default function JournalPage() {
                           {isOpen && (
                             <div className="px-3.5 pb-3 pt-0.5 border-t border-[var(--border)]/60">
                               <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap mt-2">{snippet}</p>
-                              <button onClick={() => openEdit(log)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-primary)] hover:opacity-80">
-                                <Pencil size={13} /> Edit
-                              </button>
+                              <div className="mt-3 flex items-center gap-4">
+                                <button onClick={() => openEdit(log)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-primary)] hover:opacity-80 cursor-pointer">
+                                  <Pencil size={13} /> Edit
+                                </button>
+                                <button onClick={() => router.push(`/activity/${log.activity_id}`)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
+                                  <ExternalLink size={13} /> Open activity
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>

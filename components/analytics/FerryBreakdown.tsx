@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Segmented } from "@/components/ui/Segmented";
 import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
 
@@ -15,6 +16,9 @@ type Role = "sender" | "fetcher";
 
 interface ActivityRec {
   name: string;
+  /** Most recent stint's id — where the row label links to. */
+  id: string;
+  lastDate: string;
   sender: Map<string, number>;
   fetcher: Map<string, number>;
 }
@@ -56,8 +60,9 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
         const actMap = new Map<string, ActivityRec>();
         for (const l of clogs) {
           const act = l.activity?.activity_name || l.activity?.institution || "Unknown";
-          if (!actMap.has(act)) actMap.set(act, { name: act, sender: new Map(), fetcher: new Map() });
+          if (!actMap.has(act)) actMap.set(act, { name: act, id: l.activity_id, lastDate: l.date, sender: new Map(), fetcher: new Map() });
           const rec = actMap.get(act)!;
+          if (l.date > rec.lastDate) { rec.lastDate = l.date; rec.id = l.activity_id; }
           for (const p of splitNames(l.sent_by)) rec.sender.set(p, (rec.sender.get(p) || 0) + 1);
           for (const p of splitNames(l.fetcher)) rec.fetcher.set(p, (rec.fetcher.get(p) || 0) + 1);
         }
@@ -117,7 +122,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
                   <div key={p} className="text-[10px] text-[var(--text-muted)] text-center truncate" title={p}>{p}</div>
                 ))}
                 {activities.map(a => (
-                  <FerryRow key={a.name} name={a.name} counts={a[role]} people={rankedPeople} maxCell={maxCell} color={child.color_code} />
+                  <FerryRow key={a.name} name={a.name} activityId={a.id} counts={a[role]} people={rankedPeople} maxCell={maxCell} color={child.color_code} />
                 ))}
               </div>
             </div>
@@ -128,11 +133,12 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
   );
 }
 
-function FerryRow({ name, counts, people, maxCell, color }: { name: string; counts: Map<string, number>; people: string[]; maxCell: number; color: string }) {
+function FerryRow({ name, activityId, counts, people, maxCell, color }: { name: string; activityId: string; counts: Map<string, number>; people: string[]; maxCell: number; color: string }) {
+  const router = useRouter();
   return (
     <>
       <div className="col-span-full sm:col-span-1 pt-1.5 sm:pt-0 sm:h-8 flex items-center pr-1 text-xs leading-tight text-[var(--text-secondary)]">
-        <span className="truncate" title={name}>{name}</span>
+        <button onClick={() => router.push(`/activity/${activityId}`)} className="truncate text-left hover:underline hover:text-[var(--stem)] cursor-pointer" title={name}>{name}</button>
       </div>
       {people.map(p => {
         const c = counts.get(p) || 0;

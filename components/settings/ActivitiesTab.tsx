@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
 };
 
 export function ActivitiesTab({ activities, categories, children, onRefresh }: Props) {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -129,9 +131,12 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       <div key={a.id} className="px-4 py-3">
         <div className="flex items-start justify-between gap-3 mb-1.5">
           <div className="flex items-center gap-2 flex-wrap flex-1">
-            <span className="text-sm font-medium text-[var(--text-primary)]">
+            <button
+              onClick={() => router.push(`/activity/${a.id}`)}
+              className="text-sm font-medium text-[var(--stem)] hover:underline cursor-pointer text-left"
+            >
               {title}
-            </span>
+            </button>
             <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />
             {category && (
               <span
