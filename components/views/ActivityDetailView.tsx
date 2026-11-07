@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trophy } from "lucide-react";
-import { formatDistanceToNowStrict, parseISO } from "date-fns";
+import { ArrowLeft, Trophy, Check, X, Minus } from "lucide-react";
+import { format, formatDistanceToNowStrict, parseISO } from "date-fns";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
@@ -12,6 +12,16 @@ import { useActivities, useAttendanceLogs, useExpenses, useMilestones, useChildr
 import { costPerHour } from "@/lib/cost-per-hour";
 
 const isAttendedLike = (status: string) => status !== "absent" && status !== "cancelled_by_provider";
+
+// Recent-attendance marks: any attended-like status is a tick, provider cancellations a dash.
+const MARKS = {
+  attended: { color: "#16A34A", Icon: Check },
+  cancelled: { color: "#78716C", Icon: Minus },
+  absent: { color: "#DC2626", Icon: X },
+} as const;
+type Mark = keyof typeof MARKS;
+const markOf = (status: string): Mark =>
+  status === "cancelled_by_provider" ? "cancelled" : isAttendedLike(status) ? "attended" : "absent";
 
 function sessionMinutes(startTime: string | null, endTime: string | null, duration: number | null): number {
   if (duration && duration > 0) return duration;
@@ -87,11 +97,29 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
     for (const p of [...senders, ...fetchers]) combined.set(p.name, (combined.get(p.name) || 0) + p.count);
     const people = [...combined.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
 
-    const recentLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+    // Last 50 sessions, oldest → newest so the strip reads left to right (scrolls back in time).
+    const recentLogs = [...logs]
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time ?? "").localeCompare(a.start_time ?? ""))
+      .slice(0, 50)
+      .reverse();
     const recentExpenses = [...expenses].sort((a, b) => b.payment_date.localeCompare(a.payment_date)).slice(0, 5);
 
-    return { sessionsAttended, attendanceRate, totalHours, senders, fetchers, people, recentLogs, recentExpenses };
+    // All-time tally, using the same tick / cross / dash rule as the strip's icons.
+    const statusTally: Record<Mark, number> = { attended: 0, cancelled: 0, absent: 0 };
+    for (const l of logs) statusTally[markOf(l.status)]++;
+
+    return { sessionsAttended, attendanceRate, totalHours, senders, fetchers, people, recentLogs, statusTally, recentExpenses };
   }, [logs, expenses]);
+
+  // Tapped column in the recent-attendance strip; falls back to the latest session.
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  // Open the strip scrolled to the newest session; older ones are a scroll to the left.
+  const stripRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [stats.recentLogs]);
+  const selectedLog = stats.recentLogs.find(l => l.id === selectedLogId) ?? stats.recentLogs.at(-1);
 
   const loading = la || ll || le || lm;
   const ferryPalette = ["#2f6f4e", "#b45309", "#3d6b7a", "#6b5344", "#7c3aed", "#9f1239"];
@@ -257,32 +285,83 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
         {/* 5: recent attendance */}
         <div className="border border-[var(--rule)] bg-[var(--sheet)]">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] px-5 pt-5">Recent attendance</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm mt-3">
-              <thead>
-                <tr className="border-b border-[var(--border)] text-xs text-[var(--text-muted)]">
-                  <th className="text-left font-semibold px-5 py-2">Date</th>
-                  <th className="text-left font-semibold px-3 py-2">Time</th>
-                  <th className="text-left font-semibold px-3 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentLogs.length === 0 ? (
-                  <tr><td colSpan={3} className="px-5 py-4 text-[var(--text-muted)]">No attendance logged yet.</td></tr>
-                ) : stats.recentLogs.map(l => (
-                  <tr key={l.id} className="border-b border-[var(--border)] last:border-0">
-                    <td className="px-5 py-2 whitespace-nowrap">{formatDate(l.date)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-[var(--text-secondary)]">{l.start_time ? formatTime(l.start_time) : "—"}</td>
-                    <td className="px-3 py-2">
-                      <Badge label={ATTENDANCE_STATUS_LABELS[l.status] || l.status} color={ATTENDANCE_STATUS_COLORS[l.status]} />
-                    </td>
-                  </tr>
+          <div className="px-5 pt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Recent attendance</h3>
+            {stats.recentLogs.length > 0 && (
+              <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]" aria-label="All-time attendance">
+                <li className="basis-full sm:basis-auto whitespace-nowrap text-[10px] sm:text-xs uppercase sm:normal-case tracking-wide sm:tracking-normal text-[var(--text-muted)]">All time</li>
+                {(Object.entries(MARKS) as [Mark, (typeof MARKS)[Mark]][]).map(([key, { color, Icon }]) => (
+                  <li key={key} className="inline-flex items-center gap-1 whitespace-nowrap">
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full text-white" style={{ backgroundColor: color }}>
+                      <Icon size={10} strokeWidth={3.5} />
+                    </span>
+                    <span className="font-semibold text-[var(--text-primary)]">{stats.statusTally[key]}</span> {key}
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            )}
           </div>
-          <div className="h-2" />
+          {stats.recentLogs.length === 0 ? (
+            <p className="px-5 py-4 text-sm text-[var(--text-muted)]">No attendance logged yet.</p>
+          ) : (
+            <div className="px-3 sm:px-5 pt-3 pb-4">
+              {/* One column per session, oldest → newest; the latest is ringed. */}
+              {/* Tap (or click) a column to show its details below; defaults to the latest session. */}
+              <ol ref={stripRef} className="flex gap-0.5 overflow-x-auto overscroll-x-contain snap-x pb-1">
+                {stats.recentLogs.map((l, i) => {
+                  const iso = l.date.slice(0, 10);
+                  const label = ATTENDANCE_STATUS_LABELS[l.status] || l.status;
+                  const mark = markOf(l.status);
+                  const latest = i === stats.recentLogs.length - 1;
+                  const { color: bg, Icon } = MARKS[mark];
+                  const desc = `${formatDate(iso)}${l.start_time ? ` · ${formatTime(l.start_time)}` : ""} · ${label}`;
+                  const selected = l.id === selectedLog?.id;
+                  return (
+                    <li key={l.id} className="shrink-0 w-9 sm:w-11 snap-end">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLogId(l.id)}
+                        aria-label={desc}
+                        aria-pressed={selected}
+                        className={`w-full flex flex-col items-center gap-1.5 pt-1.5 pb-1 rounded-[var(--radius-md)] cursor-pointer transition-colors ${selected ? "bg-[var(--bg-secondary)]" : "hover:bg-[var(--bg-secondary)]/60"}`}
+                      >
+                        <span className="flex flex-col items-center leading-tight">
+                          <span className="text-xs font-semibold text-[var(--text-primary)]">{format(parseISO(iso), "d")}</span>
+                          <span className="text-[10px] text-[var(--text-muted)]">{format(parseISO(iso), "MMM")}</span>
+                        </span>
+                        <span
+                          className={`flex items-center justify-center rounded-full text-white w-6 h-6 sm:w-7 sm:h-7 ${latest ? "ring-2 ring-offset-2 ring-offset-[var(--sheet)]" : ""}`}
+                          style={{ backgroundColor: bg, ...(latest ? { ["--tw-ring-color" as string]: bg } : {}) }}
+                        >
+                          <Icon size={14} strokeWidth={3} />
+                        </span>
+                        {/* Mark non-standard sessions (trial, grading…) with a small dot. */}
+                        <span
+                          className="w-1 h-1 rounded-full"
+                          style={{ backgroundColor: l.status !== "attended" && mark === "attended" ? ATTENDANCE_STATUS_COLORS[l.status] : "transparent" }}
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              {selectedLog && (
+                <div className="mt-2 px-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-live="polite">
+                  <span className="font-medium text-[var(--text-primary)]">{format(parseISO(selectedLog.date.slice(0, 10)), "EEE, d MMM yyyy")}</span>
+                  {selectedLog.start_time && (
+                    <span className="text-[var(--text-secondary)]">{formatTime(selectedLog.start_time)}</span>
+                  )}
+                  <Badge
+                    label={ATTENDANCE_STATUS_LABELS[selectedLog.status] || selectedLog.status}
+                    color={ATTENDANCE_STATUS_COLORS[selectedLog.status]}
+                  />
+                </div>
+              )}
+              <p className="mt-2 px-1 text-[11px] text-[var(--text-muted)]">
+                Last {stats.recentLogs.length} sessions · scroll left for older · tap a date for details
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 6: recent expenses */}
