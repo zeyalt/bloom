@@ -8,21 +8,22 @@ datasource db {
 }
 
 model Child {
-  id             String    @id @default(cuid())
-  name           String    @db.VarChar(255)
-  nickname       String?   @db.VarChar(255)
-  dateOfBirth    DateTime? @map("date_of_birth") @db.Date
-  school         String?   @db.VarChar(255)
-  colorCode      String    @map("color_code") @db.VarChar(7)
-  avatarEmoji    String    @map("avatar_emoji") @db.Char(2)
-  avatarKey      String?   @map("avatar_key") @db.VarChar(50)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  nickname    String?   @db.VarChar(255)
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  school      String?   @db.VarChar(255)
+  colorCode   String    @map("color_code") @db.VarChar(7)
+  avatarEmoji String    @map("avatar_emoji") @db.Char(2)
+  avatarKey   String?   @map("avatar_key") @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
-  activities      Activity[]
-  attendanceLogs  AttendanceLog[]
-  expenses        Expense[]
-  milestones      Milestone[]
+  activities     Activity[]
+  attendanceLogs AttendanceLog[]
+  expenses       Expense[]
+  milestones     Milestone[]
+  goals          Goal[]
 
   @@map("children")
 }
@@ -50,26 +51,26 @@ model AiSummary {
 }
 
 model Activity {
-  id               String   @id @default(cuid())
-  childId          String   @map("child_id")
-  categoryId       String   @map("category_id")
-  activityName     String?  @map("activity_name") @db.VarChar(255)
-  institution      String   @db.VarChar(255)
-  instructorName   String?  @map("instructor_name") @db.VarChar(255)
-  level            String?  @db.VarChar(50)
-  status           String   @default("active") @db.VarChar(50)
-  startDate        DateTime? @map("start_date") @db.Date
-  endDate          DateTime? @map("end_date") @db.Date
-  notes            String?  @db.Text
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamp()
+  id             String    @id @default(cuid())
+  childId        String    @map("child_id")
+  categoryId     String    @map("category_id")
+  activityName   String?   @map("activity_name") @db.VarChar(255)
+  institution    String    @db.VarChar(255)
+  instructorName String?   @map("instructor_name") @db.VarChar(255)
+  level          String?   @db.VarChar(50)
+  status         String    @default("active") @db.VarChar(50)
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
-  child           Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
-  category        ActivityCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  schedules       Schedule[]
-  attendanceLogs  AttendanceLog[]
-  expenses        Expense[]
-  milestones      Milestone[]
+  child          Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  category       ActivityCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  schedules      Schedule[]
+  attendanceLogs AttendanceLog[]
+  expenses       Expense[]
+  milestones     Milestone[]
 
   @@map("activities")
 }
@@ -124,39 +125,39 @@ model AttendanceLog {
 }
 
 model Expense {
-  id             String   @id @default(cuid())
-  childId        String   @map("child_id")
-  categoryId     String   @map("category_id")
-  activityId     String?  @map("activity_id")
-  institution    String   @db.VarChar(255)
-  description    String   @db.VarChar(500)
-  amount         Float
-  paymentDate    DateTime @map("payment_date") @db.Date
-  paidBy         String   @map("paid_by") @db.VarChar(100)
-  year           Int
-  numLessons     Int?      @map("num_lessons")
-  expenseType    String    @default("Lesson") @map("expense_type") @db.VarChar(50)
-  receiptNotes   String?  @map("receipt_notes") @db.Text
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp()
+  id           String   @id @default(cuid())
+  childId      String   @map("child_id")
+  categoryId   String   @map("category_id")
+  activityId   String?  @map("activity_id")
+  institution  String   @db.VarChar(255)
+  description  String   @db.VarChar(500)
+  amount       Float
+  paymentDate  DateTime @map("payment_date") @db.Date
+  paidBy       String   @map("paid_by") @db.VarChar(100)
+  year         Int
+  numLessons   Int?     @map("num_lessons")
+  expenseType  String   @default("Lesson") @map("expense_type") @db.VarChar(50)
+  receiptNotes String?  @map("receipt_notes") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
-  child        Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
-  category     ActivityCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  activity     Activity?          @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  child    Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  category ActivityCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  activity Activity?        @relation(fields: [activityId], references: [id], onDelete: SetNull)
 
   @@map("expenses")
 }
 
 model Milestone {
-  id             String   @id @default(cuid())
-  activityId     String   @map("activity_id")
-  childId        String   @map("child_id")
-  date           DateTime @db.Date
-  milestoneType  String   @map("milestone_type") @db.VarChar(50)
-  title          String   @db.VarChar(255)
-  description    String?  @db.Text
-  result         String?  @db.VarChar(500)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp()
+  id            String   @id @default(cuid())
+  activityId    String   @map("activity_id")
+  childId       String   @map("child_id")
+  date          DateTime @db.Date
+  milestoneType String   @map("milestone_type") @db.VarChar(50)
+  title         String   @db.VarChar(255)
+  description   String?  @db.Text
+  result        String?  @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp()
 
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
@@ -165,10 +166,62 @@ model Milestone {
 }
 
 model Sender {
-  id            String   @id @default(cuid())
-  name          String   @db.VarChar(255)
-  relationship  String   @db.VarChar(100)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp()
+  id           String   @id @default(cuid())
+  name         String   @db.VarChar(255)
+  relationship String   @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp()
 
   @@map("senders")
+}
+
+// Per-child goals. kind = "milestone" (something to learn or do, with an optional
+// action plan of dated checkpoints) or "measured" (a number to reach, e.g. height).
+model Goal {
+  id           String    @id @default(cuid())
+  childId      String    @map("child_id")
+  kind         String    @db.VarChar(20)
+  title        String    @db.VarChar(255)
+  targetDate   DateTime  @map("target_date") @db.Date
+  achievedDate DateTime? @map("achieved_date") @db.Date
+  unit         String?   @db.VarChar(20)
+  targetValue  Float?    @map("target_value")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+
+  child       Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  checkpoints GoalCheckpoint[]
+  entries     GoalEntry[]
+
+  @@index([childId])
+  @@map("goals")
+}
+
+// One step of a milestone goal's action plan.
+model GoalCheckpoint {
+  id        String    @id @default(cuid())
+  goalId    String    @map("goal_id")
+  dueDate   DateTime  @map("due_date") @db.Date
+  text      String    @db.VarChar(500)
+  hitDate   DateTime? @map("hit_date") @db.Date
+  sortOrder Int       @default(0) @map("sort_order")
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@map("goal_checkpoints")
+}
+
+// A dated update (note, milestone goals) or reading (value, measured goals).
+model GoalEntry {
+  id        String   @id @default(cuid())
+  goalId    String   @map("goal_id")
+  date      DateTime @db.Date
+  note      String?  @db.Text
+  value     Float?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@map("goal_entries")
 }

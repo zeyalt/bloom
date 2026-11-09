@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory, Milestone } from "./types";
+import type { Child, Schedule, Activity, AttendanceLog, Expense, ActivityCategory, Milestone, Goal } from "./types";
 
 export async function fetchCategories() {
   const res = await fetch("/api/categories");
@@ -164,5 +164,19 @@ export function useMilestones() {
   return useQuery({
     queryKey: ["milestones"],
     queryFn: fetchMilestones,
+  });
+}
+
+export async function fetchGoals() {
+  const res = await fetch("/api/goals");
+  if (!res.ok) throw new Error("Failed to fetch goals");
+  return res.json() as Promise<Goal[]>;
+}
+
+/** Every goal for every child, with checkpoints and entries — one shared cache entry. */
+export function useGoals() {
+  return useQuery({
+    queryKey: ["goals"],
+    queryFn: fetchGoals,
   });
 }

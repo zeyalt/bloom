@@ -46,7 +46,15 @@ expenses(id, child_id, category_id, activity_id NULLABLE, institution, descripti
   -- Cost per lesson = amount / num_lessons on a Lesson-type payment. An activity's current
   -- price comes from its latest Lesson payment.
 milestones(id, activity_id, child_id, date DATE, milestone_type, title, description, result)
-senders(id, name, relationship)  -- people who drop off / pick up the children`;
+senders(id, name, relationship)  -- people who drop off / pick up the children
+goals(id, child_id, kind, title, target_date DATE, achieved_date DATE NULLABLE, unit, target_value FLOAT, created_at)
+  -- A child's goal. kind: milestone (something to learn or do, e.g. "Ride a bicycle") | measured
+  -- (a number to reach, e.g. title 'Height', unit 'cm', target_value 130).
+  -- A milestone goal is achieved when achieved_date is set; a measured goal when a reading reaches target_value.
+goal_checkpoints(id, goal_id, due_date DATE, text, hit_date DATE NULLABLE, sort_order)
+  -- A milestone goal's action plan. Hit when hit_date is set; missed when due_date < today and hit_date is null.
+goal_entries(id, goal_id, date DATE, note TEXT NULLABLE, value FLOAT NULLABLE)
+  -- Dated updates (note) on milestone goals and readings (value, in the goal's unit) on measured goals.`;
 
 function systemPrompt() {
   const today = new Date().toISOString().slice(0, 10);
@@ -70,7 +78,7 @@ How to write the answer:
 - Money is in SGD; write it like $1,234.50. Write dates like 12 Oct 2026.
 - If the question is ambiguous (which child, which period), make a sensible assumption and say what you assumed.
 - If the records can't answer the question, say so plainly and say what is missing.
-- Only answer questions about this family's activities, schedules, attendance, spending and reflections.`;
+- Only answer questions about this family's activities, schedules, attendance, spending, reflections and the children's goals.`;
 }
 
 const TOOLS: Anthropic.Tool[] = [

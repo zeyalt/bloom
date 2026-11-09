@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-export const TAB_PATHS = ["/", "/history", "/analytics", "/journal", "/settings"] as const;
+export const TAB_PATHS = ["/", "/goals", "/history", "/analytics", "/journal", "/settings"] as const;
 export type TabPath = (typeof TAB_PATHS)[number];
 
 export function isTabPath(path: string): path is TabPath {

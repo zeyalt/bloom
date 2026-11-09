@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { DueCheckpoints } from "@/components/goals/DueCheckpoints";
 import { startOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -240,6 +241,8 @@ export default function AgendaPage() {
 
       <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
         <ChildFilter className="mb-4" children={children} selected={selectedChildren} onToggle={toggleChild} />
+
+        {weekOffset === 0 && <DueCheckpoints childIds={selectedChildren} />}
 
         <div className="flex items-center gap-2 mb-4">
           <button onClick={() => setWeekOffset(o => o - 1)} className="shrink-0 inline-flex items-center justify-center h-9 w-9 border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer" title="Previous week">

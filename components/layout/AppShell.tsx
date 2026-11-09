@@ -10,10 +10,12 @@ import HomeView from "@/components/views/HomeView";
 import HistoryView from "@/components/views/HistoryView";
 import AnalyticsView from "@/components/views/AnalyticsView";
 import JournalView from "@/components/views/JournalView";
+import GoalsView from "@/components/views/GoalsView";
 import SettingsView from "@/components/views/SettingsView";
 
 const TAB_VIEWS = {
   "/": HomeView,
+  "/goals": GoalsView,
   "/history": HistoryView,
   "/analytics": AnalyticsView,
   "/journal": JournalView,

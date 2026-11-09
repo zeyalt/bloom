@@ -9,7 +9,7 @@ export function BottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--sheet)] border-t border-[var(--rule)] flex items-center safe-area-inset-bottom">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {NAV_ITEMS.filter(item => item.bottomNav).map(({ href, label, icon: Icon }) => {
         const active =
           href === "/" ? path === "/" : path.startsWith(href);
         return (

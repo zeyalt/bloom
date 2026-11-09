@@ -1,7 +1,9 @@
 "use client";
 
 import { format } from "date-fns";
+import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSpaNav } from "@/components/layout/spa-nav";
 
 interface HeaderProps {
   title: string;
@@ -14,6 +16,9 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, action, leading, sticky = false }: HeaderProps) {
   const today = format(new Date(), "EEEE d MMM");
+  const { path, navigate } = useSpaNav();
+  // Settings isn't in the phone bottom bar; this gear is how phones reach it.
+  const showSettings = path !== "/settings";
 
   return (
     <div className={cn(
@@ -29,7 +34,21 @@ export function Header({ title, subtitle, action, leading, sticky = false }: Hea
           {subtitle ?? today}
         </p>
       </div>
-      {action && <div className="shrink-0 pb-0.5">{action}</div>}
+      {(action || showSettings) && (
+        <div className="shrink-0 pb-0.5 flex items-center gap-1">
+          {action}
+          {showSettings && (
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              aria-label="Settings"
+              className="md:hidden w-10 h-10 -mr-2 flex items-center justify-center text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer"
+            >
+              <Settings size={20} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

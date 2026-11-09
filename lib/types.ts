@@ -149,6 +149,46 @@ export interface Milestone {
   child?: Child;
 }
 
+// ============================================================
+// Goals — per-child goals with a target date
+// ============================================================
+
+export type GoalKind = "milestone" | "measured";
+
+export interface GoalCheckpoint {
+  id: string;
+  goal_id: string;
+  due_date: string;
+  text: string;
+  hit_date: string | null;
+  sort_order: number;
+}
+
+/** A dated update (note, milestone goals) or reading (value, measured goals). */
+export interface GoalEntry {
+  id: string;
+  goal_id: string;
+  date: string;
+  note: string | null;
+  value: number | null;
+  created_at: string;
+}
+
+export interface Goal {
+  id: string;
+  child_id: string;
+  kind: GoalKind;
+  title: string;
+  target_date: string;
+  achieved_date: string | null;
+  unit: string | null;
+  target_value: number | null;
+  created_at: string;
+  updated_at: string;
+  checkpoints: GoalCheckpoint[];
+  entries: GoalEntry[];
+}
+
 export interface Sender {
   id: string;
   name: string;
