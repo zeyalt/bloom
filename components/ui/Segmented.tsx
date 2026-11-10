@@ -34,7 +34,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
               "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
               i > 0 && "border-l border-[var(--rule)]",
               "first:rounded-l-[5px] last:rounded-r-[5px]",
-              active ? "bg-[var(--ink)] text-[var(--sheet)] font-semibold" : "text-[var(--ink-soft)] font-medium hover:text-[var(--ink)]"
+              active ? "bg-[var(--ink)] text-[var(--sheet)] font-medium" : "text-[var(--ink-soft)] font-medium hover:text-[var(--ink)]"
             )}
           >
             {Icon && <Icon size={16} aria-hidden="true" className="shrink-0" />}

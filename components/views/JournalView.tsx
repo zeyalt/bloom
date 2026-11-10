@@ -103,8 +103,22 @@ export default function JournalPage() {
     const reflectionActivityIds = new Set((logsData as LogWithDetails[]).filter(l => hasReflection(l.learned, l.diary_notes)).map(l => l.activity_id));
     return activities
       .filter(a => reflectionActivityIds.has(a.id) && selectedChildren.includes(a.child_id))
-      .sort((a, b) => (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution));
-  }, [logsData, activities, selectedChildren]);
+      .sort((a, b) =>
+        (a.activity_name || a.institution).localeCompare(b.activity_name || b.institution) ||
+        (children.find(c => c.id === a.child_id)?.name ?? "").localeCompare(children.find(c => c.id === b.child_id)?.name ?? ""));
+  }, [logsData, activities, selectedChildren, children]);
+
+  // Each child has their own record of a shared class (two "Swimming"s), so with more than
+  // one child in view every option names its child.
+  const multiChild = selectedChildren.length > 1;
+  const activityFilterOptions = [
+    { value: "", label: "All Activities" },
+    ...scopeActivities.map(a => {
+      const child = children.find(c => c.id === a.child_id);
+      const name = a.activity_name || a.institution;
+      return { value: a.id, label: multiChild && child ? `${name} · ${child.name}` : name, colorCode: multiChild ? child?.color_code : undefined };
+    }),
+  ];
 
   // Matching entries, grouped by month for a light, scannable structure. The
   // date parsing here runs per entry, so it stays out of the render path.
@@ -152,14 +166,11 @@ export default function JournalPage() {
         <FilterBar stretch className={subTab === "chat" ? "hidden" : undefined}>
           <FilterField label="Activity">
             <SingleSelect
-              className="w-44"
+              className="w-72"
               ariaLabel="Filter by activity"
               value={filterActivity}
               onChange={setFilterActivity}
-              options={[
-                { value: "", label: "All Activities" },
-                ...scopeActivities.map(a => ({ value: a.id, label: a.activity_name || a.institution })),
-              ]}
+              options={activityFilterOptions}
             />
           </FilterField>
         </FilterBar>

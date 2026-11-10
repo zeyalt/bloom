@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Avatar, AvatarPicker } from "@/components/ui/Avatar";
 import { formatDate, calcAge } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
+import { SettingsList, SettingsRow } from "@/components/settings/SettingsList";
 import type { Child } from "@/lib/types";
 
 interface Props {
@@ -62,46 +64,22 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
   return (
     <div>
-      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">
-        Edit child profiles. Children cannot be deleted to preserve data history.
-      </p>
-
-      <div className="space-y-3">
+      <SettingsList label="Children">
         {children.map(c => (
-          <div key={c.id} className="flex items-center gap-4 p-4 border border-[var(--rule)] rounded-xl bg-[var(--sheet)]">
-            {/* Avatar */}
-            <Avatar avatarKey={c.avatar_key} fallbackEmoji={c.avatar_emoji} size={48} className="shrink-0" />
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-[var(--ink)]">{c.name}</span>
-                {c.nickname && (
-                  <span className="text-sm text-[var(--ink-faint)]">"{c.nickname}"</span>
-                )}
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: c.color_code }}
-                />
-              </div>
-              <p className="text-xs text-[var(--ink-soft)] mt-1">
-                {c.date_of_birth && <span className="font-medium text-[var(--ink)]">{calcAge(c.date_of_birth)}</span>}
-                {c.school && <span>{c.date_of_birth ? " · " : ""}{c.school}</span>}
-                {c.date_of_birth && <span> · Born {formatDate(c.date_of_birth)}</span>}
-              </p>
-            </div>
-
-            {/* Edit */}
-            <button
-              onClick={() => openEdit(c)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-[var(--bg-secondary)] hover:text-[var(--ink)] transition-colors shrink-0"
-              title="Edit child"
-            >
-              <Pencil size={16} />
-            </button>
-          </div>
+          <SettingsRow
+            key={c.id}
+            leading={<Avatar avatarKey={c.avatar_key} fallbackEmoji={c.avatar_emoji} size={40} />}
+            title={c.name}
+            tags={<>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color_code }} aria-hidden="true" />
+              {c.nickname && <span className="text-sm leading-5 text-[var(--ink-faint)]">“{c.nickname}”</span>}
+            </>}
+            meta={[c.date_of_birth ? calcAge(c.date_of_birth) : "", c.school].filter(Boolean).join(" · ") || undefined}
+            sub={c.date_of_birth ? `Born ${formatDate(c.date_of_birth)}` : undefined}
+            actions={<IconButton icon={Pencil} label={`Edit ${c.name}`} onClick={() => openEdit(c)} />}
+          />
         ))}
-      </div>
+      </SettingsList>
 
       {/* Edit modal */}
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Child">

@@ -10,12 +10,13 @@ import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { Page, Utilities, PageBody } from "@/components/layout/Page";
 import { Segmented } from "@/components/ui/Segmented";
 import { useChildren, useActivities, useSchedules, useCategories } from "@/lib/api-hooks";
+import { plural } from "@/lib/utils";
 
 const TABS = [
-  { key: "children",   label: "Children",   subtitle: "Names, colours, schools" },
-  { key: "activities", label: "Activities", subtitle: "Classes on the register" },
-  { key: "schedules",  label: "Schedules",  subtitle: "When each class meets" },
-  { key: "categories", label: "Categories", subtitle: "How classes are grouped" },
+  { key: "children",   label: "Children" },
+  { key: "activities", label: "Activities" },
+  { key: "schedules",  label: "Schedules" },
+  { key: "categories", label: "Categories" },
 ] as const;
 
 type Tab = typeof TABS[number]["key"];
@@ -39,11 +40,18 @@ export default function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["categories"] });
   }, [queryClient]);
 
-  const activeTabConfig = TABS.find(t => t.key === activeTab);
+  // The header says what's in the open section, so the lists need no intro line of their own.
+  const activeCount = activities.filter(a => a.status === "active").length;
+  const subtitle = loading ? " " : {
+    children: `${plural(children.length, "child", "children")} · kept for history, never deleted`,
+    activities: `${plural(activeCount, "active class", "active classes")} · ${activities.length - activeCount} past`,
+    schedules: `${plural(schedules.length, "weekly slot")} across every class`,
+    categories: `${plural(categories.length, "group")} that colour-code classes`,
+  }[activeTab];
 
   return (
     <Page>
-      <Header title="Settings" subtitle={activeTabConfig?.subtitle || "Manage settings"} />
+      <Header title="Settings" subtitle={subtitle} />
 
       <Utilities>
         <Segmented ariaLabel="Settings section" value={activeTab} onChange={setActiveTab} options={TABS.map(t => ({ value: t.key, label: t.label }))} />
@@ -55,7 +63,7 @@ export default function SettingsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-xl animate-pulse" />
+              <div key={i} className="h-16 bg-[var(--bg-secondary)] animate-pulse" />
             ))}
           </div>
         ) : (

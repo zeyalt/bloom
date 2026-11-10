@@ -160,7 +160,7 @@ export function SingleSelect({
               {selected && <Check size={16} />}
             </span>
             {opt.colorCode && (
-              <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} aria-hidden="true" />
             )}
             <span className="whitespace-nowrap">{opt.label}</span>
           </button>
@@ -247,7 +247,7 @@ export function MultiSelect({
                   {checked && <Check size={16} />}
                 </span>
                 {opt.colorCode && (
-                  <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} aria-hidden="true" />
                 )}
                 <span className="whitespace-nowrap">{opt.label}</span>
               </button>

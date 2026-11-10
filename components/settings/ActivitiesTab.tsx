@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Fab } from "@/components/ui/Fab";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { Avatar } from "@/components/ui/Avatar";
-import { cn, formatDate } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
+import { ChildFilter } from "@/components/ui/ChildFilter";
+import { SettingsList, SettingsRow, Tag, MoreToggle } from "@/components/settings/SettingsList";
+import { formatDate } from "@/lib/utils";
 import type { Activity, ActivityCategory, Child, ActivityStatus } from "@/lib/types";
 
 interface Props {
@@ -124,112 +126,52 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         : `Since ${formatDate(a.start_date)}`
       : "";
     const title = a.activity_name || a.institution;
-    const meta = [
+    // Freelance coaches are often stored as both institution and instructor — show them once.
+    const meta = [...new Set([
       a.activity_name && a.institution ? a.institution : "",
-      a.instructor_name,
-    ].filter(Boolean).join(" · ");
+      a.instructor_name ?? "",
+    ].map(x => x.trim()).filter(Boolean))].join(" · ");
     return (
-      <div key={a.id} className="px-4 py-3">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2 flex-wrap flex-1">
-            <button
-              onClick={() => router.push(`/activity/${a.id}`)}
-              className="text-sm font-medium text-[var(--stem)] hover:underline cursor-pointer text-left"
-            >
-              {title}
-            </button>
-            <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />
-            {category && (
-              <span
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
-              >
-                {category.icon && <span className="mr-1">{category.icon}</span>}
-                {category.name}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => openEdit(a)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-[var(--bg-secondary)] hover:text-[var(--ink)] transition-colors"
-              title="Edit"
-            >
-              <Pencil size={16} />
-            </button>
-            <button
-              onClick={() => setConfirmDelete(a)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-red-50 hover:text-red-600 transition-colors"
-              title="Delete"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
-        {meta && (
-          <p className="text-xs text-[var(--ink-soft)]">{meta}</p>
-        )}
-        {dateText && (
-          <p className="text-xs text-[var(--ink-faint)]">{dateText}</p>
-        )}
-      </div>
+      <SettingsRow
+        key={a.id}
+        title={title}
+        onTitleClick={() => router.push(`/activity/${a.id}`)}
+        tags={<>
+          {a.status !== "active" && <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />}
+          {category && <Tag color={category.color_code}>{category.icon && <span aria-hidden="true">{category.icon}</span>}{category.name}</Tag>}
+        </>}
+        meta={meta || undefined}
+        sub={dateText || undefined}
+        actions={<>
+          <IconButton icon={Pencil} label={`Edit ${title}`} onClick={() => openEdit(a)} />
+          <IconButton icon={Trash2} label={`Delete ${title}`} tone="danger" onClick={() => setConfirmDelete(a)} />
+        </>}
+      />
     );
   }
 
   return (
     <div>
       <Fab label="Add activity" onClick={openAdd} />
-      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{activities.length} activities total</p>
+      <div className="flex flex-col gap-4">
+        <ChildFilter single childList={children} selected={activeChildId ? [activeChildId] : []} onToggle={setSelectedChildId} />
 
-      {/* Child filter pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {children.map(child => {
-          const count = activities.filter(a => a.child_id === child.id && a.status === "active").length;
-          const active = activeChildId === child.id;
-          return (
-            <button
-              key={child.id}
-              onClick={() => setSelectedChildId(child.id)}
-              className={cn(
-                "inline-flex items-center gap-2 h-10 text-sm font-medium border-b-2 cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
-                active
-                  ? "text-[var(--ink)]"
-                  : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-soft)]"
-              )}
-              style={active ? { borderBottomColor: child.color_code } : undefined}
-            >
-              <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
-              {child.name}
-              <span className={cn("text-xs", active ? "text-[var(--ink-soft)]" : "text-[var(--ink-faint)]")}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active activities */}
-      <div className="border border-[var(--rule)] rounded-xl overflow-hidden divide-y divide-[var(--rule)]">
         {activeList.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-[var(--ink-faint)] text-center">No active activities.</p>
-        ) : activeList.map(renderRow)}
-      </div>
+          <p className="text-sm leading-5 text-[var(--ink-soft)]">No active activities.</p>
+        ) : (
+          <SettingsList label="Active activities">{activeList.map(renderRow)}</SettingsList>
+        )}
 
-      {/* Paused / completed / dropped — hidden by default */}
-      {inactiveList.length > 0 && (
-        <div className="mt-3">
-          <button
-            onClick={() => setShowInactive(v => !v)}
-            className="flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors"
-          >
-            {showInactive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {showInactive ? "Hide" : "Show"} {inactiveList.length} paused / completed / dropped
-          </button>
-          {showInactive && (
-            <div className="border border-[var(--rule)] rounded-xl overflow-hidden divide-y divide-[var(--rule)] mt-2">
-              {inactiveList.map(renderRow)}
-            </div>
-          )}
-        </div>
-      )}
+        {/* Paused / completed / dropped — hidden by default */}
+        {inactiveList.length > 0 && (
+          <div>
+            <MoreToggle open={showInactive} onClick={() => setShowInactive(v => !v)}>
+              {showInactive ? "Hide" : "Show"} {inactiveList.length} paused, completed or dropped
+            </MoreToggle>
+            {showInactive && <SettingsList label="Inactive activities">{inactiveList.map(renderRow)}</SettingsList>}
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit modal */}
       <Modal

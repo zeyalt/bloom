@@ -5,6 +5,8 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Fab } from "@/components/ui/Fab";
 import { Modal } from "@/components/ui/Modal";
+import { IconButton } from "@/components/ui/IconButton";
+import { SettingsList, SettingsRow } from "@/components/settings/SettingsList";
 import type { ActivityCategory } from "@/lib/types";
 
 interface Props {
@@ -54,30 +56,20 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
   return (
     <div>
       <Fab label="Add category" onClick={openAdd} />
-      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{categories.length} categories</p>
-
-      <div className="space-y-2">
+      <SettingsList label="Categories">
         {categories.map(c => (
-          <div key={c.id} className="flex items-center gap-3 px-4 py-3 border border-[var(--rule)] rounded-xl bg-[var(--sheet)]">
-            <span
-              className="w-3 h-3 rounded-full shrink-0"
-              style={{ backgroundColor: c.color_code }}
-            />
-            <span className="flex-1 text-sm font-medium text-[var(--ink)]">
-              {c.icon && <span className="mr-2">{c.icon}</span>}
-              {c.name}
-            </span>
-            <span className="text-xs text-[var(--ink-faint)] font-mono">{c.color_code}</span>
-            <button
-              onClick={() => openEdit(c)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-[var(--bg-secondary)] hover:text-[var(--ink)] transition-colors"
-              title="Edit"
-            >
-              <Pencil size={16} />
-            </button>
-          </div>
+          <SettingsRow
+            key={c.id}
+            leading={<span className="w-6 h-6 flex items-center justify-center text-base" aria-hidden="true">{c.icon || "•"}</span>}
+            title={c.name}
+            meta={<span className="inline-flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c.color_code }} aria-hidden="true" />
+              <span className="font-mono text-xs">{c.color_code}</span>
+            </span>}
+            actions={<IconButton icon={Pencil} label={`Edit ${c.name}`} onClick={() => openEdit(c)} />}
+          />
         ))}
-      </div>
+      </SettingsList>
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Category" : "Add Category"} size="sm">
         <div className="space-y-4">

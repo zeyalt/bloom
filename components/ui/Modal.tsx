@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "./IconButton";
@@ -20,6 +20,7 @@ const sizeStyles = {
 };
 
 export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
+  const titleId = useId();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     if (open) document.addEventListener("keydown", handler);
@@ -40,6 +41,9 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
         onClick={onClose}
       />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className={cn(
           "relative w-full bg-[var(--sheet)] rounded-[var(--radius-lg)] border border-[var(--rule)]",
           "max-h-[90dvh] flex flex-col",
@@ -47,7 +51,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
         )}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-[var(--rule)] shrink-0">
-          <h2 className="font-semibold text-[var(--ink)]">{title}</h2>
+          <h2 id={titleId} className="font-semibold text-[var(--ink)]">{title}</h2>
           <IconButton icon={X} label="Close" onClick={onClose} className="-mr-3" />
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-6">{children}</div>

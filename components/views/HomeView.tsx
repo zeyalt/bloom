@@ -77,6 +77,12 @@ const QUICK_LOG: { status: AttendanceStatus; label: string; icon: typeof Check; 
   { status: "cancelled_by_provider", label: "Cancelled", icon: Ban, cls: "text-[var(--ink-soft)]" },
 ];
 
+const STATUS_TONE: Record<string, string> = {
+  attended: "text-[var(--stem)]",
+  absent: "text-[var(--margin)]",
+  cancelled_by_provider: "text-[var(--ink-soft)]",
+};
+
 export default function AgendaPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -268,22 +274,66 @@ export default function AgendaPage() {
   }, [dayBlocks, adhocByDay, logsByKey, week, weekOffset, unlogged, todayIso, nowHHMM]);
 
   // One row per session: time · title (+ quick log buttons) · child/status · one 48px action.
-  const rowCls = "grid grid-cols-[4.5rem_minmax(0,1fr)_auto_3rem] gap-x-3 items-start py-3";
-  const childTag = (child?: Child) => child && (
-    <span className="inline-flex items-center gap-2 text-sm leading-5 font-medium" style={{ color: child.color_code }}>
-      <span className="w-2 h-2 shrink-0" style={{ backgroundColor: child.color_code }} />
-      {child.name}
-    </span>
+  /**
+   * One session row. Left: time with its status underneath. Middle: the activity name
+   * (wraps, never truncated) over a meta line led by the child, so child labels always
+   * start on the same vertical line. Right: a 48px edit button on logged rows only.
+   * Unlogged rows get the three outcome buttons across the full width underneath.
+   */
+  const sessionRow = (o: {
+    rowKey: string; time: string | null; title: string; activityId?: string; child?: Child; sub?: string | null;
+    log?: LogWithDetails; badge?: React.ReactNode; highlight?: boolean; actions?: React.ReactNode;
+  }) => (
+    <div key={o.rowKey} onClick={o.log ? () => openEditLog(o.log!) : undefined}
+      className={cn(
+        "grid gap-x-3 items-start px-3 py-3",
+        o.log ? "grid-cols-[4.5rem_minmax(0,1fr)_3rem] cursor-pointer" : "grid-cols-[4.5rem_minmax(0,1fr)]",
+        o.highlight && "bg-[#e8f2eb]"
+      )}>
+      <div className="flex flex-col items-start gap-1">
+        <time className={cn("tabular-nums text-sm leading-6", o.highlight ? "font-semibold text-[var(--ink)]" : "text-[var(--ink-soft)]")}>
+          {o.time ? formatTime(o.time) : "—"}
+        </time>
+        {o.badge}
+      </div>
+      <div className="min-w-0">
+        {o.activityId ? (
+          <button
+            onClick={e => { e.stopPropagation(); router.push(`/activity/${o.activityId}`); }}
+            className="relative block min-w-12 text-left text-base leading-6 font-semibold text-[var(--stem)] hover:underline cursor-pointer break-words before:absolute before:inset-x-0 before:-inset-y-3 before:content-['']"
+          >
+            {o.title}
+          </button>
+        ) : (
+          <span className="block text-base leading-6 font-semibold text-[var(--ink)] break-words">{o.title}</span>
+        )}
+        <div className="flex flex-wrap items-center gap-x-2 text-sm leading-5 text-[var(--ink-soft)]">
+          {o.child && (
+            <span className="inline-flex items-center gap-1 font-semibold" style={{ color: o.child.color_code }}>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: o.child.color_code }} aria-hidden="true" />
+              {o.child.name}
+            </span>
+          )}
+          {o.sub && <span aria-hidden="true">·</span>}
+          {o.sub && <span className="min-w-0 break-words">{o.sub}</span>}
+        </div>
+      </div>
+      {o.log && (
+        <div className="-mt-3 -mr-3 flex flex-col items-center">
+          <IconButton icon={Pencil} label={`Edit attendance for ${o.title}`}
+            onClick={e => { e.stopPropagation(); openEditLog(o.log!); }} />
+          {hasReflection(o.log.learned, o.log.diary_notes) && (
+            <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
+          )}
+        </div>
+      )}
+      {o.actions}
+    </div>
   );
-  const titleLink = (title: string, activityId?: string) => activityId ? (
-    <button
-      onClick={e => { e.stopPropagation(); router.push(`/activity/${activityId}`); }}
-      className="relative block max-w-full text-base leading-6 font-semibold text-[var(--stem)] hover:underline cursor-pointer text-left before:absolute before:left-0 before:w-full before:min-w-12 before:-inset-y-3 before:content-['']"
-    >
-      <span className="block truncate">{title}</span>
-    </button>
-  ) : (
-    <span className="block text-base leading-6 font-semibold text-[var(--ink)] truncate">{title}</span>
+  const statusBadge = (status: string) => (
+    <span className={cn("text-xs leading-4 font-semibold", STATUS_TONE[status] ?? "text-[var(--ink-soft)]")}>
+      {ATTENDANCE_STATUS_LABELS[status] ?? "Logged"}
+    </span>
   );
 
   return (
@@ -392,85 +442,41 @@ export default function AgendaPage() {
                         const missing = !log && isPastOccurrence(day, s, todayIso, nowHHMM);
                         const isNext = upNext?.key === key;
                         const underway = isNext && !!s.start_time && s.start_time.slice(0, 5) <= nowHHMM;
-                        return (
-                          <div key={s.id} onClick={log ? () => openEditLog(log) : undefined} className={cn(rowCls, "px-3", log && "cursor-pointer", isNext && "bg-[#e8f2eb]")}>
-                            <div className="flex flex-col items-start gap-1">
-                              <time className={cn("tabular-nums text-sm leading-6", isNext ? "font-semibold text-[var(--ink)]" : "text-[var(--ink-soft)]")}>
-                                {s.start_time ? formatTime(s.start_time) : "—"}
-                              </time>
-                              {isNext && (
-                                <span className="h-5 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-semibold whitespace-nowrap">
-                                  {underway ? "Now" : "Up next"}
-                                </span>
-                              )}
+                        return sessionRow({
+                          rowKey: s.id, time: s.start_time, title, activityId: a.id, child: a.child,
+                          sub: a.activity_name ? a.institution : a.instructor_name, log, highlight: isNext,
+                          badge: log ? statusBadge(log.status)
+                            : isNext ? (
+                              <span className="h-5 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-semibold whitespace-nowrap">
+                                {underway ? "Now" : "Up next"}
+                              </span>
+                            )
+                            : missing ? <span className="text-xs leading-4 font-semibold text-[#8a3f06] whitespace-nowrap">Not logged</span>
+                            : null,
+                          actions: !log && (
+                            <div role="group" aria-label={`Log ${title}`} className="col-span-full md:col-start-2 md:max-w-md grid grid-cols-3 gap-2 mt-2">
+                              {QUICK_LOG.map(q => (
+                                <button key={q.status} type="button" onClick={() => openLog(s, day, q.status)}
+                                  className={cn(
+                                    "relative inline-flex items-center justify-center gap-1 h-9 px-2 text-sm font-medium border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer",
+                                    "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
+                                    q.cls
+                                  )}>
+                                  <q.icon size={16} aria-hidden="true" /> {q.label}
+                                </button>
+                              ))}
                             </div>
-                            <div className="min-w-0">
-                              {titleLink(title, a.id)}
-                              {(a.institution || a.instructor_name) && (
-                                <div className="text-sm leading-5 text-[var(--ink-soft)] truncate">{a.institution || a.instructor_name}</div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              {childTag(a.child)}
-                              {log && (
-                                <span className="text-xs leading-4 text-[var(--ink-soft)]">
-                                  {ATTENDANCE_STATUS_LABELS[log.status] ?? "Logged"}
-                                </span>
-                              )}
-                              {missing && <span className="text-xs leading-4 font-semibold text-[#8a3f06]">Not logged</span>}
-                              {log && hasReflection(log.learned, log.diary_notes) && (
-                                <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
-                              )}
-                            </div>
-                            {log && (
-                              <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3 -mr-3"
-                                onClick={e => { e.stopPropagation(); openEditLog(log); }} />
-                            )}
-                            {!log && (
-                              <div role="group" aria-label={`Log ${title}`} className="col-span-4 md:col-start-2 md:col-span-3 md:max-w-md grid grid-cols-3 gap-2 mt-3">
-                                {QUICK_LOG.map(q => (
-                                  <button key={q.status} type="button" onClick={() => openLog(s, day, q.status)}
-                                    className={cn(
-                                      "relative inline-flex items-center justify-center gap-1 h-10 px-2 text-sm font-medium border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer",
-                                      "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
-                                      q.cls
-                                    )}>
-                                    <q.icon size={16} aria-hidden="true" /> {q.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
+                          ),
+                        });
                       })}
 
                       {adhoc.map(log => {
                         const a = log.activity;
-                        const title = a?.activity_name || a?.institution || "Activity";
-                        return (
-                          <div key={log.id} onClick={() => openEditLog(log)} className={cn(rowCls, "px-3 cursor-pointer")}>
-                            <time className="tabular-nums text-sm leading-6 text-[var(--ink-soft)]">
-                              {log.start_time ? formatTime(log.start_time) : "—"}
-                            </time>
-                            <div className="min-w-0">
-                              {titleLink(title, a?.id)}
-                              {(a?.institution || a?.instructor_name) && (
-                                <div className="text-sm leading-5 text-[var(--ink-soft)] truncate">{a?.institution || a?.instructor_name}</div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              {childTag(log.child)}
-                              <span className="text-xs leading-4 text-[var(--ink-soft)]">
-                                {ATTENDANCE_STATUS_LABELS[log.status] ?? "Logged"}
-                              </span>
-                              {hasReflection(log.learned, log.diary_notes) && (
-                                <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
-                              )}
-                            </div>
-                            <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3 -mr-3"
-                              onClick={e => { e.stopPropagation(); openEditLog(log); }} />
-                          </div>
-                        );
+                        return sessionRow({
+                          rowKey: log.id, time: log.start_time, title: a?.activity_name || a?.institution || "Activity",
+                          activityId: a?.id, child: log.child, sub: a?.activity_name ? a.institution : a?.instructor_name,
+                          log, badge: statusBadge(log.status),
+                        });
                       })}
                     </div>
                   )}

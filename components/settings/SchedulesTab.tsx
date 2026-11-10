@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { isBefore, startOfToday, parseISO } from "date-fns";
 import { Button } from "@/components/ui/Button";
 import { Fab } from "@/components/ui/Fab";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { Avatar } from "@/components/ui/Avatar";
-import { formatTime, formatDate, cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
+import { ChildFilter } from "@/components/ui/ChildFilter";
+import { SettingsList, SettingsRow, Tag, GroupHeading, MoreToggle } from "@/components/settings/SettingsList";
+import { formatTime, formatDate } from "@/lib/utils";
 import { DAYS_OF_WEEK } from "@/lib/constants";
 import type { Schedule, Activity, ActivityCategory, Child } from "@/lib/types";
 
@@ -45,8 +47,20 @@ function dayLabel(n: number) {
   return DAYS_OF_WEEK.find(d => d.value === n)?.label ?? String(n);
 }
 
+/** "08:15–09:00 AM", or "11:30 AM–12:30 PM" when the range crosses noon. */
+function timeRange(start: string, end: string | null): string {
+  const a = formatTime(start);
+  if (!end) return a;
+  const b = formatTime(end);
+  return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)}–${b}` : `${a}–${b}`;
+}
+
 function dateRangeLabel(from: string | null, until: string | null): string {
-  if (from && until) return `${formatDate(from)} – ${formatDate(until)}`;
+  if (from && until) {
+    // Same year: "14 Sep – 20 Nov 2026".
+    const a = formatDate(from), b = formatDate(until);
+    return a.slice(-4) === b.slice(-4) ? `${a.slice(0, -5)} – ${b}` : `${a} – ${b}`;
+  }
   if (from) return `Since ${formatDate(from)}`;
   if (until) return `Until ${formatDate(until)}`;
   return "";
@@ -68,7 +82,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<Schedule | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ScheduleCard | null>(null);
   const [filterChildId, setFilterChildId] = useState("");
   const [showEnded, setShowEnded] = useState(false);
 
@@ -213,8 +227,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     finally { setSaving(false); }
   }
 
-  async function deleteSchedule(s: Schedule) {
-    await fetch(`/api/schedules/${s.id}`, { method: "DELETE" });
+  /** Delete every day-slot of a card (one activity's term). Single days are removed in the editor. */
+  async function deleteCard(card: ScheduleCard) {
+    await Promise.all(card.slots.map(s => fetch(`/api/schedules/${s.id}`, { method: "DELETE" })));
     setConfirmDelete(null); onRefresh();
   }
 
@@ -266,21 +281,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   const unattached = schedules.filter(s => !activities.find(a => a.id === s.activity_id));
 
   // ── Renderers ──
-  function categoryHeading(category?: ActivityCategory) {
+  function categoryHeading(category: ActivityCategory | undefined, count: number) {
     return (
-      <div className="mb-2 mt-6 first:mt-0">
-        {category ? (
-          <span
-            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
-            style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
-          >
-            {category.icon && <span className="mr-1">{category.icon}</span>}
-            {category.name}
-          </span>
-        ) : (
-          <span className="text-sm font-medium text-[var(--ink-faint)]">Uncategorized</span>
-        )}
-      </div>
+      <GroupHeading count={count}>
+        {category ? <span style={{ color: category.color_code }}>{category.icon && <span className="mr-1" aria-hidden="true">{category.icon}</span>}{category.name}</span> : "Uncategorised"}
+      </GroupHeading>
     );
   }
 
@@ -292,133 +297,73 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     const secondaryRaw = isBlankInst ? (act.instructor_name ?? "") : inst;
     const secondary = secondaryRaw && secondaryRaw !== title ? secondaryRaw : "";
     const range = dateRangeLabel(card.effective_from, card.effective_until);
+    const term = card.term ? (/\bterm\b/i.test(card.term) ? card.term : `Term ${card.term}`) : null;
     return (
-      <div key={`${act.id}|${card.term ?? ""}`} className="mb-4 border border-[var(--rule)] rounded-xl overflow-hidden">
-        {/* Card header */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] flex-wrap">
+      <SettingsRow
+        key={`${act.id}|${card.term ?? ""}`}
+        title={title}
+        tags={<>
           {opts?.showCategoryChip && card.category && (
-            <span
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-              style={{ backgroundColor: `${card.category.color_code}15`, color: card.category.color_code }}
-            >
-              {card.category.icon && <span className="mr-1">{card.category.icon}</span>}
-              {card.category.name}
-            </span>
+            <Tag color={card.category.color_code}>{card.category.icon && <span aria-hidden="true">{card.category.icon}</span>}{card.category.name}</Tag>
           )}
-          <span className="text-sm font-medium text-[var(--ink)]">{title}</span>
-          {secondary && <span className="text-xs text-[var(--ink-faint)]">· {secondary}</span>}
           {act.status !== "active" && <Badge label={act.status} variant="muted" />}
-          {card.level && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--rule)] text-[var(--ink-soft)]">
-              {card.level}
-            </span>
-          )}
-          {card.term && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--rule)] text-[var(--ink-soft)]">
-              {/^term\b/i.test(card.term.trim()) ? card.term : `Term ${card.term}`}
-            </span>
-          )}
-          {range && <span className="text-xs text-[var(--ink-faint)]">{range}</span>}
-          <button
-            onClick={() => openEditCard(card)}
-            className="ml-auto w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors shrink-0"
-            title="Edit schedule"
-          ><Pencil size={16} /></button>
-        </div>
-
-        {/* Schedule rows */}
-        <div className="divide-y divide-[var(--rule)]">
+          {card.level && <Tag>{card.level}</Tag>}
+          {term && <Tag>{term}</Tag>}
+        </>}
+        meta={[secondary, range].filter(Boolean).join(" · ") || undefined}
+        actions={<>
+          <IconButton icon={Pencil} label={`Edit ${title} schedule`} onClick={() => openEditCard(card)} />
+          <IconButton icon={Trash2} label={`Delete ${title} schedule`} tone="danger" onClick={() => setConfirmDelete(card)} />
+        </>}
+      >
+        <ul className="mt-2 flex flex-col gap-1">
           {card.slots.map(s => (
-            <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="text-xs font-medium text-[var(--ink-soft)] w-8 shrink-0">
-                {dayLabel(s.day_of_week)}
+            <li key={s.id} className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-2 text-sm leading-5">
+              <span className="font-semibold text-[var(--ink)]">{dayLabel(s.day_of_week)}</span>
+              <span className="text-[var(--ink-soft)]">
+                <span className="tabular-nums text-[var(--ink)]">{timeRange(s.start_time, s.end_time)}</span>
+                {s.location && s.location.trim() !== inst && <> · {s.location}</>}
+                {!s.is_active && <> · <span className="text-[var(--ink-faint)]">inactive</span></>}
               </span>
-              <span className="text-sm text-[var(--ink)] flex-1">
-                {formatTime(s.start_time)}
-                {s.end_time && <span className="text-[var(--ink-faint)]"> – {formatTime(s.end_time)}</span>}
-                {s.location && <span className="text-xs text-[var(--ink-faint)] ml-2">@ {s.location}</span>}
-              </span>
-              {!s.is_active && <Badge label="Inactive" variant="muted" />}
-              <button
-                onClick={() => setConfirmDelete(s)}
-                className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
-                title="Delete day"
-              ><Trash2 size={16} /></button>
-            </div>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
+      </SettingsRow>
     );
   }
 
   return (
     <div>
       <Fab label="Add schedule" onClick={openAdd} />
-      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{schedules.length} schedule slots</p>
+      <div className="flex flex-col gap-6">
+        <ChildFilter single childList={children} selected={activeFilterChildId ? [activeFilterChildId] : []} onToggle={setFilterChildId} />
 
-      {/* Child filter pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {children.map(child => {
-          const count = schedules.filter(s => {
-            const act = activities.find(a => a.id === s.activity_id);
-            return act?.child_id === child.id;
-          }).length;
-          const active = activeFilterChildId === child.id;
-          return (
-            <button
-              key={child.id}
-              onClick={() => setFilterChildId(child.id)}
-              className={cn(
-                "inline-flex items-center gap-2 h-10 text-sm font-medium border-b-2 cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
-                active
-                  ? "text-[var(--ink)]"
-                  : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-soft)]"
-              )}
-              style={active ? { borderBottomColor: child.color_code } : undefined}
-            >
-              <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={20} />
-              {child.name}
-              <span className={cn("text-xs", active ? "text-[var(--ink-soft)]" : "text-[var(--ink-faint)]")}>{count}</span>
-            </button>
-          );
-        })}
+        {activeCards.length === 0 && endedCards.length === 0 && (
+          <p className="text-sm leading-5 text-[var(--ink-soft)]">No schedules yet.</p>
+        )}
+
+        {/* Active cards grouped by category */}
+        {sortedCategoryGroups.map(group => (
+          <section key={group.category?.id ?? "__uncat__"}>
+            {categoryHeading(group.category, group.cards.length)}
+            <SettingsList>{group.cards.map(card => renderCard(card))}</SettingsList>
+          </section>
+        ))}
+
+        {/* Ended cards — collapsed at the bottom */}
+        {endedCards.length > 0 && (
+          <div>
+            <MoreToggle open={showEnded} onClick={() => setShowEnded(v => !v)}>
+              {showEnded ? "Hide" : "Show"} {endedCards.length} ended
+            </MoreToggle>
+            {showEnded && <SettingsList label="Ended schedules">{endedCards.map(card => renderCard(card, { showCategoryChip: true }))}</SettingsList>}
+          </div>
+        )}
+
+        {unattached.length > 0 && (
+          <p className="text-sm leading-5 text-[var(--ink-faint)]">{unattached.length} schedules with missing activities</p>
+        )}
       </div>
-
-      {activeCards.length === 0 && endedCards.length === 0 && (
-        <p className="text-sm text-[var(--ink-faint)] text-center py-6 border border-[var(--rule)] rounded-xl">
-          No schedules yet.
-        </p>
-      )}
-
-      {/* Active cards grouped by category */}
-      {sortedCategoryGroups.map(group => (
-        <div key={group.category?.id ?? "__uncat__"}>
-          {categoryHeading(group.category)}
-          {group.cards.map(card => renderCard(card))}
-        </div>
-      ))}
-
-      {/* Ended cards — collapsed at the bottom */}
-      {endedCards.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={() => setShowEnded(v => !v)}
-            className="flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors"
-          >
-            {showEnded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {showEnded ? "Hide" : "Show"} {endedCards.length} ended
-          </button>
-          {showEnded && (
-            <div className="mt-3">
-              {endedCards.map(card => renderCard(card, { showCategoryChip: true }))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {unattached.length > 0 && (
-        <p className="text-xs text-[var(--ink-faint)] mt-2">{unattached.length} schedules with missing activities</p>
-      )}
 
       {/* Add/Edit modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule"}>
@@ -600,12 +545,14 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       {/* Delete confirm */}
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete schedule?" size="sm">
         <p className="text-sm text-[var(--ink-soft)] mb-4">
-          Remove the <strong>{confirmDelete ? dayLabel(confirmDelete.day_of_week) : ""}</strong> slot at{" "}
-          <strong>{confirmDelete ? formatTime(confirmDelete.start_time) : ""}</strong>?
+          Remove <strong>{confirmDelete ? (confirmDelete.activity.activity_name || confirmDelete.activity.institution) : ""}</strong>
+          {confirmDelete?.term ? ` (${confirmDelete.term})` : ""} and its{" "}
+          {confirmDelete ? `${confirmDelete.slots.length} weekly ${confirmDelete.slots.length === 1 ? "slot" : "slots"}` : ""}?
+          Attendance already logged is kept.
         </p>
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-          <Button variant="danger" className="flex-1" onClick={() => confirmDelete && deleteSchedule(confirmDelete)}>Delete</Button>
+          <Button variant="danger" className="flex-1" onClick={() => confirmDelete && deleteCard(confirmDelete)}>Delete</Button>
         </div>
       </Modal>
     </div>
