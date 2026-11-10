@@ -1,5 +1,6 @@
 "use client";
 
+import { tint, readableText } from "@/lib/color";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -771,16 +772,21 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                         <div key={row.name} className="flex items-center gap-2">
                           <span className="w-14 shrink-0 text-xs text-[var(--ink-soft)]">{row.name}</span>
                           <div className="flex-1 grid grid-cols-7 gap-1">
-                            {row.hours.map((h, i) => (
-                              <div
-                                key={i}
-                                title={`${load.dayNames[i]} · ${fmtHours(h)}`}
-                                className="h-8 rounded-sm flex items-center justify-center text-xs tabular-nums"
-                                style={{ backgroundColor: row.color, opacity: h > 0 ? Math.max(0.15, h / load.max) : 0.06 }}
-                              >
-                                {h > 0 ? h.toFixed(1) : ""}
-                              </div>
-                            ))}
+                            {row.hours.map((h, i) => {
+                              // Tint only the background (not the text, as opacity did), then
+                              // pick whichever of ink / white reads best on that exact shade.
+                              const bg = tint(row.color, h > 0 ? Math.max(0.15, h / load.max) : 0.06);
+                              return (
+                                <div
+                                  key={i}
+                                  title={`${load.dayNames[i]} · ${fmtHours(h)}`}
+                                  className="h-8 rounded-sm flex items-center justify-center text-xs font-semibold tabular-nums"
+                                  style={{ backgroundColor: bg, color: readableText(bg) }}
+                                >
+                                  {h > 0 ? h.toFixed(1) : ""}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -889,14 +895,15 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                         {row.amounts.map((amt, i) => {
                           const c = data.payerByChild.children[i];
                           const alpha = amt === 0 ? 0 : 0.15 + (amt / data.payerByChildMax) * 0.75;
+                          const bg = amt === 0 ? null : tint(c.color, alpha);
                           return (
                             <div
                               key={c.id}
                               title={`${row.payer} → ${c.name}: ${formatCurrency(amt)}`}
                               className="h-9 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
                               style={{
-                                backgroundColor: amt === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${c.color} ${Math.round(alpha * 100)}%, transparent)`,
-                                color: alpha > 0.55 ? "#fff" : "var(--ink)",
+                                backgroundColor: bg ?? "var(--bg-secondary)",
+                                color: bg ? readableText(bg) : "var(--ink)",
                               }}
                             >
                               {amt > 0 ? formatCurrency(amt) : ""}

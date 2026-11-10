@@ -8,7 +8,7 @@ import { Header, BackButton } from "@/components/layout/Header";
 import { Page, PageBody } from "@/components/layout/Page";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from "@/lib/constants";
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, normalizeLessonType } from "@/lib/constants";
 import { useActivities, useAttendanceLogs, useExpenses, useMilestones, useChildren } from "@/lib/api-hooks";
 import { costPerHour } from "@/lib/cost-per-hour";
 
@@ -304,11 +304,18 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
               <ol ref={stripRef} className="flex gap-1 overflow-x-auto overscroll-x-contain snap-x pb-1">
                 {stats.recentLogs.map((l, i) => {
                   const iso = l.date.slice(0, 10);
+                  // Two sessions on one day (e.g. a competition and the class it replaced):
+                  // say which is which under the mark — the lesson type if it isn't a normal
+                  // class, else the start time.
+                  const sameDay = stats.recentLogs[i - 1]?.date.slice(0, 10) === iso || stats.recentLogs[i + 1]?.date.slice(0, 10) === iso;
+                  const lessonType = normalizeLessonType(l.lesson_type);
+                  const special = lessonType && lessonType !== "Normal" ? lessonType : null;
+                  const tag = special ? (special.length <= 5 ? special : special.slice(0, 4)) : sameDay && l.start_time ? formatTime(l.start_time).replace(/^0/, "").replace(/ (AM|PM)$/, "") : null;
                   const label = ATTENDANCE_STATUS_LABELS[l.status] || l.status;
                   const mark = markOf(l.status);
                   const latest = i === stats.recentLogs.length - 1;
                   const { color: bg, Icon } = MARKS[mark];
-                  const desc = `${formatDate(iso)}${l.start_time ? ` · ${formatTime(l.start_time)}` : ""} · ${label}`;
+                  const desc = `${formatDate(iso)}${l.start_time ? ` · ${formatTime(l.start_time)}` : ""} · ${special ? `${special} · ` : ""}${label}`;
                   const selected = l.id === selectedLog?.id;
                   return (
                     <li key={l.id} className="shrink-0 w-9 sm:w-11 snap-end">
@@ -329,11 +336,8 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                         >
                           <Icon size={16} strokeWidth={3} />
                         </span>
-                        {/* Mark non-standard sessions (trial, grading…) with a small dot. */}
-                        <span
-                          className="w-1 h-1 rounded-full"
-                          style={{ backgroundColor: l.status !== "attended" && mark === "attended" ? ATTENDANCE_STATUS_COLORS[l.status] : "transparent" }}
-                        />
+                        {/* Same-day sessions and non-standard ones (competition, trial…) get a tag. */}
+                        <span className="h-4 text-xs leading-4 font-medium text-[var(--ink-soft)] whitespace-nowrap">{tag}</span>
                       </button>
                     </li>
                   );
@@ -343,7 +347,10 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                 <div className="mt-2 px-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-live="polite">
                   <span className="font-medium text-[var(--ink)]">{format(parseISO(selectedLog.date.slice(0, 10)), "EEE, d MMM yyyy")}</span>
                   {selectedLog.start_time && (
-                    <span className="text-[var(--ink-soft)]">{formatTime(selectedLog.start_time)}</span>
+                    <span className="text-[var(--ink-soft)]">{formatTime(selectedLog.start_time)}{selectedLog.end_time ? `–${formatTime(selectedLog.end_time)}` : ""}</span>
+                  )}
+                  {normalizeLessonType(selectedLog.lesson_type) && normalizeLessonType(selectedLog.lesson_type) !== "Normal" && (
+                    <span className="text-[var(--ink-soft)]">· {normalizeLessonType(selectedLog.lesson_type)}</span>
                   )}
                   <Badge
                     label={ATTENDANCE_STATUS_LABELS[selectedLog.status] || selectedLog.status}

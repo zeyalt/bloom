@@ -9,7 +9,7 @@ import { Header } from "@/components/layout/Header";
 import { Page, Utilities, PageBody } from "@/components/layout/Page";
 import { Segmented } from "@/components/ui/Segmented";
 import { SingleSelect } from "@/components/ui/FilterDropdown";
-import { FilterBar, FilterField } from "@/components/ui/FilterBar";
+import { FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
@@ -163,17 +163,16 @@ export default function JournalPage() {
 
         <Segmented ariaLabel="Journal view" value={subTab} onChange={setSubTab} options={subTabs} />
 
-        <FilterBar stretch className={subTab === "chat" ? "hidden" : undefined}>
-          <FilterField label="Activity">
-            <SingleSelect
-              className="w-72"
-              ariaLabel="Filter by activity"
-              value={filterActivity}
-              onChange={setFilterActivity}
-              options={activityFilterOptions}
-            />
-          </FilterField>
-        </FilterBar>
+        {/* The only filter here, so it takes the full width rather than a scrolling filter row. */}
+        <FilterField label="Activity" className={cn("w-full", subTab === "chat" && "hidden")}>
+          <SingleSelect
+            className="w-full"
+            ariaLabel="Filter by activity"
+            value={filterActivity}
+            onChange={setFilterActivity}
+            options={activityFilterOptions}
+          />
+        </FilterField>
       </Utilities>
 
       <PageBody clear="nav">

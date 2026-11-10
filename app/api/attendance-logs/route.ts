@@ -55,6 +55,26 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    // A session is one activity + child + date + start time. Refuse a second copy (e.g. a
+    // double-tapped Save) rather than storing a duplicate that shows up twice everywhere.
+    const startTime = body.start_time || body.startTime || null;
+    if (startTime) {
+      const existing = await prisma.attendanceLog.findFirst({
+        where: {
+          activityId: body.activity_id || body.activityId,
+          childId: body.child_id || body.childId,
+          date: new Date(body.date),
+          startTime,
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { error: "This session is already logged. Edit the existing record instead.", id: existing.id },
+          { status: 409 }
+        );
+      }
+    }
     const log = await prisma.attendanceLog.create({
       data: {
         activityId: body.activity_id || body.activityId,

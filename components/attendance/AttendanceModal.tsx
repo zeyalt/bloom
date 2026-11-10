@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { Activity, Child, AttendanceStatus } from "@/lib/types";
@@ -105,6 +106,9 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [customSender, setCustomSender] = useState("");
   const [customFetcher, setCustomFetcher] = useState("");
   const [customLesson, setCustomLesson] = useState("");
+  // Set (even to "") when the session is somewhere the child doesn't normally go, e.g. a trial.
+  const [newInstitution, setNewInstitution] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Reset form whenever the modal opens (with fresh prefill)
   useEffect(() => {
@@ -115,21 +119,59 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       setCustomSender("");
       setCustomFetcher("");
       setCustomLesson("");
+      setNewInstitution(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  /**
+   * The activity for this class at `institution`: the child's existing one if they've been
+   * there before, else a new one with the same name and category. New ones start as
+   * "completed" (a one-off, e.g. a trial) so they stay out of the active list in Settings
+   * until the child actually enrols.
+   */
+  async function activityAt(institution: string): Promise<string> {
+    const base = activities.find(a => a.id === form.activity_id)!;
+    const name = actLabel(base);
+    const existing = activities.find(a =>
+      a.child_id === form.child_id && actLabel(a) === name && a.institution.trim().toLowerCase() === institution.toLowerCase());
+    if (existing) return existing.id;
+    const res = await fetch("/api/activities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        child_id: form.child_id,
+        category_id: base.category_id,
+        activity_name: name,
+        institution,
+        instructor_name: form.instructor_name || null,
+        status: "completed",
+        start_date: form.date,
+        end_date: form.date,
+      }),
+    });
+    if (!res.ok) throw new Error("Couldn't add the new institution");
+    const created = await res.json();
+    await queryClient.invalidateQueries({ queryKey: ["activities"] });
+    return created.id as string;
+  }
 
   async function save() {
     if (!form.activity_id || !form.child_id || !form.date) {
       setError("Activity, child, and date are required.");
       return;
     }
+    if (newInstitution !== null && !newInstitution.trim()) {
+      setError("Enter the institution, or pick one from the list.");
+      return;
+    }
     setSaving(true);
     setError("");
     const includeSenderFetcher = form.status === "attended";
     try {
+      const activityId = newInstitution !== null ? await activityAt(newInstitution.trim()) : form.activity_id;
       const payload = {
-        activity_id: form.activity_id,
+        activity_id: activityId,
         child_id: form.child_id,
         date: form.date,
         status: form.status,
@@ -197,6 +239,19 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     a => (!form.child_id || a.child_id === form.child_id)
       && (a.status === "active" || a.id === form.activity_id)
   );
+  // Activity → institution: one entry per class name, then where it happens. Every place
+  // the child has done this class is offered (past trials too), plus "Others".
+  const selectedActivity = activities.find(a => a.id === form.activity_id);
+  const selectedName = selectedActivity ? actLabel(selectedActivity) : "";
+  const activityNames = [...new Set(childActivities.map(actLabel))].sort((a, b) => a.localeCompare(b));
+  const places = activities
+    .filter(a => a.child_id === form.child_id && actLabel(a) === selectedName)
+    .sort((a, b) => Number(b.status === "active") - Number(a.status === "active") || a.institution.localeCompare(b.institution));
+  function pickActivityName(name: string) {
+    const match = childActivities.find(a => actLabel(a) === name && a.status === "active") ?? childActivities.find(a => actLabel(a) === name);
+    setForm(f => ({ ...f, activity_id: match?.id ?? "" }));
+    setNewInstitution(null);
+  }
   const showSenderFetcher = form.status === "attended";
   const inputCls =
     "w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] focus:outline-none focus:border-[var(--stem)]";
@@ -232,12 +287,50 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
           </div>
           <div>
             <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Activity *</label>
-            <select value={form.activity_id} onChange={e => setForm(f => ({ ...f, activity_id: e.target.value }))} className={inputCls}>
+            <select value={selectedName} onChange={e => pickActivityName(e.target.value)} className={inputCls}>
               <option value="">Select activity</option>
-              {childActivities.map(a => <option key={a.id} value={a.id}>{actLabel(a)}</option>)}
+              {activityNames.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
         </div>
+
+        {selectedActivity && (
+          <div className="flex flex-col gap-2">
+            <div>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Institution</label>
+              <select
+                value={newInstitution !== null ? "__new__" : form.activity_id}
+                onChange={e => {
+                  if (e.target.value === "__new__") { setNewInstitution(""); return; }
+                  setNewInstitution(null);
+                  setForm(f => ({ ...f, activity_id: e.target.value }));
+                }}
+                className={inputCls}
+              >
+                {places.map(a => (
+                  <option key={a.id} value={a.id}>{a.institution}{a.status === "active" ? "" : " (past)"}</option>
+                ))}
+                <option value="__new__">Others</option>
+              </select>
+            </div>
+            {newInstitution !== null && (
+              <div>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newInstitution}
+                  onChange={e => setNewInstitution(e.target.value)}
+                  placeholder="Please specify"
+                  aria-label="New institution"
+                  className={inputCls}
+                />
+                <p className="mt-1 text-xs leading-4 text-[var(--ink-soft)]">
+                  {`Saved as a past ${selectedName} activity, so it won’t show in your weekly schedule.`}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

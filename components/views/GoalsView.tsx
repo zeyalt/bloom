@@ -23,7 +23,7 @@ const CHILD_KEY = "bloom.goals.child";
 export default function GoalsView() {
   const router = useRouter();
   const { data: children = [] } = useChildren();
-  const { data: goals = [], isLoading } = useGoals();
+  const { data: goals = [], isLoading, isError, refetch } = useGoals();
   // The last child picked here (remembered per device), else the first child.
   const [picked, setPicked] = useState<string | null>(() => {
     try { return localStorage.getItem(CHILD_KEY); } catch { return null; }
@@ -48,6 +48,7 @@ export default function GoalsView() {
 
   const overdue = active.filter(g => day(g.target_date) < today).length;
   const goalsLine = isLoading ? " "
+    : isError ? "Couldn’t load goals"
     : !active.length && !achieved.length ? `No goals for ${child?.name ?? "this child"} yet`
     : [
         active.length ? `${active.length} in progress` : "nothing in progress",
@@ -68,6 +69,12 @@ export default function GoalsView() {
       <PageBody>
         {isLoading ? (
           [1, 2].map(i => <div key={i} className="h-32 bg-[var(--bg-secondary)] animate-pulse rounded-[var(--radius-lg)]" />)
+        ) : isError ? (
+          // Don't pass a failed load off as "no goals" — that hides server problems.
+          <div role="alert" className="border border-[var(--margin)]/40 bg-[var(--sheet)] px-4 py-6 flex flex-col items-start gap-3">
+            <p className="text-sm leading-5 text-[var(--ink)]">Goals couldn’t be loaded, so adding one won’t work right now either. If you’re running the app locally, restart the dev server.</p>
+            <Button size="sm" variant="secondary" onClick={() => refetch()}>Try again</Button>
+          </div>
         ) : active.length === 0 ? (
           <div className="border border-dashed border-[var(--rule)] bg-[var(--sheet)] px-4 py-8 text-center flex flex-col items-center gap-3">
             <p className="text-sm leading-5 text-[var(--ink-soft)]">No goals yet for {child?.name ?? "this child"}.</p>

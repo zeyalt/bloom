@@ -48,11 +48,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.attendanceLog.delete({
+    // deleteMany, not delete: a record that's already gone (removed in another tab, or a
+    // stale list) is still the outcome the user asked for, so it isn't an error.
+    const { count } = await prisma.attendanceLog.deleteMany({
       where: { id },
     });
-    return NextResponse.json({ success: true });
-  } catch (err) {
+    return NextResponse.json({ success: true, deleted: count });
+  } catch {
     return NextResponse.json(
       { error: "Failed to delete attendance log" },
       { status: 500 }
