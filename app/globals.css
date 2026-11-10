@@ -85,20 +85,18 @@ select,
   user-select: text;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: inherit;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-
-h1 { font-size: 1.75rem; line-height: 1.15; margin-bottom: 0.25rem; }
-h2 { font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem; }
-h3 { font-size: 1.0625rem; line-height: 1.3; margin-bottom: 0.15rem; }
-
-@media (max-width: 640px) {
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.125rem; }
+/* Type scale: page title 28/32 · section heading 16/24 · body 14/20 · meta 12/16.
+   In the base layer so a component's own classes always win. */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0;
+  }
+  h1 { font-size: 1.75rem; line-height: 2rem; }
+  h2, h3, h4 { font-size: 1rem; line-height: 1.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -132,4 +130,21 @@ h3 { font-size: 1.0625rem; line-height: 1.3; margin-bottom: 0.15rem; }
 ::-webkit-scrollbar-thumb {
   background: var(--rule);
   border-radius: 2px;
+}
+
+/* ── Control sizes ─────────────────────────────────────────────────────────
+   Every text-entry control is 48px tall, with 16px type on phones so iOS
+   doesn't zoom on focus. Utilities (e.g. h-10) still override where needed. */
+@layer base {
+  input:is([type="text"], [type="number"], [type="date"], [type="time"], [type="email"], [type="search"], [type="tel"], [type="url"], [type="password"], :not([type])),
+  select {
+    height: 3rem;
+    font-size: 1rem;
+  }
+  textarea { font-size: 1rem; }
+  @media (min-width: 768px) {
+    input:is([type="text"], [type="number"], [type="date"], [type="time"], [type="email"], [type="search"], [type="tel"], [type="url"], [type="password"], :not([type])),
+    select,
+    textarea { font-size: 0.875rem; }
+  }
 }

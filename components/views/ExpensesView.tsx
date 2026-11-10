@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Pencil, Trash2, Columns3, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Pencil, Trash2, Columns3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { Page, Utilities, PageBody } from "@/components/layout/Page";
+import { Fab } from "@/components/ui/Fab";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -36,7 +38,7 @@ const EMPTY_FORM = {
   expense_type: "Lesson",
 };
 
-export default function ExpensesPage({ embedded = false }: { embedded?: boolean } = {}) {
+export default function ExpensesPage({ embedded = false, tabs }: { embedded?: boolean; tabs?: React.ReactNode } = {}) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
@@ -287,13 +289,16 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
     return act?.activity_name || act?.institution || "—";
   }
 
+  // Embedded in History: History owns the page and header and passes its tab switch in.
+  const Shell = embedded ? Fragment : Page;
   return (
-    <div className="max-w-[1200px] mx-auto w-full">
+    <Shell>
       {!embedded && <Header title="Expenses" subtitle="Class fees" />}
 
-      <div className={embedded ? "px-5 md:px-8 pt-3 pb-24 md:pb-8" : "px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8"}>
-        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        <FilterBar stretch className="mb-2">
+      <Utilities>
+        <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
+        {tabs}
+        <FilterBar stretch>
           <FilterField label="Year">
             <MultiSelect
               className="w-32"
@@ -319,7 +324,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
             />
           </FilterField>
         </FilterBar>
-        <FilterBar stretch className="mb-4">
+        <FilterBar stretch>
           <FilterField label="Expense Category">
             <MultiSelect
               className="w-40"
@@ -346,35 +351,36 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
           </FilterField>
         </FilterBar>
 
-        {/* Actions — record count sits opposite the buttons so the two never collide */}
-        <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
-          <p className="text-xs text-[var(--text-muted)]">
+      </Utilities>
+
+      <PageBody>
+        {/* Summary row — record count opposite the table tools */}
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <p className="text-sm leading-5 text-[var(--ink-soft)]">
             {expenses.length === 0
               ? "No records"
               : expenses.length > PAGE_SIZE
                 ? `Showing ${pageStart + 1}–${pageStart + pagedExpenses.length} of ${expenses.length} records`
                 : `${expenses.length} record${expenses.length === 1 ? "" : "s"}`}
           </p>
-          <div className="flex gap-1.5 shrink-0 ml-auto">
+          <div className="flex gap-2 shrink-0 ml-auto">
             <button
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
-              className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+              aria-pressed={showColumnPicker}
+              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
             >
-              <Columns3 size={14} /> Columns
+              <Columns3 size={16} /> Columns
             </button>
             <Button onClick={() => exportExpensesCSV(expenses, `expenses-${filterYears.join("_") || "all"}.csv`)} variant="secondary" size="sm">
-              <Download size={14} /> Export
-            </Button>
-            <Button variant="primary" onClick={openAdd} size="sm">
-              <Plus size={14} /> Add
+              <Download size={16} /> Export
             </Button>
           </div>
         </div>
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="mb-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -444,7 +450,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                       {visibleColumns.child && (
                         <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">
                           {exp.child ? (
-                            <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: exp.child.color_code }} />
                               {exp.child.name}
                             </span>
@@ -479,20 +485,20 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                       {visibleColumns.costPerLesson && <td className="px-3 py-2 text-[var(--text-secondary)] text-left whitespace-nowrap">{costPerLesson}</td>}
                       {visibleColumns.paidBy && <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>}
                       <td className="px-3 py-2 text-left">
-                        <div className="inline-flex items-center gap-0.5">
+                        <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => openEdit(exp)}
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
                             title="Edit expense"
                           >
-                            <Pencil size={14} />
+                            <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => { setDeleteError(""); setConfirmDelete(exp); }}
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                             title="Delete expense"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -513,7 +519,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
               disabled={currentPage === 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
             >
-              <ChevronLeft size={14} /> Prev
+              <ChevronLeft size={16} /> Prev
             </Button>
             <span className="text-xs text-[var(--text-secondary)] tabular-nums">
               Page {currentPage} of {totalPages}
@@ -524,14 +530,14 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
               disabled={currentPage === totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
-              Next <ChevronRight size={14} />
+              Next <ChevronRight size={16} />
             </Button>
           </div>
         )}
 
         {/* Add expense modal */}
         <Modal open={showForm} onClose={() => setShowForm(false)} title={editingId ? "Edit Expense" : "Add Expense"}>
-          <div className="space-y-5">
+          <div className="space-y-6">
             {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
             {/* Child & Activity */}
@@ -543,7 +549,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                 <select
                   value={form.child_id}
                   onChange={e => onChildChange(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   <option value="">Select child</option>
                   {children.map(c => (
@@ -559,7 +565,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                   value={form.activity_name}
                   onChange={e => onActivityChange(e.target.value)}
                   disabled={!form.child_id}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
                 >
                   <option value="">Select activity</option>
                   {activityNames.map(n => (
@@ -578,7 +584,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                 value={form.institution}
                 onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
                 disabled={!form.activity_name}
-                className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
               >
                 <option value="">Select institution</option>
                 {institutionsForName.map(inst => (
@@ -596,7 +602,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                 <select
                   value={form.expense_type}
                   onChange={e => setForm(f => ({ ...f, expense_type: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   {EXPENSE_TYPES.map(t => (
                     <option key={t} value={t}>{t}</option>
@@ -619,7 +625,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                     }));
                   }}
                   placeholder="e.g. Term 2 fees, Registration"
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
             </div>
@@ -636,7 +642,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                   value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
               <div>
@@ -647,7 +653,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                   type="date"
                   value={form.payment_date}
                   onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
             </div>
@@ -664,7 +670,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                   value={form.num_lessons}
                   onChange={e => setForm(f => ({ ...f, num_lessons: e.target.value }))}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
               <div>
@@ -674,7 +680,7 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
                 <select
                   value={form.paid_by}
                   onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   {PAYERS.map(p => (
                     <option key={p} value={p}>{p}</option>
@@ -706,7 +712,9 @@ export default function ExpensesPage({ embedded = false }: { embedded?: boolean 
             <Button variant="danger" className="flex-1" onClick={deleteExpense} loading={deleting}>Delete</Button>
           </div>
         </Modal>
-      </div>
-    </div>
+      </PageBody>
+
+      <Fab label="Add payment" onClick={openAdd} />
+    </Shell>
   );
 }

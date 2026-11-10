@@ -36,12 +36,12 @@ export function EngagementTimeline({ activities, children }: Props) {
   const today = new Date();
   const dated = activities.filter(a => a.start_date);
 
-  const card = "border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6";
+  const card = "border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6";
 
   if (dated.length === 0) {
     return (
       <div className={card}>
-        <h3 className="text-base font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
+        <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
         <p className="mt-4 text-sm text-[var(--text-muted)]">No activities have a start date yet.</p>
       </div>
     );
@@ -86,16 +86,16 @@ export function EngagementTimeline({ activities, children }: Props) {
       <div className="hidden sm:block w-36 shrink-0" />
       <div className="flex-1 flex">
         {years.map(y => (
-          <span key={y} className="flex-1 text-[10px] font-medium text-[var(--text-muted)] text-center">{y}</span>
+          <span key={y} className="flex-1 text-xs font-medium text-[var(--text-muted)] text-center">{y}</span>
         ))}
       </div>
     </div>
   );
 
   return (
-    <div className={card}>
+    <div className={card} data-chart>
       <div className="mb-4">
-        <h3 className="text-base font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
+        <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
       </div>
 
       <div className="space-y-4">
@@ -110,9 +110,9 @@ export function EngagementTimeline({ activities, children }: Props) {
 
             {/* Phones: label on its own line above a full-width bar. sm+: a 9rem label
                 column, matching the Who Ferries Whom heatmap so both cards line up. */}
-            <div className="space-y-1.5 sm:space-y-1">
+            <div className="space-y-2 sm:space-y-1">
               {rows.map(({ label, stints }) => (
-                <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 sm:h-7">
+                <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1 sm:h-7">
                   <span className="sm:w-36 shrink-0 text-xs text-[var(--text-secondary)] whitespace-nowrap truncate" title={label}>{label}</span>
                   <div className="relative w-full sm:flex-1 h-5 bg-[var(--bg-secondary)] rounded-sm overflow-hidden">
                     {stints.map(a => {

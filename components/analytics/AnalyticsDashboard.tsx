@@ -26,6 +26,7 @@ import {
 } from "date-fns";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
+import { Utilities, PageBody } from "@/components/layout/Page";
 import { formatCurrency, getCurrentYear } from "@/lib/utils";
 import { EXPENSE_TYPE_COLORS } from "@/lib/constants";
 import { costPerHour } from "@/lib/cost-per-hour";
@@ -110,16 +111,16 @@ const recordBucket = (dateStr: string, gran: "week" | "month") =>
 // ── Reusable presentation pieces ──────────────────────────────────────────
 
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-base font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{children}</h3>;
+  return <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{children}</h3>;
 }
 
 function ChartCard({ title, subtitle, action, children, className = "" }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6 ${className}`}>
+    <div className={`border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6 ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          {subtitle && <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[var(--text-muted)] mt-1">{subtitle}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
@@ -168,12 +169,15 @@ function DonutTooltip({ active, payload, formatter, total }: any) {
 
 function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div className="inline-flex border border-[var(--rule)] bg-[var(--sheet)]">
+    // Compact chart toggle: same look and sizes as the shared tab switch, sized to its labels.
+    <div role="tablist" className="inline-flex h-10 border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)]">
       {options.map((o, i) => (
         <button
           key={o.value}
+          role="tab"
+          aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`px-3 py-1 text-xs font-medium cursor-pointer ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${value === o.value ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"}`}
+          className={`relative px-3 text-sm cursor-pointer first:rounded-l-[5px] last:rounded-r-[5px] before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${value === o.value ? "bg-[var(--ink)] text-[var(--sheet)] font-semibold" : "text-[var(--ink-soft)] font-medium hover:text-[var(--ink)]"}`}
         >
           {o.label}
         </button>
@@ -188,7 +192,7 @@ interface DonutDatum { name: string; value: number; color: string }
 function MiniDonutKpi({ label, data, center, formatter, animate }: { label: string; data: DonutDatum[]; center: string; formatter: (v: number) => string; animate: boolean }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6">
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6">
       <CardTitle>{label}</CardTitle>
       <div className="mt-3 flex items-center justify-center gap-3">
         <div className="relative w-24 h-24 shrink-0">
@@ -206,7 +210,7 @@ function MiniDonutKpi({ label, data, center, formatter, animate }: { label: stri
         </div>
         <div className="flex flex-col gap-1 min-w-0">
           {data.map((d, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[11px] min-w-0">
+            <div key={i} className="flex items-center gap-2 text-xs min-w-0">
               <span className="w-2 h-2 shrink-0" style={{ backgroundColor: d.color }} />
               <span className="truncate text-[var(--text-secondary)]">{d.name}</span>
             </div>
@@ -228,7 +232,7 @@ interface ActivityBarGroup {
 // bar can use the full card width instead of sharing it with a label column.
 function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGroup[]; format: (v: number) => string; onSelect: (id: string | null) => void }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {groups.map(g => {
         const rows = g.rows.filter(r => r.value > 0).sort((a, b) => b.value - a.value);
         if (rows.length === 0) return null;
@@ -239,13 +243,13 @@ function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGr
               <span className="w-2.5 h-2.5" style={{ backgroundColor: g.color }} />
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">{g.name}</h4>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {rows.map(r => (
                 <button
                   key={r.name}
                   onClick={() => onSelect(r.id)}
                   title={`${r.name} · ${format(r.value)}${r.detail ? ` (${r.detail})` : ""}`}
-                  className="relative flex items-center w-full h-7 rounded-[4px] bg-[var(--bg-secondary)] overflow-hidden cursor-pointer text-left"
+                  className="relative flex items-center w-full h-10 rounded-[4px] bg-[var(--bg-secondary)] cursor-pointer text-left after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
                 >
                   <span
                     className="absolute inset-y-0 left-0 rounded-[4px]"
@@ -272,7 +276,7 @@ const axisProps = {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
+export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegment; tabs?: React.ReactNode }) {
   const router = useRouter();
   const goToActivity = (id: string | null | undefined) => { if (id) router.push(`/activity/${id}`); };
   const { data: expensesData = [], isLoading: le } = useExpenses({ limit: 500 });
@@ -616,23 +620,30 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
   // the body only, behind the same skeleton the dynamic import shows.
   if (loading) {
     return (
-      <div className="px-5 md:px-8 space-y-6 pb-24 md:pb-8 pt-1 md:pt-2">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}</div>
-        {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] animate-pulse" />)}
-      </div>
+      // Same utility rows as the loaded view (pills · switch · filter) so nothing jumps.
+      <>
+        <Utilities>
+          <div className="h-10 w-48 bg-[var(--bg-secondary)] animate-pulse rounded-full" />
+          {tabs}
+          <div className="h-[76px] w-32 bg-[var(--bg-secondary)] animate-pulse" />
+        </Utilities>
+        <PageBody className="gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}</div>
+          {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] animate-pulse" />)}
+        </PageBody>
+      </>
     );
   }
 
   return (
     <>
-      <div className="px-5 md:px-8 space-y-10 pb-24 md:pb-8 pt-1 md:pt-2">
-        {/* Filter bar */}
-        <div className="space-y-3">
+      <Utilities>
           <ChildFilter
-            children={childrenData as Child[]}
+            childList={childrenData as Child[]}
             selected={selectedChildren}
             onToggle={toggleChild}
           />
+          {tabs}
           <FilterBar stretch>
             <FilterField label="Year">
               <MultiSelect
@@ -647,7 +658,9 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
               />
             </FilterField>
           </FilterBar>
-        </div>
+      </Utilities>
+
+      <PageBody className="gap-8">
 
         {/* ── Attendance ── */}
         {segment === "attendance" && (
@@ -683,9 +696,9 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                 <div className="h-[200px] flex items-center justify-center text-sm text-[var(--text-muted)]">No attended sessions in this period</div>
               )}
               {hoursViz.overTime.length > 0 && (
-                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
                   {hoursViz.groupNames.map((g, i) => (
-                    <div key={g} className="flex items-center gap-1.5 text-xs">
+                    <div key={g} className="flex items-center gap-2 text-xs">
                       <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
                       <span className="text-[var(--text-secondary)]">{g}</span>
                     </div>
@@ -725,9 +738,9 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+                  <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
                     {series.map(s => (
-                      <div key={s.key} className="flex items-center gap-1.5 text-xs">
+                      <div key={s.key} className="flex items-center gap-2 text-xs">
                         <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: s.color }} />
                         <span className="text-[var(--text-secondary)]">{s.name}</span>
                       </div>
@@ -762,7 +775,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                               <div
                                 key={i}
                                 title={`${load.dayNames[i]} · ${fmtHours(h)}`}
-                                className="h-8 rounded-sm flex items-center justify-center text-[10px] tabular-nums"
+                                className="h-8 rounded-sm flex items-center justify-center text-xs tabular-nums"
                                 style={{ backgroundColor: row.color, opacity: h > 0 ? Math.max(0.15, h / load.max) : 0.06 }}
                               >
                                 {h > 0 ? h.toFixed(1) : ""}
@@ -774,7 +787,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                       <div className="flex items-center gap-2 pl-16">
                         <div className="flex-1 grid grid-cols-7 gap-1">
                           {load.dayNames.map((d, i) => (
-                            <span key={i} className="text-center text-[10px] text-[var(--text-muted)]">{d}</span>
+                            <span key={i} className="text-center text-xs text-[var(--text-muted)]">{d}</span>
                           ))}
                         </div>
                       </div>
@@ -837,9 +850,9 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
-                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+                <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
                   {data.childNames.map(cn => (
-                    <div key={cn} className="flex items-center gap-1.5 text-xs">
+                    <div key={cn} className="flex items-center gap-2 text-xs">
                       <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.childColor(cn) }} />
                       <span className="text-[var(--text-secondary)]">{cn}</span>
                     </div>
@@ -863,7 +876,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                   >
                     <div />
                     {data.payerByChild.children.map(c => (
-                      <div key={c.id} className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--text-muted)] truncate">
+                      <div key={c.id} className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] truncate">
                         <span className="w-2 h-2 shrink-0" style={{ backgroundColor: c.color }} />
                         {c.name}
                       </div>
@@ -880,7 +893,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                             <div
                               key={c.id}
                               title={`${row.payer} → ${c.name}: ${formatCurrency(amt)}`}
-                              className="h-9 rounded-[4px] flex items-center justify-center text-[11px] tabular-nums"
+                              className="h-9 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
                               style={{
                                 backgroundColor: amt === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${c.color} ${Math.round(alpha * 100)}%, transparent)`,
                                 color: alpha > 0.55 ? "#fff" : "var(--text-primary)",
@@ -908,8 +921,8 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
                             className="absolute inset-y-0 left-0 rounded-[4px]"
                             style={{ width: `${max > 0 ? (d.value / max) * 100 : 0}%`, backgroundColor: `color-mix(in srgb, ${d.color} 35%, transparent)` }}
                           />
-                          <span className="relative flex-1 min-w-0 px-2.5 text-sm text-[var(--text-primary)] truncate">{d.name}</span>
-                          <span className="relative shrink-0 pr-2.5 text-sm font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(d.value)}</span>
+                          <span className="relative flex-1 min-w-0 px-3 text-sm text-[var(--text-primary)] truncate">{d.name}</span>
+                          <span className="relative shrink-0 pr-3 text-sm font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(d.value)}</span>
                         </div>
                       ));
                     })()}
@@ -925,7 +938,7 @@ export function AnalyticsDashboard({ segment }: { segment: AnalyticsSegment }) {
             )}
           </section>
         )}
-      </div>
+      </PageBody>
     </>
   );
 }

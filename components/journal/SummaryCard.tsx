@@ -154,7 +154,7 @@ function SummaryText({ text }: { text: string }) {
             <Tag
               key={i}
               className={block.level === 1
-                ? "text-lg font-semibold tracking-tight text-[var(--ink)] mt-5 first:mt-0"
+                ? "text-lg font-semibold tracking-tight text-[var(--ink)] mt-6 first:mt-0"
                 : "text-sm font-semibold tracking-tight text-[var(--ink)] mt-4 first:mt-0"}
             >
               <Inline text={block.text} />
@@ -163,7 +163,7 @@ function SummaryText({ text }: { text: string }) {
         }
         if (block.type === "ul") {
           return (
-            <ul key={i} className="space-y-1.5 pl-0 list-none">
+            <ul key={i} className="space-y-2 pl-0 list-none">
               {block.items.map((item, j) => (
                 <li key={j} className="relative pl-4 text-[var(--ink-soft)]">
                   <span className="absolute left-0 top-[0.55em] w-1.5 h-1.5 bg-[var(--stem)]" aria-hidden />
@@ -251,10 +251,10 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
     : "Generate an AI overview and key highlights from these reflections.";
 
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-5 md:p-6">
+    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <h3 className="text-base font-semibold text-[var(--ink)] truncate">{title}</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="font-semibold text-[var(--ink)] truncate">{title}</h3>
         </div>
         {summary && (
           <div className="shrink-0 flex items-center gap-3">
@@ -263,7 +263,7 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
               onClick={copy}
               className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer"
             >
-              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? "Copied" : "Copy"}
             </button>
             <button
@@ -272,7 +272,7 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
               disabled={loading}
               className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] disabled:opacity-50 cursor-pointer"
             >
-              {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               Regenerate
             </button>
           </div>
@@ -285,7 +285,7 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
         <div className="mt-3">
           <SummaryText text={summary} />
           {at && (
-            <p className="text-[11px] text-[var(--ink-faint)] mt-4">
+            <p className="text-xs text-[var(--ink-faint)] mt-4">
               Updated {formatDistanceToNow(new Date(at), { addSuffix: true })} · From the reflections
             </p>
           )}
@@ -297,9 +297,9 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
             type="button"
             onClick={generate}
             disabled={loading}
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-[var(--sheet)] bg-[var(--ink)] hover:bg-[var(--stem)] active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100 cursor-pointer"
+            className="mt-3 inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-[var(--sheet)] bg-[var(--ink)] hover:bg-[var(--stem)] active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100 cursor-pointer"
           >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
             {loading ? "Generating…" : "Generate Summary"}
           </button>
         </div>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "./IconButton";
 
 interface ModalProps {
   open: boolean;
@@ -45,17 +46,11 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
           sizeStyles[size]
         )}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--rule)] shrink-0">
-          <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
+        <div className="flex items-center justify-between h-16 px-6 border-b border-[var(--rule)] shrink-0">
+          <h2 className="font-semibold text-[var(--ink)]">{title}</h2>
+          <IconButton icon={X} label="Close" onClick={onClose} className="-mr-3" />
         </div>
-        <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
+        <div className="overflow-y-auto flex-1 px-6 py-6">{children}</div>
       </div>
     </div>
   );

@@ -86,9 +86,9 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">Action plan</h2>
+        <h2 className="font-semibold text-[var(--ink)]">Action plan</h2>
         {shown === "view" && hasPlan && open && (
-          <Button variant="secondary" size="sm" onClick={startEdit}><Pencil size={14} /> Edit plan</Button>
+          <Button variant="secondary" size="sm" onClick={startEdit}><Pencil size={16} /> Edit plan</Button>
         )}
       </div>
       {error && <p className="text-sm text-[var(--margin)] bg-[var(--margin)]/8 px-3 py-2">{error}</p>}
@@ -110,7 +110,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
             {hasPlan && <Button variant="secondary" className="flex-1" onClick={() => setMode("view")}>Cancel</Button>}
             <Button className="flex-[2]" onClick={draft}><Sparkles size={16} /> Draft action plan</Button>
           </div>
-          <button type="button" onClick={writeOwn} className="block mx-auto min-h-9 px-2 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:underline">
+          <button type="button" onClick={writeOwn} className="block mx-auto min-h-12 px-2 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:underline">
             Or write the checkpoints myself
           </button>
         </div>
@@ -118,7 +118,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
 
       {shown === "drafting" && (
         <div className="bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] p-4 flex items-center gap-3 text-sm text-[var(--ink)]" role="status">
-          <Loader2 size={18} className="animate-spin text-[var(--stem)]" /> Drafting checkpoints…
+          <Loader2 size={20} className="animate-spin text-[var(--stem)]" /> Drafting checkpoints…
         </div>
       )}
 
@@ -136,14 +136,14 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
                   <label htmlFor={`due-${r.key}`} className="text-xs font-semibold text-[var(--stem)]">By</label>
                   <input id={`due-${r.key}`} type="date" value={r.due_date} max={day(goal.target_date)}
                     onChange={e => patchRow(r.key, { due_date: e.target.value })}
-                    className={cn(inputCls, "w-auto min-w-0 py-1.5")} />
+                    className={cn(inputCls, "w-auto min-w-0 py-2")} />
                   {r.hit_date && (
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#d9eadc] text-[#1f5a3c] whitespace-nowrap">Hit {format(parseISO(r.hit_date), "d MMM")}</span>
+                    <span className="text-xs font-bold px-2 py-1 rounded-full bg-[#d9eadc] text-[#1f5a3c] whitespace-nowrap">Hit {format(parseISO(r.hit_date), "d MMM")}</span>
                   )}
                   <span className="flex-1" />
                   <button type="button" onClick={() => setRows(rs => rs.filter(x => x.key !== r.key))}
                     aria-label={`Remove checkpoint ${i + 1}`}
-                    className="w-10 h-10 flex items-center justify-center text-[var(--ink-soft)] hover:text-[var(--margin)] cursor-pointer">
+                    className="w-12 h-12 flex items-center justify-center text-[var(--ink-soft)] hover:text-[var(--margin)] cursor-pointer">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -153,7 +153,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
             ))}
             <button type="button"
               onClick={() => setRows(rs => [...rs, { key: newKey(), due_date: day(goal.target_date), text: "", hit_date: null }])}
-              className="w-full min-h-12 flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:bg-[var(--bg-secondary)]">
+              className="w-full min-h-12 flex items-center justify-center gap-2 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:bg-[var(--bg-secondary)]">
               <Plus size={16} /> Add checkpoint
             </button>
           </div>
@@ -162,8 +162,8 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
             <Button className="flex-1" onClick={save} loading={saving}>Save plan</Button>
           </div>
           <button type="button" onClick={() => setMode("prompt")}
-            className="mx-auto flex items-center gap-1.5 min-h-9 px-2 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:underline">
-            <Sparkles size={14} /> Redraft with Claude
+            className="mx-auto flex items-center gap-2 min-h-12 px-2 text-sm font-semibold text-[var(--stem)] cursor-pointer hover:underline">
+            <Sparkles size={16} /> Redraft with Claude
           </button>
         </div>
       )}
@@ -188,7 +188,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
                         : missed ? "border-[#b45309]"
                         : next ? "border-[var(--stem)]" : "border-dashed border-[#9aa9a0]"
                     )}>
-                      {busyId === c.id ? <Loader2 size={13} className="animate-spin text-[var(--ink-soft)]" /> : hit && <Check size={14} strokeWidth={3.2} />}
+                      {busyId === c.id ? <Loader2 size={16} className="animate-spin text-[var(--ink-soft)]" /> : hit && <Check size={16} strokeWidth={3.2} />}
                     </span>
                   </button>
                   <div className="py-2 min-w-0">

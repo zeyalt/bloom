@@ -6,6 +6,7 @@ import { Pencil, NotebookPen, ChevronDown, Sparkles, ExternalLink } from "lucide
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
+import { Page, Utilities, PageBody } from "@/components/layout/Page";
 import { Segmented } from "@/components/ui/Segmented";
 import { SingleSelect } from "@/components/ui/FilterDropdown";
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
@@ -131,18 +132,18 @@ export default function JournalPage() {
   ];
 
   return (
-    <div className="max-w-[900px] mx-auto w-full">
+    <Page>
       <Header title="Journal" subtitle="Notes from class" />
 
-      <div className={cn("px-5 md:px-8 pt-4 md:pt-6", subTab === "chat" ? "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-24 md:pb-8")}>
-        {subTab !== "chat" && (
-          <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        )}
+      <Utilities>
+        {/* Chat ignores the child filter, but keeps its row so the switch below never moves. */}
+        <div className={subTab === "chat" ? "invisible" : undefined} aria-hidden={subTab === "chat" || undefined}>
+          <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
+        </div>
 
-        {/* Sub-tabs — stretch full width */}
-        <Segmented className="mb-4" fullWidth value={subTab} onChange={setSubTab} options={subTabs} />
+        <Segmented ariaLabel="Journal view" value={subTab} onChange={setSubTab} options={subTabs} />
 
-        <FilterBar stretch className={subTab === "chat" ? "hidden" : "mb-5"}>
+        <FilterBar stretch className={subTab === "chat" ? "hidden" : undefined}>
           <FilterField label="Activity">
             <SingleSelect
               className="w-44"
@@ -156,6 +157,9 @@ export default function JournalPage() {
             />
           </FilterField>
         </FilterBar>
+      </Utilities>
+
+      <PageBody clear="nav">
 
         {/* ── Reflections ── */}
         {subTab === "reflections" && (
@@ -163,16 +167,16 @@ export default function JournalPage() {
             <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-[var(--bg-secondary)] rounded-xl animate-pulse" />)}</div>
           ) : entries.length === 0 ? (
             <div className="text-center py-16 text-[var(--text-muted)]">
-              <NotebookPen size={28} className="mx-auto mb-3 opacity-60" />
+              <NotebookPen size={32} className="mx-auto mb-3 opacity-60" />
               <p className="text-sm">No reflections yet.</p>
               <p className="text-xs mt-1">Add a reflection when confirming a session.</p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-6">
               {groups.map(group => (
                 <div key={group.label}>
                   <p className="text-sm text-[var(--ink-faint)] mb-2">{group.label}</p>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {group.items.map(log => {
                       const child = log.child ?? children.find(c => c.id === log.child_id);
                       const title = log.activity?.activity_name || log.activity?.institution || "Activity";
@@ -180,22 +184,22 @@ export default function JournalPage() {
                       const snippet = getReflectionText(log.learned, log.diary_notes);
                       return (
                         <div key={log.id} className="border-b border-[var(--rule)] overflow-hidden">
-                          <button onClick={() => toggle(log.id)} className="w-full text-left px-3.5 py-2.5 flex items-center gap-2.5 cursor-pointer">
+                          <button onClick={() => toggle(log.id)} className="w-full text-left px-4 py-3 min-h-12 flex items-center gap-2 cursor-pointer">
                             <span className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums shrink-0 w-12">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
                             {child && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />}
                             <span className="text-sm font-medium text-[var(--text-primary)] shrink-0 max-w-[38%] truncate">{title}</span>
                             {!isOpen && <span className="text-sm text-[var(--text-muted)] truncate flex-1 min-w-0">{snippet}</span>}
-                            <ChevronDown size={15} className={cn("shrink-0 ml-auto text-[var(--text-muted)] transition-transform", isOpen && "rotate-180")} />
+                            <ChevronDown size={16} className={cn("shrink-0 ml-auto text-[var(--text-muted)] transition-transform", isOpen && "rotate-180")} />
                           </button>
                           {isOpen && (
-                            <div className="px-3.5 pb-3 pt-0.5 border-t border-[var(--border)]/60">
+                            <div className="px-4 pb-3 pt-1 border-t border-[var(--border)]/60">
                               <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap mt-2">{snippet}</p>
                               <div className="mt-3 flex items-center gap-4">
-                                <button onClick={() => openEdit(log)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-primary)] hover:opacity-80 cursor-pointer">
-                                  <Pencil size={13} /> Edit
+                                <button onClick={() => openEdit(log)} className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--accent-primary)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
+                                  <Pencil size={16} /> Edit
                                 </button>
-                                <button onClick={() => router.push(`/activity/${log.activity_id}`)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
-                                  <ExternalLink size={13} /> Open activity
+                                <button onClick={() => router.push(`/activity/${log.activity_id}`)} className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
+                                  <ExternalLink size={16} /> Open activity
                                 </button>
                               </div>
                             </div>
@@ -214,7 +218,7 @@ export default function JournalPage() {
         {subTab === "highlights" && (
           entries.length === 0 ? (
             <div className="text-center py-16 text-[var(--text-muted)]">
-              <Sparkles size={28} className="mx-auto mb-3 opacity-60" />
+              <Sparkles size={32} className="mx-auto mb-3 opacity-60" />
               <p className="text-sm">Nothing to summarise yet.</p>
               <p className="text-xs mt-1">Add reflections to a child’s activities, then generate highlights here.</p>
             </div>
@@ -251,7 +255,7 @@ export default function JournalPage() {
           onSaved={fetchAll}
           title="Edit Reflection"
         />
-      </div>
-    </div>
+      </PageBody>
+    </Page>
   );
 }

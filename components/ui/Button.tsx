@@ -15,10 +15,12 @@ const variantStyles = {
   danger:    "text-[var(--margin)] border border-[var(--margin)]/30 hover:bg-[var(--margin)]/8",
 };
 
+// Two heights only: 52px for primary/standalone buttons (md, lg) and 40px for
+// compact secondary buttons (sm), whose tap zone is padded out to 48px.
 const sizeStyles = {
-  sm: "px-3 py-2 text-sm rounded-[var(--radius-md)] gap-1.5 font-medium min-h-9",
-  md: "px-4 py-2.5 text-sm rounded-[var(--radius-md)] gap-2 font-medium min-h-10",
-  lg: "px-5 py-3 text-base rounded-[var(--radius-md)] gap-2 font-medium min-h-11",
+  sm: "h-10 px-4 text-sm rounded-[var(--radius-md)] gap-2 font-medium relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
+  md: "h-13 px-6 text-base rounded-[var(--radius-md)] gap-2 font-semibold",
+  lg: "h-13 px-6 text-base rounded-[var(--radius-md)] gap-2 font-semibold",
 };
 
 export function Button({
@@ -34,7 +36,7 @@ export function Button({
     <button
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer",
+        "inline-flex items-center justify-center shrink-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer",
         variantStyles[variant],
         sizeStyles[size],
         className

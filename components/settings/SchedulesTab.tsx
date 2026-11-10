@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, X, ChevronUp, ChevronDown } from "lucide-react";
 import { isBefore, startOfToday, parseISO } from "date-fns";
 import { Button } from "@/components/ui/Button";
+import { Fab } from "@/components/ui/Fab";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Avatar } from "@/components/ui/Avatar";
@@ -267,10 +268,10 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
   // ── Renderers ──
   function categoryHeading(category?: ActivityCategory) {
     return (
-      <div className="mb-2 mt-5 first:mt-0">
+      <div className="mb-2 mt-6 first:mt-0">
         {category ? (
           <span
-            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
             style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
           >
             {category.icon && <span className="mr-1">{category.icon}</span>}
@@ -294,10 +295,10 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     return (
       <div key={`${act.id}|${card.term ?? ""}`} className="mb-4 border border-[var(--border)] rounded-xl overflow-hidden">
         {/* Card header */}
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] flex-wrap">
+        <div className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] flex-wrap">
           {opts?.showCategoryChip && card.category && (
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
               style={{ backgroundColor: `${card.category.color_code}15`, color: card.category.color_code }}
             >
               {card.category.icon && <span className="mr-1">{card.category.icon}</span>}
@@ -308,27 +309,27 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {secondary && <span className="text-xs text-[var(--text-muted)]">· {secondary}</span>}
           {act.status !== "active" && <Badge label={act.status} variant="muted" />}
           {card.level && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
               {card.level}
             </span>
           )}
           {card.term && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
               {/^term\b/i.test(card.term.trim()) ? card.term : `Term ${card.term}`}
             </span>
           )}
           {range && <span className="text-xs text-[var(--text-muted)]">{range}</span>}
           <button
             onClick={() => openEditCard(card)}
-            className="ml-auto p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors shrink-0"
+            className="ml-auto w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors shrink-0"
             title="Edit schedule"
-          ><Pencil size={14} /></button>
+          ><Pencil size={16} /></button>
         </div>
 
         {/* Schedule rows */}
         <div className="divide-y divide-[var(--border)]">
           {card.slots.map(s => (
-            <div key={s.id} className="flex items-center gap-3 px-4 py-2.5">
+            <div key={s.id} className="flex items-center gap-3 px-4 py-3">
               <span className="text-xs font-medium text-[var(--text-secondary)] w-8 shrink-0">
                 {dayLabel(s.day_of_week)}
               </span>
@@ -340,9 +341,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               {!s.is_active && <Badge label="Inactive" variant="muted" />}
               <button
                 onClick={() => setConfirmDelete(s)}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
                 title="Delete day"
-              ><Trash2 size={14} /></button>
+              ><Trash2 size={16} /></button>
             </div>
           ))}
         </div>
@@ -352,13 +353,11 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[var(--text-secondary)]">{schedules.length} schedule slots</p>
-        <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Schedule</Button>
-      </div>
+      <Fab label="Add schedule" onClick={openAdd} />
+      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{schedules.length} schedule slots</p>
 
       {/* Child filter pills */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-6">
         {children.map(child => {
           const count = schedules.filter(s => {
             const act = activities.find(a => a.id === s.activity_id);
@@ -370,7 +369,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               key={child.id}
               onClick={() => setFilterChildId(child.id)}
               className={cn(
-                "inline-flex items-center gap-2 h-9 text-sm font-medium border-b-2 cursor-pointer",
+                "inline-flex items-center gap-2 h-10 text-sm font-medium border-b-2 cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
                 active
                   ? "text-[var(--ink)]"
                   : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-soft)]"
@@ -404,9 +403,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         <div className="mt-4">
           <button
             onClick={() => setShowEnded(v => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {showEnded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {showEnded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {showEnded ? "Hide" : "Show"} {endedCards.length} ended
           </button>
           {showEnded && (
@@ -523,7 +522,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                     onClick={() => setSlots(prev => prev.filter((_, idx) => idx !== i))}
                     className="absolute top-2 right-2 p-1 rounded text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
                     title="Remove day"
-                  ><X size={14} /></button>
+                  ><X size={16} /></button>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -573,9 +572,9 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
           <button
             onClick={() => setSlots(prev => [...prev, emptySlot()])}
-            className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
           >
-            <Plus size={14} /> Add another day
+            <Plus size={16} /> Add another day
           </button>
 
           <div className="flex items-center gap-2">

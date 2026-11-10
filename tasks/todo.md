@@ -205,3 +205,100 @@ Prototype: https://claude.ai/artifact/H6Ms8NfeX9yoZ4XL2g6jiu
 - Extra: Journal Chat's SQL schema now includes the goal tables.
 - Pre-existing lint errors left alone (AppShell/spa-nav set-state-in-effect,
   HomeView no-children-prop).
+
+---
+
+# UI/UX consistency pass (design system + tab alignment)
+
+Audit (iPhone 13, before): header title already identical (top 24, left 20).
+Everything around it drifts — tab switches in 4 places/4 styles (History's in
+the header truncates the title to "Hist…"); child pills at y≈124/135/140/180;
+create actions in header / mid-page / toolbar; 13 different tappable heights
+(15–56px); 20px gutter is off-scale.
+
+## Decisions (agreed)
+- Gutter **16px** phone, 32px desktop. Spacing only from the 4px scale
+  (4/8/12/16/24/32/48) — no 6/10/14/20px.
+- Sizes: **52px** primary buttons · **48px** inputs/selects · **40px**
+  secondary buttons, pills, segmented tabs — every hit zone ≥ 48×48 ·
+  icons in a 24×24 box.
+- Create actions → one **floating + button** (56px round), bottom-right above
+  the tab bar, same spot on every tab; tabs with nothing to create show none.
+
+## Structure every screen follows (one `Page` component enforces it)
+1. **Header** — fixed height; title + subtitle left; right slot holds only
+   48×48 icon buttons (settings gear; Edit on detail pages). No text buttons
+   or switches in the header.
+2. **Utilities**, always in this order, 12px apart:
+   a. child pills (same component everywhere; single-select variant on Goals)
+   b. tab switch (one `Segmented` style: full width, 40px)
+   c. filter fields (Year / Activity selects, 48px)
+3. **Summary** (e.g. Home's not-logged card, History's record count)
+4. **Primary element** (e.g. Home's week bar)
+5. **Feed** — sections 24px apart, one heading style
+6. **FAB** — fixed; content gets bottom padding so nothing hides under it
+
+## Plan
+- [x] Tokens in `globals.css` + Tailwind theme: spacing scale, control heights,
+      gutter, type scale (title 28/32, section 16/24, body 14/20, meta 12/16)
+- [x] `Page` layout (header + utilities + content + FAB slot) and `Header`
+      with fixed height and icon-only actions; `IconButton` (48 hit / 24 icon)
+- [x] Shared controls resized: `Button` (lg 52 / md 40), `Segmented` (40, full
+      width), `ChildFilter` (40, + single-select mode), inputs/selects (48),
+      `FilterBar`, `Fab`; bottom nav items 48×48 min, icon box 24, label centred
+- [x] Move every tab onto `Page`: Home, Goals, History, Analytics, Journal,
+      Settings, plus Activity and Goal detail pages
+  - History: Sessions/Payments switch out of the header → utilities row
+  - Settings: underline tabs → the shared `Segmented`
+  - Home "Add event", Goals "New goal", History "+ Add" → FAB
+    (Settings sub-tabs' add buttons → FAB too)
+  - Goal detail "Edit" → pencil icon button
+- [x] Sweep off-grid spacing (`*-1.5`, `*-2.5`, `*-3.5`, `*-5`) in views,
+      modals and shared components onto the scale
+- [x] Modals: inputs 48, footer buttons 52
+
+## Verification
+- [x] Measurement script on iPhone 13 + 1280px desktop, every tab: h1 top/left,
+      header height, child-pill row top, tab-switch top, first filter top, FAB
+      position, gutter left/right — must match **to the pixel** across tabs
+      that share the element; every tappable ≥ 48×48 hit zone; no control
+      heights outside {40, 48, 52, 56}
+- [x] Side-by-side screenshots of all tabs before/after
+- [x] tsc, eslint (new code), `next build`; no console errors
+
+## Review
+
+**Measured after (iPhone 13 and 1280px desktop, every tab):**
+- Header 96px on every tab; title at (16, 24) on phones and x=240 on desktop
+  (was: 7 different page widths, so desktop titles shifted per tab).
+- Child pills at y=96 on Home / Goals / History / Analytics / Journal.
+- Tab switch at y=148 on History / Analytics / Journal; y=96 on Settings
+  (no pills there — the one intended difference).
+- First filter at y=228; gear and FAB at identical coordinates.
+- Every control in the content area passes a real tap test (elementFromPoint
+  23px above/below/left/right of centre lands on the control). Exempt: the
+  Analytics engagement-timeline marks (a chart, tagged `data-chart`).
+- Dialog controls only 40 / 48 / 52px. No console or page errors.
+
+**Built:** `Page` / `Utilities` / `PageBody` / `SectionHeading` (components/layout/Page.tsx),
+fixed-height `Header` + `BackButton`, `IconButton` (48 / 24), `Fab`; `Button`
+(52 default, 40 `sm`), `Segmented` (one switch everywhere), `ChildFilter`
+(40px, `single` mode, prop renamed `childList`), 48px dropdown triggers and a
+global 48px rule for text inputs/selects; bottom nav 56px items, 24px icon box,
+safe-area padding.
+
+**Found and fixed on the way:**
+- Global h1/h2/h3 rules were unlayered, so they overrode every component's
+  heading classes (titles rendered 24px, not the intended size). Moved to
+  `@layer base` with one scale.
+- Invisible 48px tap zones were clipped by `truncate` / `overflow-hidden`
+  parents and measured 46px on bordered controls — now an exact 48px zone
+  centred on the control, with clipping moved to inner spans.
+- Home: a logged/unlogged row now has one 48px action; the recurring-slot
+  delete moved inside the schedule editor.
+
+**Lint:** no new findings; 5 pre-existing ones fixed (40 → 35, the rest predate this).
+
+**Known limits:** Settings › Activities / Schedules keep their own per-child
+tabs inside the content; Analytics charts' internal spacing (recharts) is
+untouched beyond the sweep.

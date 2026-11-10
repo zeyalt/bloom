@@ -4,6 +4,8 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarCheck, Receipt } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { Page, GUTTER } from "@/components/layout/Page";
+import { Segmented } from "@/components/ui/Segmented";
 import { cn } from "@/lib/utils";
 
 export type AnalyticsSegment = "attendance" | "spending";
@@ -19,9 +21,10 @@ const AnalyticsDashboard = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="px-5 md:px-8 space-y-6 pb-24 md:pb-8 pt-4 md:pt-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse" />)}
+      <div className={cn(GUTTER, "flex flex-col gap-6")}>
+        <div className="flex flex-col gap-3">
+          <div className="h-10 w-48 bg-[var(--bg-secondary)] animate-pulse rounded-full" />
+          <div className="h-10 bg-[var(--bg-secondary)] animate-pulse" />
         </div>
         {[1, 2].map(i => <div key={i} className="h-80 bg-[var(--bg-secondary)] animate-pulse" />)}
       </div>
@@ -29,39 +32,24 @@ const AnalyticsDashboard = dynamic(
   }
 );
 
-function SegmentedControl({ value, onChange }: { value: AnalyticsSegment; onChange: (v: AnalyticsSegment) => void }) {
-  const options: { value: AnalyticsSegment; label: string; icon: typeof CalendarCheck }[] = [
-    { value: "attendance", label: "Attendance", icon: CalendarCheck },
-    { value: "spending", label: "Spending", icon: Receipt },
-  ];
-  return (
-    <div className="flex border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)]">
-      {options.map(({ value: v, label, icon: Icon }, i) => (
-        <button
-          key={v}
-          onClick={() => onChange(v)}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium cursor-pointer",
-            i > 0 && "border-l border-[var(--rule)]",
-            value === v ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
-          )}
-        >
-          <Icon size={14} /> {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export default function AnalyticsPage() {
   const [segment, setSegment] = useState<AnalyticsSegment>("attendance");
+  // The dashboard renders the switch between its child pills and its filters.
+  const tabs = (
+    <Segmented
+      ariaLabel="Analytics view"
+      value={segment}
+      onChange={setSegment}
+      options={[
+        { value: "attendance", label: "Attendance", icon: CalendarCheck },
+        { value: "spending", label: "Spending", icon: Receipt },
+      ]}
+    />
+  );
   return (
-    <div className="max-w-[1200px] mx-auto w-full">
+    <Page>
       <Header title="Analytics" subtitle="Spend and hours" />
-      <div className="px-5 md:px-8 pb-3">
-        <SegmentedControl value={segment} onChange={setSegment} />
-      </div>
-      <AnalyticsDashboard segment={segment} />
-    </div>
+      <AnalyticsDashboard segment={segment} tabs={tabs} />
+    </Page>
   );
 }

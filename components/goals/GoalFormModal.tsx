@@ -116,7 +116,7 @@ export function GoalFormModal({
                   )}
                 >
                   <span className="block text-sm font-semibold text-[var(--ink)]">{label}</span>
-                  <span className="block text-xs text-[var(--ink-soft)] mt-0.5">{hint}</span>
+                  <span className="block text-xs text-[var(--ink-soft)] mt-1">{hint}</span>
                 </button>
               ))}
             </div>
@@ -137,7 +137,7 @@ export function GoalFormModal({
                 {[...METRICS.map(m => m.name), "Other"].map(name => (
                   <button key={name} type="button" aria-pressed={metric === name} onClick={() => setMetric(name)}
                     className={cn(
-                      "h-9 px-3.5 rounded-full text-sm font-medium border cursor-pointer",
+                      "h-10 px-4 rounded-full text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
                       metric === name ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)] hover:text-[var(--ink)]"
                     )}>
                     {name}

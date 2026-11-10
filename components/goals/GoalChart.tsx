@@ -71,7 +71,7 @@ export function GoalChart({ goal, progress, today }: { goal: Goal; progress: Mea
         <path d={path} fill="none" stroke={INK} strokeWidth={2.25} strokeLinejoin="round" />
         {readings.map(r => <circle key={r.id} cx={X(r.date)} cy={Y(r.value)} r={3.5} fill={INK} />)}
       </svg>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px] text-[var(--ink-soft)]">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-[var(--ink-soft)]">
         <Legend stroke={INK} width={2.25} label="Readings" />
         <Legend stroke={PLAN} width={2.5} label="Planned path" />
         <Legend stroke={TREND} width={1.5} dash="2 3" label="Trend" />
@@ -83,7 +83,7 @@ export function GoalChart({ goal, progress, today }: { goal: Goal; progress: Mea
 
 function Legend({ stroke, width, dash, label }: { stroke: string; width: number; dash?: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-2">
       <svg width="18" height="8" aria-hidden="true"><line x1="0" x2="18" y1="4" y2="4" stroke={stroke} strokeWidth={width} strokeDasharray={dash} /></svg>
       {label}
     </span>

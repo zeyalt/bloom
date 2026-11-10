@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Avatar } from "@/components/ui/Avatar";
+import { ChildFilter } from "@/components/ui/ChildFilter";
+import { Fab } from "@/components/ui/Fab";
+import { Page, Utilities, PageBody, SectionHeading } from "@/components/layout/Page";
 import { Button } from "@/components/ui/Button";
 import { GoalFormModal } from "@/components/goals/GoalFormModal";
 import { GoalSparkline } from "@/components/goals/GoalChart";
@@ -47,35 +49,19 @@ export default function GoalsView() {
   const open = (g: Goal) => router.push(`/goals/${g.id}`);
 
   return (
-    <div className="max-w-[900px] mx-auto w-full">
-      <Header
-        title="Goals"
-        subtitle="Aims and plans"
-        action={<Button size="sm" onClick={() => setCreating(true)} disabled={!child}><Plus size={16} /> New goal</Button>}
-      />
-      <div className="px-5 md:px-8 pb-24 md:pb-10 space-y-4">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Child">
-          {children.map(c => {
-            const on = c.id === childId;
-            return (
-              <button key={c.id} type="button" aria-pressed={on} onClick={() => pickChild(c.id)}
-                style={on ? { backgroundColor: c.color_code } : undefined}
-                className={cn(
-                  "inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-medium border cursor-pointer",
-                  on ? "text-white border-transparent" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)] hover:text-[var(--ink)]"
-                )}>
-                <Avatar avatarKey={c.avatar_key} fallbackEmoji={c.avatar_emoji} size={20} />
-                {c.name}
-              </button>
-            );
-          })}
-        </div>
+    <Page>
+      <Header title="Goals" subtitle="Aims and plans" />
 
+      <Utilities>
+        <ChildFilter single childList={children} selected={childId ? [childId] : []} onToggle={pickChild} />
+      </Utilities>
+
+      <PageBody>
         {isLoading ? (
-          [1, 2].map(i => <div key={i} className="h-28 bg-[var(--bg-secondary)] animate-pulse rounded-[var(--radius-lg)]" />)
+          [1, 2].map(i => <div key={i} className="h-32 bg-[var(--bg-secondary)] animate-pulse rounded-[var(--radius-lg)]" />)
         ) : active.length === 0 ? (
-          <div className="border border-dashed border-[var(--rule)] bg-[var(--sheet)] px-5 py-8 text-center space-y-3">
-            <p className="text-sm text-[var(--ink-soft)]">No goals yet for {child?.name ?? "this child"}.</p>
+          <div className="border border-dashed border-[var(--rule)] bg-[var(--sheet)] px-4 py-8 text-center flex flex-col items-center gap-3">
+            <p className="text-sm leading-5 text-[var(--ink-soft)]">No goals yet for {child?.name ?? "this child"}.</p>
             <Button size="sm" variant="secondary" onClick={() => setCreating(true)} disabled={!child}><Plus size={16} /> Add a goal</Button>
           </div>
         ) : (
@@ -85,18 +71,18 @@ export default function GoalsView() {
         )}
 
         {achieved.length > 0 && (
-          <section className="pt-2 space-y-2">
-            <h2 className="text-sm font-semibold text-[var(--ink)]">Achieved</h2>
+          <section className="flex flex-col gap-2">
+            <SectionHeading>Achieved</SectionHeading>
             <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
               {achieved.map(g => {
                 const done = achievedDate(g)!;
                 return (
                   <li key={g.id}>
-                    <button type="button" onClick={() => open(g)} className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer hover:bg-[var(--bg-secondary)]">
-                      <span className="w-[26px] h-[26px] rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0"><Check size={14} strokeWidth={3} /></span>
+                    <button type="button" onClick={() => open(g)} className="w-full flex items-center gap-3 px-4 py-3 min-h-16 text-left cursor-pointer hover:bg-[var(--bg-secondary)]">
+                      <span className="w-6 h-6 rounded-full bg-[#16A34A] text-white flex items-center justify-center shrink-0"><Check size={16} strokeWidth={3} /></span>
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-[var(--ink)]">{g.kind === "measured" ? `${g.title} ${fmtValue(g.target_value ?? 0, g.unit)}` : g.title}</span>
-                        <span className="block text-xs text-[var(--ink-soft)]">Achieved {formatDate(done)} — {earlyLateLabel(done, day(g.target_date))}</span>
+                        <span className="block text-sm leading-5 font-semibold text-[var(--ink)]">{g.kind === "measured" ? `${g.title} ${fmtValue(g.target_value ?? 0, g.unit)}` : g.title}</span>
+                        <span className="block text-xs leading-4 text-[var(--ink-soft)]">Achieved {formatDate(done)} — {earlyLateLabel(done, day(g.target_date))}</span>
                       </span>
                     </button>
                   </li>
@@ -105,12 +91,14 @@ export default function GoalsView() {
             </ul>
           </section>
         )}
-      </div>
+      </PageBody>
+
+      <Fab label="New goal" onClick={() => child && setCreating(true)} />
 
       {creating && (
         <GoalFormModal open onClose={() => setCreating(false)} child={child} onCreated={id => router.push(`/goals/${id}`)} />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -119,12 +107,12 @@ function GoalCard({ goal, today, onOpen }: { goal: Goal; today: string; onOpen: 
   const target = day(goal.target_date);
   return (
     <button type="button" onClick={onOpen}
-      className="w-full text-left flex flex-col gap-2.5 p-4 bg-[var(--sheet)] border border-[var(--rule)] cursor-pointer hover:border-[var(--ink-faint)]">
+      className="w-full text-left flex flex-col gap-3 p-4 bg-[var(--sheet)] border border-[var(--rule)] cursor-pointer hover:border-[var(--ink-faint)]">
       <span className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold tracking-wide uppercase text-[var(--ink-soft)]">{goal.kind === "measured" ? "Measured" : "Milestone"}</span>
-        <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full", TONE_CLASSES[status.tone])}>{status.label}</span>
+        <span className="text-xs leading-4 font-bold tracking-wide uppercase text-[var(--ink-soft)]">{goal.kind === "measured" ? "Measured" : "Milestone"}</span>
+        <span className={cn("text-xs leading-4 font-bold px-2 py-1 rounded-full", TONE_CLASSES[status.tone])}>{status.label}</span>
       </span>
-      <span className="text-base font-semibold text-[var(--ink)] leading-snug">
+      <span className="text-base leading-6 font-semibold text-[var(--ink)]">
         {goal.kind === "measured" ? `${goal.title} → ${fmtValue(goal.target_value ?? 0, goal.unit)}` : goal.title}
       </span>
       {goal.kind === "measured" ? <MeasuredSummary goal={goal} /> : <MilestoneSummary goal={goal} today={today} />}
@@ -143,7 +131,7 @@ function MilestoneSummary({ goal, today }: { goal: Goal; today: string }) {
     );
   }
   return (
-    <span className="flex flex-col gap-1.5">
+    <span className="flex flex-col gap-2">
       <span className="flex gap-[3px] h-2" aria-label={`${p.hitCount} of ${p.checkpoints.length} checkpoints hit`}>
         {p.checkpoints.map(c => (
           <span key={c.id} className="flex-1 rounded-sm" style={{

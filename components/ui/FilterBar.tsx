@@ -17,7 +17,7 @@ export function FilterField({
 }) {
   return (
     <div className={cn("shrink-0", className)}>
-      <label className="block text-sm text-[var(--ink-faint)] mb-1.5">
+      <label className="block text-sm leading-5 text-[var(--ink-soft)] mb-2">
         {label}
       </label>
       {children}
@@ -62,14 +62,14 @@ export function FilterBar({
             // that padding sits inside `w-full` and would leave the last filter
             // short of the content edge. Bleed only below the stretch threshold,
             // where the row genuinely scrolls.
-            ? "max-[519px]:-mx-5 max-[519px]:px-5 min-[520px]:w-full [&>*]:min-[520px]:flex-1 [&>*]:min-[520px]:min-w-0 [&>*>div]:min-[520px]:w-full [&>*>input]:min-[520px]:w-full"
-            : "-mx-5 px-5 md:-mx-8 md:px-8"
+            ? "max-[519px]:-mx-4 max-[519px]:px-4 min-[520px]:w-full [&>*]:min-[520px]:flex-1 [&>*]:min-[520px]:min-w-0 [&>*>div]:min-[520px]:w-full [&>*>input]:min-[520px]:w-full"
+            : "-mx-4 px-4 md:-mx-8 md:px-8"
         )}
       >
         {children}
       </div>
       {trailing && (
-        <div className="shrink-0 sm:ml-auto sm:pb-2.5">{trailing}</div>
+        <div className="shrink-0 sm:ml-auto sm:pb-3">{trailing}</div>
       )}
     </div>
   );

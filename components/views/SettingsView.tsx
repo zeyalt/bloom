@@ -7,7 +7,8 @@ import { ChildrenTab } from "@/components/settings/ChildrenTab";
 import { ActivitiesTab } from "@/components/settings/ActivitiesTab";
 import { SchedulesTab } from "@/components/settings/SchedulesTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
-import { cn } from "@/lib/utils";
+import { Page, Utilities, PageBody } from "@/components/layout/Page";
+import { Segmented } from "@/components/ui/Segmented";
 import { useChildren, useActivities, useSchedules, useCategories } from "@/lib/api-hooks";
 
 const TABS = [
@@ -41,28 +42,15 @@ export default function SettingsPage() {
   const activeTabConfig = TABS.find(t => t.key === activeTab);
 
   return (
-    <div className="max-w-[860px] mx-auto w-full">
+    <Page>
       <Header title="Settings" subtitle={activeTabConfig?.subtitle || "Manage settings"} />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
-        {/* Tab bar — tabs share width so they fit without scrolling */}
-        <div className="flex mb-8 border-b border-[var(--rule)]">
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "flex-1 px-2 py-2 text-sm font-medium border-b-2 -mb-px cursor-pointer",
-                activeTab === tab.key
-                  ? "border-[var(--stem)] text-[var(--stem)]"
-                  : "border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <Utilities>
+        <Segmented ariaLabel="Settings section" value={activeTab} onChange={setActiveTab} options={TABS.map(t => ({ value: t.key, label: t.label }))} />
+      </Utilities>
 
+      <PageBody>
+        <div>
         {/* Content */}
         {loading ? (
           <div className="space-y-3">
@@ -96,7 +84,8 @@ export default function SettingsPage() {
             )}
           </>
         )}
-      </div>
-    </div>
+        </div>
+      </PageBody>
+    </Page>
   );
 }

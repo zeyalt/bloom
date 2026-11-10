@@ -54,13 +54,13 @@ export function ChatMarkdown({ text }: { text: string }) {
         if (b.kind === "h") return <p key={i} className="font-semibold">{inline(b.text)}</p>;
         if (b.kind === "ul")
           return (
-            <ul key={i} className="list-disc pl-5 space-y-0.5 marker:text-[var(--text-muted)]">
+            <ul key={i} className="list-disc pl-4 space-y-1 marker:text-[var(--text-muted)]">
               {b.items.map((it, j) => <li key={j}>{inline(it)}</li>)}
             </ul>
           );
         if (b.kind === "ol")
           return (
-            <ol key={i} className="list-decimal pl-5 space-y-0.5 marker:text-[var(--text-muted)]">
+            <ol key={i} className="list-decimal pl-4 space-y-1 marker:text-[var(--text-muted)]">
               {b.items.map((it, j) => <li key={j}>{inline(it)}</li>)}
             </ol>
           );

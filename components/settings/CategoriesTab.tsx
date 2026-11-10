@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Fab } from "@/components/ui/Fab";
 import { Modal } from "@/components/ui/Modal";
 import type { ActivityCategory } from "@/lib/types";
 
@@ -52,12 +53,10 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[var(--text-secondary)]">{categories.length} categories</p>
-        <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Category</Button>
-      </div>
+      <Fab label="Add category" onClick={openAdd} />
+      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{categories.length} categories</p>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {categories.map(c => (
           <div key={c.id} className="flex items-center gap-3 px-4 py-3 border border-[var(--border)] rounded-xl bg-[var(--bg-card)]">
             <span
@@ -65,16 +64,16 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
               style={{ backgroundColor: c.color_code }}
             />
             <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">
-              {c.icon && <span className="mr-1.5">{c.icon}</span>}
+              {c.icon && <span className="mr-2">{c.icon}</span>}
               {c.name}
             </span>
             <span className="text-xs text-[var(--text-muted)] font-mono">{c.color_code}</span>
             <button
               onClick={() => openEdit(c)}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
               title="Edit"
             >
-              <Pencil size={14} />
+              <Pencil size={16} />
             </button>
           </div>
         ))}
@@ -113,7 +112,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
                 type="color"
                 value={form.color_code}
                 onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                className="w-10 h-9 rounded border border-[var(--border)] cursor-pointer shrink-0"
+                className="w-10 h-12 rounded border border-[var(--border)] cursor-pointer shrink-0"
               />
               <input
                 type="text"

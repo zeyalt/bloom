@@ -19,7 +19,7 @@ export function Badge({ label, color, variant = "default", className }: BadgePro
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs font-medium",
+        "inline-flex items-center gap-2 text-xs font-medium",
         variantStyles[variant],
         className
       )}

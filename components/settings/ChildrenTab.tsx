@@ -62,7 +62,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
   return (
     <div>
-      <p className="text-sm text-[var(--text-secondary)] mb-4">
+      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">
         Edit child profiles. Children cannot be deleted to preserve data history.
       </p>
 
@@ -84,7 +84,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
                   style={{ backgroundColor: c.color_code }}
                 />
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 {c.date_of_birth && <span className="font-medium text-[var(--text-primary)]">{calcAge(c.date_of_birth)}</span>}
                 {c.school && <span>{c.date_of_birth ? " · " : ""}{c.school}</span>}
                 {c.date_of_birth && <span> · Born {formatDate(c.date_of_birth)}</span>}
@@ -94,10 +94,10 @@ export function ChildrenTab({ children, onRefresh }: Props) {
             {/* Edit */}
             <button
               onClick={() => openEdit(c)}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
               title="Edit child"
             >
-              <Pencil size={15} />
+              <Pencil size={16} />
             </button>
           </div>
         ))}
@@ -125,7 +125,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
                   type="color"
                   value={form.color_code}
                   onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                  className="w-10 h-9 rounded border border-[var(--border)] cursor-pointer shrink-0"
+                  className="w-10 h-12 rounded border border-[var(--border)] cursor-pointer shrink-0"
                 />
                 <input
                   type="text"

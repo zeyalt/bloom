@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Pencil, Trash2 } from "lucide-react";
-import { Header } from "@/components/layout/Header";
+import { Header, BackButton } from "@/components/layout/Header";
+import { Page, PageBody } from "@/components/layout/Page";
+import { IconButton } from "@/components/ui/IconButton";
 import { Button } from "@/components/ui/Button";
 import { GoalFormModal, inputCls, labelCls } from "@/components/goals/GoalFormModal";
 import { PlanPanel } from "@/components/goals/PlanPanel";
@@ -26,24 +28,21 @@ export function GoalDetailView({ goalId }: { goalId: string }) {
   const child = children.find(c => c.id === goal?.child_id);
   const today = todayISO();
 
-  const back = (
-    <button onClick={() => router.back()} className="inline-flex items-center gap-1 -ml-1 py-1 pr-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer">
-      <ArrowLeft size={16} /> Back
-    </button>
-  );
+  const back = <BackButton icon={ArrowLeft} onClick={() => router.back()} />;
 
   if (isLoading) {
     return (
-      <div className="max-w-[720px] mx-auto w-full px-5 md:px-8 pt-4 space-y-4">
-        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-[var(--bg-secondary)] animate-pulse rounded-[var(--radius-lg)]" />)}
-      </div>
+      <Page>
+        <Header title="Goal" leading={back} subtitle=" " />
+        <PageBody>{[1, 2, 3].map(i => <div key={i} className="h-24 bg-[var(--bg-secondary)] animate-pulse rounded-[var(--radius-lg)]" />)}</PageBody>
+      </Page>
     );
   }
   if (!goal) {
     return (
-      <div className="max-w-[720px] mx-auto w-full">
+      <Page>
         <Header title="Goal not found" subtitle="It may have been deleted." leading={back} />
-      </div>
+      </Page>
     );
   }
 
@@ -53,30 +52,30 @@ export function GoalDetailView({ goalId }: { goalId: string }) {
   const title = goal.kind === "measured" ? `${goal.title} → ${fmtValue(goal.target_value ?? 0, goal.unit)}` : goal.title;
 
   return (
-    <div className="max-w-[720px] mx-auto w-full">
+    <Page>
       {/* The header carries the child; the goal title sits below it so long titles wrap instead of truncating. */}
       <Header
         title={child?.name ?? "Goal"}
         subtitle={goal.kind === "measured" ? "Measured goal" : "Milestone goal"}
         leading={back}
-        action={<Button variant="secondary" size="sm" onClick={() => setEditing(true)} aria-label="Edit goal"><Pencil size={14} /> Edit</Button>}
+        action={<IconButton icon={Pencil} label="Edit goal" onClick={() => setEditing(true)} />}
       />
-      <div className="px-5 md:px-8 pb-24 md:pb-10 space-y-6">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)] leading-tight">{title}</h2>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--ink-soft)]">
+      <PageBody clear="nav">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl leading-7 font-bold tracking-tight text-[var(--ink)]">{title}</h2>
+          <div className="flex flex-wrap items-center gap-2 text-sm leading-5 text-[var(--ink-soft)]">
             <span>By {formatDate(target)}{done ? "" : ` · ${timeLeftLabel(today, target)}`}</span>
-            <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full", TONE_CLASSES[status.tone])}>{status.label}</span>
+            <span className={cn("text-xs leading-4 font-bold px-2 py-1 rounded-full", TONE_CLASSES[status.tone])}>{status.label}</span>
           </div>
         </div>
 
         {goal.kind === "milestone" ? <MilestoneBody goal={goal} today={today} /> : <MeasuredBody goal={goal} today={today} />}
-      </div>
+      </PageBody>
 
       {editing && (
         <GoalFormModal open onClose={() => setEditing(false)} child={child} goal={goal} onDeleted={() => router.replace("/goals")} />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -110,7 +109,7 @@ function MilestoneBody({ goal, today }: { goal: Goal; today: string }) {
       <PlanPanel key={goal.id} goal={goal} today={today} />
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">Updates</h2>
+        <h2 className="font-semibold text-[var(--ink)]">Updates</h2>
         {!achieved && (
           <form className="flex gap-2 items-end" onSubmit={e => {
             e.preventDefault();
@@ -143,7 +142,7 @@ function MilestoneBody({ goal, today }: { goal: Goal; today: string }) {
 
       {!achieved && (
         <Button size="lg" className="w-full" disabled={busy} onClick={() => run(() => goalApi.update(goal.id, { achieved_date: today }))}>
-          <Check size={18} strokeWidth={3} /> Mark goal achieved
+          <Check size={20} strokeWidth={3} /> Mark goal achieved
         </Button>
       )}
     </>
@@ -159,10 +158,7 @@ function TimelineItem({ date, dot, children, onDelete }: { date: string; dot: st
         <p className="text-sm text-[var(--ink)] whitespace-pre-line">{children}</p>
       </div>
       {onDelete && (
-        <button type="button" onClick={onDelete} aria-label="Delete update"
-          className="w-9 h-9 -mt-1 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer shrink-0">
-          <Trash2 size={15} />
-        </button>
+        <IconButton icon={Trash2} label="Delete update" tone="danger" onClick={onDelete} className="-mt-3" />
       )}
     </li>
   );
@@ -203,7 +199,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
       </div>
 
       <section className="border border-[var(--rule)] bg-[var(--sheet)] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">Progress over time</h2>
+        <h2 className="font-semibold text-[var(--ink)]">Progress over time</h2>
         {m.readings.length < 2 ? (
           <p className="text-sm text-[var(--ink-soft)]">Log one more reading to see the chart.</p>
         ) : (
@@ -244,7 +240,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
       </form>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">Readings</h2>
+        <h2 className="font-semibold text-[var(--ink)]">Readings</h2>
         <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
           {rows.map((r, i) => {
             const prev = rows[i + 1];
@@ -266,10 +262,10 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
                 <span className="text-xs text-[var(--ink-soft)] w-12 text-right">{change === null ? "start" : `${change >= 0 ? "+" : ""}${change}`}</span>
                 <span className="font-semibold text-[var(--ink)] w-20 text-right">{fmtValue(r.value, unit)}</span>
                 <button type="button" aria-label={`Edit reading on ${formatDate(r.date)}`} onClick={() => { setEditId(r.id); setEditValue(String(r.value)); setEditDate(r.date); }}
-                  className="w-10 h-10 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"><Pencil size={15} /></button>
+                  className="w-12 h-12 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"><Pencil size={16} /></button>
                 <button type="button" aria-label={`Delete reading on ${formatDate(r.date)}`} disabled={rows.length === 1}
                   onClick={() => { if (window.confirm("Delete this reading?")) run(() => goalApi.removeEntry(r.id)); }}
-                  className="w-10 h-10 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer disabled:opacity-30 disabled:cursor-default"><Trash2 size={15} /></button>
+                  className="w-12 h-12 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer disabled:opacity-30 disabled:cursor-default"><Trash2 size={16} /></button>
               </li>
             );
           })}
@@ -283,7 +279,7 @@ function Tile({ big, small }: { big: string; small: string }) {
   return (
     <div className="border border-[var(--rule)] bg-[var(--sheet)] p-3">
       <div className="text-lg font-bold text-[var(--ink)] leading-tight">{big}</div>
-      <div className="text-[11px] text-[var(--ink-soft)] mt-0.5">{small}</div>
+      <div className="text-xs text-[var(--ink-soft)] mt-1">{small}</div>
     </div>
   );
 }

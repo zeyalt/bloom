@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, AlertCircle, CheckCircle2, Settings2 } from "lucide-react";
 import { DueCheckpoints } from "@/components/goals/DueCheckpoints";
 import { startOfWeek, differenceInCalendarDays, parseISO, format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
+import { Page, Utilities, PageBody } from "@/components/layout/Page";
+import { IconButton } from "@/components/ui/IconButton";
+import { Fab } from "@/components/ui/Fab";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChildFilter } from "@/components/ui/ChildFilter";
@@ -285,25 +288,45 @@ export default function AgendaPage() {
     // nowHHMM is minute-grained, so this re-derives at most once a minute of re-renders.
   }, [windowLogs, schedules, selectedChildren, todayIso, nowHHMM]);
 
+  // One row per session: time · title (+ quick log buttons) · child/status · one 48px action.
+  const rowCls = "grid grid-cols-[4.5rem_minmax(0,1fr)_auto_3rem] gap-x-3 items-start py-3";
+  const childTag = (child?: Child) => child && (
+    <span className="inline-flex items-center gap-2 text-sm leading-5 font-medium" style={{ color: child.color_code }}>
+      <span className="w-2 h-2 shrink-0" style={{ backgroundColor: child.color_code }} />
+      {child.name}
+    </span>
+  );
+  const titleLink = (title: string, activityId?: string) => activityId ? (
+    <button
+      onClick={e => { e.stopPropagation(); router.push(`/activity/${activityId}`); }}
+      className="relative block max-w-full text-base leading-6 font-semibold text-[var(--stem)] hover:underline cursor-pointer text-left before:absolute before:left-0 before:w-full before:min-w-12 before:-inset-y-3 before:content-['']"
+    >
+      <span className="block truncate">{title}</span>
+    </button>
+  ) : (
+    <span className="block text-base leading-6 font-semibold text-[var(--ink)] truncate">{title}</span>
+  );
+
   return (
-    <div className="max-w-[1000px] mx-auto w-full">
-      <Header
-        title="Home"
-        subtitle={weekOffset === 0 ? "This week" : range.label}
-        sticky
-      />
+    <Page>
+      <Header title="Home" subtitle={weekOffset === 0 ? "This week" : range.label} />
 
-      <div className="px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8">
-        <ChildFilter className="mb-4" children={children} selected={selectedChildren} onToggle={toggleChild} />
+      <Utilities>
+        <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
+      </Utilities>
 
+      <PageBody>
+        {/* 3 · Summary */}
         {!loading && selectedChildren.length > 0 && (
           unlogged.total > 0 ? (
-            <section aria-labelledby="unlogged-heading" className="mb-5 border border-[#e9c79c] bg-[#fdf6ec] px-4 py-3">
-              <h2 id="unlogged-heading" className="flex items-center gap-1.5 text-sm font-semibold text-[#8a3f06]">
-                <AlertCircle size={15} /> {unlogged.total} past session{unlogged.total === 1 ? "" : "s"} not logged
-              </h2>
-              <p className="text-xs text-[var(--ink-soft)] mt-0.5">In the last {UNLOGGED_WEEKS} weeks. Tap a week to fill them in.</p>
-              <div className="flex flex-wrap gap-2 mt-2.5">
+            <section aria-labelledby="unlogged-heading" className="border border-[#e9c79c] bg-[#fdf6ec] p-4 flex flex-col gap-3">
+              <div>
+                <h2 id="unlogged-heading" className="flex items-center gap-2 font-semibold text-[#8a3f06]">
+                  <AlertCircle size={16} aria-hidden="true" /> {unlogged.total} past session{unlogged.total === 1 ? "" : "s"} not logged
+                </h2>
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">In the last {UNLOGGED_WEEKS} weeks. Tap a week to fill them in.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {[...unlogged.byOffset.entries()].filter(([, v]) => v.missing > 0).map(([offset, v]) => (
                   <button
                     key={offset}
@@ -311,7 +334,8 @@ export default function AgendaPage() {
                     onClick={() => setWeekOffset(offset)}
                     aria-pressed={offset === weekOffset}
                     className={cn(
-                      "inline-flex items-center gap-1.5 h-9 px-3 text-sm border cursor-pointer",
+                      "relative inline-flex items-center gap-2 h-10 px-3 text-sm border cursor-pointer",
+                      "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
                       offset === weekOffset ? "bg-[#8a3f06] border-[#8a3f06] text-white" : "bg-[var(--sheet)] border-[#e9c79c] text-[var(--ink)] hover:border-[#8a3f06]"
                     )}
                   >
@@ -322,155 +346,109 @@ export default function AgendaPage() {
               </div>
             </section>
           ) : (
-            <p className="mb-5 flex items-center gap-1.5 text-sm text-[var(--stem)]">
-              <CheckCircle2 size={15} /> Every past session in the last {UNLOGGED_WEEKS} weeks is logged.
+            <p className="flex items-center gap-2 text-sm leading-5 text-[var(--stem)]">
+              <CheckCircle2 size={16} aria-hidden="true" /> Every past session in the last {UNLOGGED_WEEKS} weeks is logged.
             </p>
           )
         )}
 
         {weekOffset === 0 && <DueCheckpoints childIds={selectedChildren} />}
 
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={() => setWeekOffset(o => o - 1)} className="shrink-0 inline-flex items-center justify-center h-9 w-9 border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer" title="Previous week">
-            <ChevronLeft size={16} />
-          </button>
+        {/* 4 · Primary: which week */}
+        <div className="flex items-center gap-2">
+          <IconButton icon={ChevronLeft} label="Previous week" onClick={() => setWeekOffset(o => o - 1)} className="border border-[var(--rule)] bg-[var(--sheet)]" />
           <button
             type="button"
             onClick={() => setWeekPickerOpen(true)}
             aria-haspopup="dialog"
             className={cn(
-              "flex-1 inline-flex items-center justify-center gap-2 h-9 border text-sm font-medium bg-[var(--sheet)] cursor-pointer",
+              "flex-1 min-w-0 inline-flex items-center justify-center gap-2 h-12 border text-sm font-medium bg-[var(--sheet)] rounded-[var(--radius-md)] cursor-pointer",
               weekOffset === 0
                 ? "border-[var(--stem)] text-[var(--stem)]"
                 : "border-[var(--rule)] text-[var(--ink)] hover:border-[var(--ink-faint)]"
             )}
           >
-            <CalendarDays size={15} /> {weekOffset === 0 ? "This week" : range.label}
+            <CalendarDays size={16} aria-hidden="true" /> <span className="truncate">{weekOffset === 0 ? "This week" : range.label}</span>
           </button>
-          <button onClick={() => setWeekOffset(o => o + 1)} className="shrink-0 inline-flex items-center justify-center h-9 w-9 border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink-soft)] hover:text-[var(--ink)] cursor-pointer" title="Next week">
-            <ChevronRight size={16} />
-          </button>
+          <IconButton icon={ChevronRight} label="Next week" onClick={() => setWeekOffset(o => o + 1)} className="border border-[var(--rule)] bg-[var(--sheet)]" />
         </div>
 
-        <div className="flex justify-end mb-4">
-          <Button size="sm" onClick={openAdhoc}><Plus size={14} /> Add event</Button>
-        </div>
-
+        {/* 5 · Feed: the week, day by day */}
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-[var(--bg-secondary)] animate-pulse" />)}
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] animate-pulse" />)}
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8">
             {dayBlocks.map(({ day, occ }) => {
               const adhoc = adhocByDay.get(day.iso) ?? [];
               const hasItems = occ.length > 0 || adhoc.length > 0;
               return (
-                <div key={day.iso} ref={day.isToday ? todayRef : undefined} className="scroll-mt-28 md:scroll-mt-32">
-                  <div className={cn("flex items-baseline gap-2.5 pb-2", day.isToday && "pl-2.5 border-l-[3px] border-[var(--stem)]")}>
-                    <h2 className={cn("text-xl font-extrabold tracking-tight leading-none", day.isToday ? "text-[var(--stem)]" : "text-[var(--ink)]")}>
+                <section key={day.iso} ref={day.isToday ? todayRef : undefined} className="scroll-mt-4" aria-label={`${day.fullLabel} ${day.iso}`}>
+                  <div className={cn("flex items-baseline gap-2 pb-2", day.isToday && "pl-3 border-l-4 border-[var(--stem)]")}>
+                    <h2 className={cn("text-xl leading-7 font-extrabold tracking-tight", day.isToday ? "text-[var(--stem)]" : "text-[var(--ink)]")}>
                       {day.fullLabel}
                     </h2>
-                    <span className="text-sm text-[var(--ink-faint)]">
+                    <span className="text-sm leading-5 text-[var(--ink-soft)]">
                       {day.date.toLocaleDateString("en-SG", { day: "numeric", month: "short" })}
                     </span>
-                    {day.isToday && (
-                      <span className="text-sm font-medium text-[var(--stem)]">Today</span>
-                    )}
+                    {day.isToday && <span className="text-sm leading-5 font-medium text-[var(--stem)]">Today</span>}
                   </div>
 
                   {!hasItems ? (
-                    <p className="text-sm text-[var(--ink-faint)] py-4">No classes this day.</p>
+                    <p className="text-sm leading-5 text-[var(--ink-soft)] py-4">No classes this day.</p>
                   ) : (
                     <div className="divide-y divide-[var(--rule)] border-y border-[var(--rule)] bg-[var(--sheet)]">
                       {occ.map(({ key, schedule: s }) => {
                         const a = s.activity!;
-                        const child = a.child;
                         const log = logsByKey.get(key);
                         const title = a.activity_name || a.institution;
                         const missing = !log && isPastOccurrence(day, s, todayIso, nowHHMM);
                         return (
-                          <div
-                            key={s.id}
-                            onClick={log ? () => openEditLog(log) : undefined}
-                            className={cn("grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] gap-x-3 items-start py-3 px-1", log && "cursor-pointer")}
-                          >
-                            <time className="tabular-nums text-[0.9375rem] text-[var(--ink-soft)] pt-0.5">
+                          <div key={s.id} onClick={log ? () => openEditLog(log) : undefined} className={cn(rowCls, "pl-2", log && "cursor-pointer")}>
+                            <time className="tabular-nums text-sm leading-6 text-[var(--ink-soft)]">
                               {s.start_time ? formatTime(s.start_time) : "—"}
                             </time>
                             <div className="min-w-0">
-                              <button
-                                onClick={e => { e.stopPropagation(); router.push(`/activity/${a.id}`); }}
-                                className="block text-[0.975rem] font-semibold text-[var(--stem)] truncate leading-tight hover:underline cursor-pointer text-left"
-                              >
-                                {title}
-                              </button>
+                              {titleLink(title, a.id)}
                               {(a.institution || a.instructor_name) && (
-                                <div className="text-sm text-[var(--ink-faint)] truncate mt-0.5">{a.institution || a.instructor_name}</div>
+                                <div className="text-sm leading-5 text-[var(--ink-soft)] truncate">{a.institution || a.instructor_name}</div>
                               )}
                               {!log && (
-                                <div className="mt-2 flex gap-4">
+                                <div className="mt-2 flex gap-2">
                                   <button
                                     onClick={() => openAbsentModal(s, day)}
-                                    className="inline-flex items-center gap-1 text-sm font-medium text-[var(--margin)] active:scale-95 cursor-pointer"
-                                    title="Mark as absent"
+                                    className="relative inline-flex items-center gap-1 h-10 px-3 text-sm font-medium text-[var(--margin)] border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']"
                                   >
-                                    <X size={14} /> Absent
+                                    <X size={16} aria-hidden="true" /> Absent
                                   </button>
                                   <button
                                     onClick={() => { setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
-                                    className="inline-flex items-center gap-1 text-sm font-medium text-[var(--stem)] active:scale-95 cursor-pointer"
-                                    title="Mark as attended"
+                                    className="relative inline-flex items-center gap-1 h-10 px-3 text-sm font-medium text-[var(--stem)] border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']"
                                   >
-                                    <Check size={14} /> Attended
+                                    <Check size={16} aria-hidden="true" /> Attended
                                   </button>
                                 </div>
                               )}
                             </div>
-                            <div className="shrink-0 flex flex-col items-end gap-1 pt-0.5">
-                              {child && (
-                                <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: child.color_code }}>
-                                  <span className="w-1.5 h-1.5 shrink-0" style={{ backgroundColor: child.color_code }} />
-                                  {child.name}
-                                </span>
-                              )}
+                            <div className="flex flex-col items-end gap-1">
+                              {childTag(a.child)}
                               {log && (
-                                <span className="text-xs text-[var(--ink-faint)]">
+                                <span className="text-xs leading-4 text-[var(--ink-soft)]">
                                   {log.status === "absent" || log.status === "cancelled_by_provider" ? "Absent" : "Logged"}
                                 </span>
                               )}
-                              {missing && (
-                                <span className="text-xs font-semibold text-[#8a3f06]">Not logged</span>
-                              )}
+                              {missing && <span className="text-xs leading-4 font-semibold text-[#8a3f06]">Not logged</span>}
                               {log && hasReflection(log.learned, log.diary_notes) && (
-                                <NotebookPen size={13} className="text-[var(--ink-faint)]" aria-label="Has reflection" />
+                                <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
                               )}
                             </div>
                             {log ? (
-                              // A logged session edits its attendance record in the full dialog.
-                              <div className="shrink-0 flex items-center pt-0.5">
-                                <button
-                                  onClick={e => { e.stopPropagation(); openEditLog(log); }}
-                                  className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
-                                  title="Edit attendance"
-                                  aria-label={`Edit attendance for ${title}`}
-                                ><Pencil size={13} /></button>
-                              </div>
+                              <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3"
+                                onClick={e => { e.stopPropagation(); openEditLog(log); }} />
                             ) : (
-                              <div className="shrink-0 flex items-center gap-0.5 pt-0.5">
-                                <button
-                                  onClick={() => openEditSchedule(s)}
-                                  className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
-                                  title="Edit schedule"
-                                  aria-label={`Edit the recurring schedule for ${title}`}
-                                ><Pencil size={13} /></button>
-                                <button
-                                  onClick={() => setConfirmDeleteSchedule(s)}
-                                  className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer"
-                                  title="Delete schedule"
-                                  aria-label={`Delete the recurring schedule for ${title}`}
-                                ><Trash2 size={13} /></button>
-                              </div>
+                              <IconButton icon={Settings2} label={`Edit the recurring schedule for ${title}`} className="-mt-3"
+                                onClick={() => openEditSchedule(s)} />
                             )}
                           </div>
                         );
@@ -478,57 +456,43 @@ export default function AgendaPage() {
 
                       {adhoc.map(log => {
                         const a = log.activity;
-                        const child = log.child;
                         const title = a?.activity_name || a?.institution || "Activity";
                         return (
-                          <div
-                            key={log.id}
-                            onClick={() => openEditLog(log)}
-                            className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-x-3 items-start py-3 px-1 cursor-pointer"
-                          >
-                            <time className="tabular-nums text-[0.9375rem] text-[var(--ink-soft)] pt-0.5">
+                          <div key={log.id} onClick={() => openEditLog(log)} className={cn(rowCls, "pl-2 cursor-pointer")}>
+                            <time className="tabular-nums text-sm leading-6 text-[var(--ink-soft)]">
                               {log.start_time ? formatTime(log.start_time) : "—"}
                             </time>
                             <div className="min-w-0">
-                              {a ? (
-                                <button
-                                  onClick={e => { e.stopPropagation(); router.push(`/activity/${a.id}`); }}
-                                  className="block text-[0.975rem] font-semibold text-[var(--stem)] truncate leading-tight hover:underline cursor-pointer text-left"
-                                >
-                                  {title}
-                                </button>
-                              ) : (
-                                <span className="block text-[0.975rem] font-semibold text-[var(--ink)] truncate leading-tight">{title}</span>
-                              )}
+                              {titleLink(title, a?.id)}
                               {(a?.institution || a?.instructor_name) && (
-                                <div className="text-sm text-[var(--ink-faint)] truncate mt-0.5">{a?.institution || a?.instructor_name}</div>
+                                <div className="text-sm leading-5 text-[var(--ink-soft)] truncate">{a?.institution || a?.instructor_name}</div>
                               )}
                             </div>
-                            <div className="shrink-0 flex flex-col items-end gap-1 pt-0.5">
-                              {child && (
-                                <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: child.color_code }}>
-                                  <span className="w-1.5 h-1.5 shrink-0" style={{ backgroundColor: child.color_code }} />
-                                  {child.name}
-                                </span>
-                              )}
-                              <span className="text-xs text-[var(--ink-faint)]">
+                            <div className="flex flex-col items-end gap-1">
+                              {childTag(log.child)}
+                              <span className="text-xs leading-4 text-[var(--ink-soft)]">
                                 {log.status === "absent" || log.status === "cancelled_by_provider" ? "Absent" : "Logged"}
                               </span>
                               {hasReflection(log.learned, log.diary_notes) && (
-                                <NotebookPen size={13} className="text-[var(--ink-faint)]" aria-label="Has reflection" />
+                                <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
                               )}
                             </div>
+                            <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3"
+                              onClick={e => { e.stopPropagation(); openEditLog(log); }} />
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                </section>
               );
             })}
           </div>
         )}
-      </div>
+      </PageBody>
+
+      {/* 6 · Create */}
+      <Fab label="Add event" onClick={openAdhoc} />
 
       <Modal open={weekPickerOpen} onClose={() => setWeekPickerOpen(false)} title="Choose a week" size="sm">
         <ul className="-mx-2 divide-y divide-[var(--rule)]">
@@ -626,6 +590,10 @@ export default function AgendaPage() {
             <Button variant="secondary" className="flex-1" onClick={() => setEditingSchedule(null)}>Cancel</Button>
             <Button className="flex-1" onClick={saveSchedule} loading={savingSchedule}>Save</Button>
           </div>
+          <Button variant="danger" size="sm" className="w-full"
+            onClick={() => { const sch = editingSchedule; setEditingSchedule(null); setConfirmDeleteSchedule(sch); }}>
+            Delete this recurring slot
+          </Button>
         </div>
       </Modal>
 
@@ -640,6 +608,6 @@ export default function AgendaPage() {
           <Button variant="danger" className="flex-1" onClick={deleteSchedule} loading={deletingSchedule}>Delete</Button>
         </div>
       </Modal>
-    </div>
+    </Page>
   );
 }

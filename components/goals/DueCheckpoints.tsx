@@ -32,9 +32,9 @@ export function DueCheckpoints({ childIds }: { childIds: string[] }) {
   const name = (childId: string) => children.find(c => c.id === childId)?.name ?? "";
 
   return (
-    <section className="mb-5" aria-labelledby="due-checkpoints">
-      <h2 id="due-checkpoints" className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ink)] mb-2">
-        <Target size={15} className="text-[var(--stem)]" /> Goal checkpoints due
+    <section className="mb-6" aria-labelledby="due-checkpoints">
+      <h2 id="due-checkpoints" className="flex items-center gap-2 font-semibold text-[var(--ink)] mb-2">
+        <Target size={16} className="text-[var(--stem)]" /> Goal checkpoints due
       </h2>
       <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
         {items.slice(0, 5).map(({ goal, checkpoint, due }) => {
@@ -42,7 +42,7 @@ export function DueCheckpoints({ childIds }: { childIds: string[] }) {
           return (
             <li key={checkpoint.id}>
               <button type="button" onClick={() => router.push(`/goals/${goal.id}`)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer hover:bg-[var(--bg-secondary)]">
+                className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer hover:bg-[var(--bg-secondary)]">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color(goal.child_id) }} aria-hidden="true" />
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-medium text-[var(--ink)] truncate">{checkpoint.text}</span>
@@ -59,7 +59,7 @@ export function DueCheckpoints({ childIds }: { childIds: string[] }) {
           );
         })}
       </ul>
-      {items.length > 5 && <p className="text-xs text-[var(--ink-soft)] mt-1.5">+{items.length - 5} more in Goals</p>}
+      {items.length > 5 && <p className="text-xs text-[var(--ink-soft)] mt-2">+{items.length - 5} more in Goals</p>}
     </section>
   );
 }

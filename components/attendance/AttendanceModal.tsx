@@ -213,7 +213,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
               key={t}
               type="button"
               onClick={() => setActiveTab(t)}
-              className={`flex-1 px-3 py-1.5 text-sm font-medium cursor-pointer ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${activeTab === t ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"}`}
+              className={`flex-1 h-10 px-3 text-sm font-medium cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${i > 0 ? "border-l border-[var(--rule)]" : ""} ${activeTab === t ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"}`}
             >
               {t === "details" ? "Details" : "Reflections"}
             </button>
@@ -291,7 +291,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                   key={lt}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, lesson_type: lt }))}
-                  className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
+                  className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
                     active
                       ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
                       : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
@@ -319,7 +319,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                 setCustomLesson("");
               }}
               placeholder="+ Add other"
-              className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
+              className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
             />
           </div>
         </div>
@@ -339,7 +339,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                         ...f,
                         sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
                       }))}
-                      className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
+                      className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
                         active
                           ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
                           : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
@@ -367,7 +367,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                     setCustomSender("");
                   }}
                   placeholder="+ Add other"
-                  className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
+                  className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
                 />
               </div>
             </div>
@@ -385,7 +385,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                         ...f,
                         fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
                       }))}
-                      className={`px-3 py-1.5 text-sm font-medium border cursor-pointer ${
+                      className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
                         active
                           ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
                           : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
@@ -413,7 +413,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
                     setCustomFetcher("");
                   }}
                   placeholder="+ Add other"
-                  className="w-28 px-3 py-1.5 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
+                  className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
                 />
               </div>
             </div>
@@ -465,7 +465,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             <p className="text-xs text-red-700">This action cannot be undone.</p>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1 text-xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
-              <button onClick={deleteRecord} disabled={saving} className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors disabled:opacity-50">
+              <button onClick={deleteRecord} disabled={saving} className="flex-1 h-13 px-4 rounded-[var(--radius-md)] text-base font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors disabled:opacity-50">
                 {saving ? "Deleting..." : "Delete"}
               </button>
             </div>
@@ -473,7 +473,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         ) : (
           <div className="flex gap-2 pt-1">
             {prefill?.id && (
-              <button onClick={() => setConfirmDelete(true)} className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors">Delete</button>
+              <button onClick={() => setConfirmDelete(true)} className="flex-1 h-13 px-4 rounded-[var(--radius-md)] text-base font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors">Delete</button>
             )}
             <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={save} loading={saving}>

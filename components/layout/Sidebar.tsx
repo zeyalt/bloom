@@ -9,7 +9,7 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-52 shrink-0 border-r border-[var(--rule)] bg-[var(--sheet)] h-screen sticky top-0">
-      <div className="px-5 py-6">
+      <div className="px-4 py-6">
         <button type="button" onClick={() => navigate("/")} className="text-left cursor-pointer">
           <span className="block text-xl font-extrabold tracking-tight text-[var(--ink)] leading-none">
             Bloom
@@ -18,7 +18,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 px-3 space-y-0.5">
+      <nav className="flex-1 px-3 space-y-1">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/" ? path === "/" : path.startsWith(href);

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Download, Pencil, Trash2, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
+import { Download, Pencil, Trash2, Columns3, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, NotebookPen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
+import { Page, Utilities, PageBody } from "@/components/layout/Page";
+import { Fab } from "@/components/ui/Fab";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { MultiSelect } from "@/components/ui/FilterDropdown";
@@ -47,7 +49,7 @@ function sortValue(log: LogWithDetails, key: string): string {
   }
 }
 
-export default function AttendancePage({ embedded = false }: { embedded?: boolean } = {}) {
+export default function AttendancePage({ embedded = false, tabs }: { embedded?: boolean; tabs?: React.ReactNode } = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -269,16 +271,19 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
 
   const SortIcon = ({ col }: { col: string }) =>
     sort.key !== col ? null : sort.dir === "asc"
-      ? <ChevronUp size={12} className="inline ml-1 -mt-0.5" />
-      : <ChevronDown size={12} className="inline ml-1 -mt-0.5" />;
+      ? <ChevronUp size={12} className="inline ml-1 -mt-1" />
+      : <ChevronDown size={12} className="inline ml-1 -mt-1" />;
 
+  // Embedded in History: History owns the page and header and passes its tab switch in.
+  const Shell = embedded ? Fragment : Page;
   return (
-    <div className="max-w-[1400px] mx-auto w-full">
+    <Shell>
       {!embedded && <Header title="Attendance" subtitle="Session log" />}
 
-      <div className={embedded ? "px-5 md:px-8 pt-3 pb-24 md:pb-8" : "px-5 md:px-8 pt-4 md:pt-6 pb-24 md:pb-8"}>
-        <ChildFilter className="mb-3" children={children} selected={selectedChildren} onToggle={toggleChild} />
-        <FilterBar stretch className="mb-4">
+      <Utilities>
+        <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
+        {tabs}
+        <FilterBar stretch>
           <FilterField label="Year">
             <MultiSelect
               className="w-32"
@@ -305,35 +310,36 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
           </FilterField>
         </FilterBar>
 
-        {/* Actions — record count sits opposite the buttons so the two never collide */}
-        <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
-          <p className="text-xs text-[var(--text-muted)]">
+      </Utilities>
+
+      <PageBody>
+        {/* Summary row — record count opposite the table tools */}
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <p className="text-sm leading-5 text-[var(--ink-soft)]">
             {sortedLogs.length === 0
               ? "No records"
               : sortedLogs.length > PAGE_SIZE
                 ? `Showing ${pageStart + 1}–${pageStart + pagedLogs.length} of ${sortedLogs.length} records`
                 : `${sortedLogs.length} record${sortedLogs.length === 1 ? "" : "s"}`}
           </p>
-          <div className="flex gap-1.5 shrink-0 ml-auto">
+          <div className="flex gap-2 shrink-0 ml-auto">
             <button
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
-              className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+              aria-pressed={showColumnPicker}
+              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
             >
-              <Columns3 size={14} /> Columns
+              <Columns3 size={16} /> Columns
             </button>
             <Button variant="secondary" size="sm" onClick={() => exportAttendanceCSV(filteredLogs, `attendance-${new Date().toISOString().split('T')[0]}.csv`)}>
-              <Download size={14} /> Export
-            </Button>
-            <Button variant="primary" size="sm" onClick={openAdd}>
-              <Plus size={14} /> Add
+              <Download size={16} /> Export
             </Button>
           </div>
         </div>
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="mb-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -378,19 +384,19 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
-                  {visibleColumns.child && <th onClick={() => toggleSort("child")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Child<SortIcon col="child" /></th>}
-                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Date &<br />Time<SortIcon col="dateTime" /></th>}
-                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
-                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
-                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
-                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
-                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
-                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sender<SortIcon col="sentBy" /></th>}
-                  {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Fetcher<SortIcon col="fetcher" /></th>}
-                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
-                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-1.5 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
-                  {visibleColumns.notes && <th className="px-1.5 py-2 text-left font-semibold">Notes</th>}
-                  <th className="px-1.5 py-2 text-left font-semibold">Action</th>
+                  {visibleColumns.child && <th onClick={() => toggleSort("child")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Child<SortIcon col="child" /></th>}
+                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Date &<br />Time<SortIcon col="dateTime" /></th>}
+                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
+                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
+                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
+                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
+                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
+                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sender<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Fetcher<SortIcon col="fetcher" /></th>}
+                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
+                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
+                  {visibleColumns.notes && <th className="px-2 py-2 text-left font-semibold">Notes</th>}
+                  <th className="px-2 py-2 text-left font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -402,9 +408,9 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
                     {visibleColumns.child && (() => {
                       const child = log.child ?? children.find(c => c.id === log.child_id);
                       return (
-                        <td className="px-1.5 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                        <td className="px-2 py-2 text-[var(--text-secondary)] whitespace-nowrap">
                           {child ? (
-                            <span className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />
                               {child.name}
                             </span>
@@ -413,13 +419,13 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
                       );
                     })()}
                     {visibleColumns.dateTime && (
-                      <td className="px-1.5 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                      <td className="px-2 py-2 text-[var(--text-secondary)] whitespace-nowrap">
                         <div>{formatDate(log.date)}</div>
                         {log.start_time && <div className="text-xs text-[var(--text-muted)]">{formatTime(log.start_time)}</div>}
                       </td>
                     )}
                     {visibleColumns.activity && (
-                      <td className="px-1.5 py-2 text-[var(--text-primary)]">
+                      <td className="px-2 py-2 text-[var(--text-primary)]">
                         {log.activity ? (
                           <button
                             onClick={e => { e.stopPropagation(); router.push(`/activity/${log.activity_id}`); }}
@@ -430,15 +436,15 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
                         ) : "—"}
                       </td>
                     )}
-                    {visibleColumns.institution && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
-                    {visibleColumns.level && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.level || log.activity?.level || "—"}</td>}
-                    {visibleColumns.coach && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
-                    {visibleColumns.lessonType && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{normalizeLessonType(log.lesson_type) || "—"}</td>}
-                    {visibleColumns.sentBy && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
-                    {visibleColumns.fetcher && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
-                    {visibleColumns.absenceReason && <td className="px-1.5 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
+                    {visibleColumns.institution && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
+                    {visibleColumns.level && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.level || log.activity?.level || "—"}</td>}
+                    {visibleColumns.coach && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
+                    {visibleColumns.lessonType && <td className="px-2 py-2 text-[var(--text-secondary)]">{normalizeLessonType(log.lesson_type) || "—"}</td>}
+                    {visibleColumns.sentBy && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
+                    {visibleColumns.fetcher && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
+                    {visibleColumns.absenceReason && <td className="px-2 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
-                      <td className="px-1.5 py-2 text-left">
+                      <td className="px-2 py-2 text-left">
                         <Badge
                           label={ATTENDANCE_STATUS_LABELS[log.status]}
                           variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"}
@@ -446,29 +452,29 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
                       </td>
                     )}
                     {visibleColumns.notes && (
-                      <td className="px-1.5 py-2 text-left">
+                      <td className="px-2 py-2 text-left">
                         {hasReflection(log.learned, log.diary_notes) ? (
                           <span title={getReflectionText(log.learned, log.diary_notes)}>
-                            <NotebookPen size={14} className="inline text-[var(--text-secondary)]" />
+                            <NotebookPen size={16} className="inline text-[var(--text-secondary)]" />
                           </span>
                         ) : <span className="text-[var(--text-muted)]">—</span>}
                       </td>
                     )}
-                    <td className="px-1.5 py-2 text-left">
-                      <div className="inline-flex items-center gap-0.5">
+                    <td className="px-2 py-2 text-left">
+                      <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => openEdit(log)}
-                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
                           title="Edit attendance"
                         >
-                          <Pencil size={14} />
+                          <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => { setDeleteError(""); setConfirmDelete(log); }}
-                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                           title="Delete attendance"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -488,7 +494,7 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
               disabled={currentPage === 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
             >
-              <ChevronLeft size={14} /> Prev
+              <ChevronLeft size={16} /> Prev
             </Button>
             <span className="text-xs text-[var(--text-secondary)] tabular-nums">
               Page {currentPage} of {totalPages}
@@ -499,7 +505,7 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
               disabled={currentPage === totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
-              Next <ChevronRight size={14} />
+              Next <ChevronRight size={16} />
             </Button>
           </div>
         )}
@@ -533,7 +539,9 @@ export default function AttendancePage({ embedded = false }: { embedded?: boolea
           onSaved={fetchAll}
           title={prefill?.id ? "Edit Attendance" : "Add Attendance"}
         />
-      </div>
-    </div>
+      </PageBody>
+
+      <Fab label="Add session" onClick={openAdd} />
+    </Shell>
   );
 }

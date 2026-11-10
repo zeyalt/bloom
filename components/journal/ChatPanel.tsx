@@ -75,8 +75,8 @@ export function ChatPanel() {
     <div className="flex flex-col">
       {messages.length > 0 && (
         <div className="flex justify-end mb-3">
-          <button onClick={reset} disabled={loading} className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--ink)] cursor-pointer disabled:opacity-50">
-            <RotateCcw size={13} /> New chat
+          <button onClick={reset} disabled={loading} className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--ink)] cursor-pointer disabled:opacity-50">
+            <RotateCcw size={16} /> New chat
           </button>
         </div>
       )}
@@ -106,13 +106,13 @@ export function ChatPanel() {
         {messages.map((m, i) =>
           m.role === "user" ? (
             <div key={i} className="flex justify-end">
-              <div className="max-w-[88%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)]">
+              <div className="max-w-[88%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)]">
                 {m.content}
               </div>
             </div>
           ) : (
             <div key={i} className="space-y-2">
-              <div className="max-w-[95%] px-3.5 py-2.5 text-sm leading-relaxed rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-primary)]">
+              <div className="max-w-[95%] px-4 py-3 text-sm leading-relaxed rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-primary)]">
                 <ChatMarkdown text={m.content} />
               </div>
               {m.charts?.map((c, j) => <ChatChart key={j} spec={c} />)}
@@ -122,7 +122,7 @@ export function ChatPanel() {
 
         {loading && (
           <div className="flex justify-start" aria-live="polite">
-            <div className="px-3.5 py-2.5 text-sm rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-muted)]">
+            <div className="px-4 py-3 text-sm rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-muted)]">
               Looking through your records…
             </div>
           </div>
@@ -137,7 +137,7 @@ export function ChatPanel() {
 
       {/* Pinned to the bottom of the screen: just above the bottom nav on phones, the
           window's edge on desktop. The page-coloured backing hides messages scrolling under it. */}
-      <div className="sticky z-10 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 -mx-5 md:-mx-8 px-5 md:px-8 pt-2 pb-3 bg-[var(--bg-primary)]">
+      <div className="sticky z-10 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-2 pb-3 bg-[var(--bg-primary)]">
         <form
           onSubmit={e => { e.preventDefault(); send(input); }}
           className="flex items-end gap-2 border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)] p-2 focus-within:border-[var(--stem)]"
@@ -152,13 +152,13 @@ export function ChatPanel() {
             rows={1}
             placeholder="Ask about your children's activities…"
             aria-label="Your question"
-            className="flex-1 resize-none bg-transparent px-1.5 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none max-h-32 [field-sizing:content]"
+            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none max-h-32 [field-sizing:content]"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
             aria-label="Send"
-            className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowUp size={16} />
           </button>

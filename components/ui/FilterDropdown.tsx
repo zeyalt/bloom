@@ -95,14 +95,14 @@ function DropdownShell({
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={toggleOpen}
-        className="flex items-center w-full h-10 pl-3.5 pr-9 text-sm text-left rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] cursor-pointer focus:outline-none focus:border-[var(--stem)]"
+        className="flex items-center w-full h-12 pl-4 pr-12 text-base md:text-sm text-left rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] cursor-pointer focus:outline-none focus:border-[var(--stem)]"
       >
         <span className="truncate">{label}</span>
       </button>
       <ChevronDown
         size={16}
         className={cn(
-          "pointer-events-none absolute right-3.5 top-5 -translate-y-1/2 text-[var(--text-muted)] transition-transform",
+          "pointer-events-none absolute right-4 top-6 -translate-y-1/2 text-[var(--text-muted)] transition-transform",
           open && "rotate-180"
         )}
       />
@@ -125,7 +125,7 @@ function DropdownShell({
 }
 
 const optionRow =
-  "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-left text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)]";
+  "flex items-center gap-2 w-full px-3 min-h-12 rounded-lg text-sm text-left text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)]";
 
 /** Single-value filter dropdown. Picking an option closes the panel. */
 export function SingleSelect({
@@ -156,8 +156,8 @@ export function SingleSelect({
             onClick={() => { onChange(opt.value); close(); }}
             className={optionRow}
           >
-            <span className="w-3.5 shrink-0 text-[var(--accent-primary)]">
-              {selected && <Check size={14} />}
+            <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+              {selected && <Check size={16} />}
             </span>
             {opt.colorCode && (
               <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />
@@ -225,10 +225,10 @@ export function MultiSelect({
             role="option"
             aria-selected={allSelected}
             onClick={toggleAll}
-            className={cn(optionRow, "font-medium border-b border-[var(--rule)] mb-1 pb-2.5")}
+            className={cn(optionRow, "font-medium border-b border-[var(--rule)] mb-1")}
           >
-            <span className="w-3.5 shrink-0 text-[var(--accent-primary)]">
-              {allSelected && <Check size={14} />}
+            <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+              {allSelected && <Check size={16} />}
             </span>
             <span className="whitespace-nowrap">Select All</span>
           </button>
@@ -243,8 +243,8 @@ export function MultiSelect({
                 onClick={() => onToggle(opt.value)}
                 className={optionRow}
               >
-                <span className="w-3.5 shrink-0 text-[var(--accent-primary)]">
-                  {checked && <Check size={14} />}
+                <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+                  {checked && <Check size={16} />}
                 </span>
                 {opt.colorCode && (
                   <span className="w-2 h-2 shrink-0" style={{ backgroundColor: opt.colorCode }} />

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Fab } from "@/components/ui/Fab";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Avatar } from "@/components/ui/Avatar";
@@ -129,7 +130,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
     ].filter(Boolean).join(" · ");
     return (
       <div key={a.id} className="px-4 py-3">
-        <div className="flex items-start justify-between gap-3 mb-1.5">
+        <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-2 flex-wrap flex-1">
             <button
               onClick={() => router.push(`/activity/${a.id}`)}
@@ -140,7 +141,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
             <Badge label={STATUS_LABELS[a.status]} variant={STATUS_VARIANTS[a.status]} />
             {category && (
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                 style={{ backgroundColor: `${category.color_code}15`, color: category.color_code }}
               >
                 {category.icon && <span className="mr-1">{category.icon}</span>}
@@ -151,17 +152,17 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => openEdit(a)}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
               title="Edit"
             >
-              <Pencil size={14} />
+              <Pencil size={16} />
             </button>
             <button
               onClick={() => setConfirmDelete(a)}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
               title="Delete"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
             </button>
           </div>
         </div>
@@ -177,15 +178,11 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[var(--text-secondary)]">{activities.length} activities total</p>
-        <Button onClick={openAdd} size="sm">
-          <Plus size={14} /> Add Activity
-        </Button>
-      </div>
+      <Fab label="Add activity" onClick={openAdd} />
+      <p className="text-sm leading-5 text-[var(--ink-soft)] mb-4">{activities.length} activities total</p>
 
       {/* Child filter pills */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-6">
         {children.map(child => {
           const count = activities.filter(a => a.child_id === child.id && a.status === "active").length;
           const active = activeChildId === child.id;
@@ -194,7 +191,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               key={child.id}
               onClick={() => setSelectedChildId(child.id)}
               className={cn(
-                "inline-flex items-center gap-2 h-9 text-sm font-medium border-b-2 cursor-pointer",
+                "inline-flex items-center gap-2 h-10 text-sm font-medium border-b-2 cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
                 active
                   ? "text-[var(--ink)]"
                   : "text-[var(--ink-faint)] border-transparent hover:text-[var(--ink-soft)]"
@@ -221,9 +218,9 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         <div className="mt-3">
           <button
             onClick={() => setShowInactive(v => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {showInactive ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {showInactive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {showInactive ? "Hide" : "Show"} {inactiveList.length} paused / completed / dropped
           </button>
           {showInactive && (
