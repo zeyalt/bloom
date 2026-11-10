@@ -161,8 +161,8 @@ export function AvatarPicker({
           className={cn(
             "rounded-full p-1 transition-all duration-150",
             value === a.key
-              ? "ring-2 ring-[var(--accent-primary)] ring-offset-1"
-              : "ring-1 ring-transparent hover:ring-[var(--border)]"
+              ? "ring-2 ring-[var(--stem)] ring-offset-1"
+              : "ring-1 ring-transparent hover:ring-[var(--rule)]"
           )}
           aria-label={`Select avatar ${a.key}`}
           aria-pressed={value === a.key}

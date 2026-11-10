@@ -152,14 +152,14 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => openEdit(a)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-[var(--bg-secondary)] hover:text-[var(--ink)] transition-colors"
               title="Edit"
             >
               <Pencil size={16} />
             </button>
             <button
               onClick={() => setConfirmDelete(a)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-red-50 hover:text-red-600 transition-colors"
               title="Delete"
             >
               <Trash2 size={16} />
@@ -167,10 +167,10 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           </div>
         </div>
         {meta && (
-          <p className="text-xs text-[var(--text-secondary)]">{meta}</p>
+          <p className="text-xs text-[var(--ink-soft)]">{meta}</p>
         )}
         {dateText && (
-          <p className="text-xs text-[var(--text-muted)]">{dateText}</p>
+          <p className="text-xs text-[var(--ink-faint)]">{dateText}</p>
         )}
       </div>
     );
@@ -207,9 +207,9 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       </div>
 
       {/* Active activities */}
-      <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)]">
+      <div className="border border-[var(--rule)] rounded-xl overflow-hidden divide-y divide-[var(--rule)]">
         {activeList.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-[var(--text-muted)] text-center">No active activities.</p>
+          <p className="px-4 py-6 text-sm text-[var(--ink-faint)] text-center">No active activities.</p>
         ) : activeList.map(renderRow)}
       </div>
 
@@ -218,13 +218,13 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         <div className="mt-3">
           <button
             onClick={() => setShowInactive(v => !v)}
-            className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors"
           >
             {showInactive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {showInactive ? "Hide" : "Show"} {inactiveList.length} paused / completed / dropped
           </button>
           {showInactive && (
-            <div className="border border-[var(--border)] rounded-xl overflow-hidden divide-y divide-[var(--border)] mt-2">
+            <div className="border border-[var(--rule)] rounded-xl overflow-hidden divide-y divide-[var(--rule)] mt-2">
               {inactiveList.map(renderRow)}
             </div>
           )}
@@ -242,22 +242,22 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Child *</label>
               <select
                 value={form.child_id}
                 onChange={e => setForm(f => ({ ...f, child_id: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               >
                 <option value="">Select child</option>
                 {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Category *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Category *</label>
               <select
                 value={form.category_id}
                 onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               >
                 <option value="">Select category</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -266,55 +266,55 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Activity *</label>
             <input
               type="text"
               value={form.activity_name}
               onChange={e => setForm(f => ({ ...f, activity_name: e.target.value }))}
               placeholder="e.g. Taekwondo Class"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Institution</label>
             <input
               type="text"
               value={form.institution}
               onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
               placeholder="e.g. Jeong-in Taekwondo"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Instructor *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Instructor *</label>
             <input
               type="text"
               value={form.instructor_name}
               onChange={e => setForm(f => ({ ...f, instructor_name: e.target.value }))}
               placeholder="e.g. Coach Reuben"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Level</label>
             <input
               type="text"
               value={form.level}
               onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
               placeholder="e.g. P2 (Distinction), Kids 4T, Red Belt"
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Status *</label>
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             >
               {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
@@ -322,21 +322,21 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Date *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Start Date *</label>
               <input
                 type="date"
                 value={form.start_date}
                 onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Date</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">End Date</label>
               <input
                 type="date"
                 value={form.end_date}
                 onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
@@ -352,7 +352,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
 
       {/* Delete confirm modal */}
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete activity?" size="sm">
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
+        <p className="text-sm text-[var(--ink-soft)] mb-4">
           This will permanently delete <strong>{confirmDelete?.institution}</strong> and all its attendance records.
         </p>
         <div className="flex gap-2">

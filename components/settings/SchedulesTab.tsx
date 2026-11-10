@@ -293,7 +293,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
     const secondary = secondaryRaw && secondaryRaw !== title ? secondaryRaw : "";
     const range = dateRangeLabel(card.effective_from, card.effective_until);
     return (
-      <div key={`${act.id}|${card.term ?? ""}`} className="mb-4 border border-[var(--border)] rounded-xl overflow-hidden">
+      <div key={`${act.id}|${card.term ?? ""}`} className="mb-4 border border-[var(--rule)] rounded-xl overflow-hidden">
         {/* Card header */}
         <div className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] flex-wrap">
           {opts?.showCategoryChip && card.category && (
@@ -305,43 +305,43 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               {card.category.name}
             </span>
           )}
-          <span className="text-sm font-medium text-[var(--text-primary)]">{title}</span>
-          {secondary && <span className="text-xs text-[var(--text-muted)]">· {secondary}</span>}
+          <span className="text-sm font-medium text-[var(--ink)]">{title}</span>
+          {secondary && <span className="text-xs text-[var(--ink-faint)]">· {secondary}</span>}
           {act.status !== "active" && <Badge label={act.status} variant="muted" />}
           {card.level && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--rule)] text-[var(--ink-soft)]">
               {card.level}
             </span>
           )}
           {card.term && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--border)] text-[var(--text-secondary)]">
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-white border border-[var(--rule)] text-[var(--ink-soft)]">
               {/^term\b/i.test(card.term.trim()) ? card.term : `Term ${card.term}`}
             </span>
           )}
-          {range && <span className="text-xs text-[var(--text-muted)]">{range}</span>}
+          {range && <span className="text-xs text-[var(--ink-faint)]">{range}</span>}
           <button
             onClick={() => openEditCard(card)}
-            className="ml-auto w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors shrink-0"
+            className="ml-auto w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors shrink-0"
             title="Edit schedule"
           ><Pencil size={16} /></button>
         </div>
 
         {/* Schedule rows */}
-        <div className="divide-y divide-[var(--border)]">
+        <div className="divide-y divide-[var(--rule)]">
           {card.slots.map(s => (
             <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="text-xs font-medium text-[var(--text-secondary)] w-8 shrink-0">
+              <span className="text-xs font-medium text-[var(--ink-soft)] w-8 shrink-0">
                 {dayLabel(s.day_of_week)}
               </span>
-              <span className="text-sm text-[var(--text-primary)] flex-1">
+              <span className="text-sm text-[var(--ink)] flex-1">
                 {formatTime(s.start_time)}
-                {s.end_time && <span className="text-[var(--text-muted)]"> – {formatTime(s.end_time)}</span>}
-                {s.location && <span className="text-xs text-[var(--text-muted)] ml-2">@ {s.location}</span>}
+                {s.end_time && <span className="text-[var(--ink-faint)]"> – {formatTime(s.end_time)}</span>}
+                {s.location && <span className="text-xs text-[var(--ink-faint)] ml-2">@ {s.location}</span>}
               </span>
               {!s.is_active && <Badge label="Inactive" variant="muted" />}
               <button
                 onClick={() => setConfirmDelete(s)}
-                className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
                 title="Delete day"
               ><Trash2 size={16} /></button>
             </div>
@@ -385,7 +385,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       </div>
 
       {activeCards.length === 0 && endedCards.length === 0 && (
-        <p className="text-sm text-[var(--text-muted)] text-center py-6 border border-[var(--border)] rounded-xl">
+        <p className="text-sm text-[var(--ink-faint)] text-center py-6 border border-[var(--rule)] rounded-xl">
           No schedules yet.
         </p>
       )}
@@ -403,7 +403,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
         <div className="mt-4">
           <button
             onClick={() => setShowEnded(v => !v)}
-            className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors"
           >
             {showEnded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {showEnded ? "Hide" : "Show"} {endedCards.length} ended
@@ -417,7 +417,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       )}
 
       {unattached.length > 0 && (
-        <p className="text-xs text-[var(--text-muted)] mt-2">{unattached.length} schedules with missing activities</p>
+        <p className="text-xs text-[var(--ink-faint)] mt-2">{unattached.length} schedules with missing activities</p>
       )}
 
       {/* Add/Edit modal */}
@@ -428,24 +428,24 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {/* Child + Activity */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Child *</label>
               <select
                 value={childId}
                 onChange={e => onChildChange(e.target.value)}
                 disabled={editing}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select child</option>
                 {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Activity *</label>
               <select
                 value={activityName}
                 onChange={e => onActivityNameChange(e.target.value)}
                 disabled={editing}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select activity</option>
                 {activityNames.map(n => <option key={n} value={n}>{n}</option>)}
@@ -455,12 +455,12 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
           {/* Institution — mapped from the selected activity */}
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Institution *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Institution *</label>
             <select
               value={institution}
               onChange={e => setInstitution(e.target.value)}
               disabled={editing || !activityName}
-              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
             >
               <option value="">Select institution</option>
               {institutionsForName.map(inst => <option key={inst} value={inst}>{inst}</option>)}
@@ -470,23 +470,23 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {/* Level + Term */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Level</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Level</label>
               <input
                 type="text"
                 value={level}
                 onChange={e => setLevel(e.target.value)}
                 placeholder="e.g. U10"
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Term</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Term</label>
               <input
                 type="text"
                 value={term}
                 onChange={e => setTerm(e.target.value)}
                 placeholder="e.g. 2 2026"
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
@@ -494,21 +494,21 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {/* Start Date and End Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Date</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Start Date</label>
               <input
                 type="date"
                 value={effectiveFrom}
                 onChange={e => setEffectiveFrom(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Date</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">End Date</label>
               <input
                 type="date"
                 value={effectiveUntil}
                 onChange={e => setEffectiveUntil(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
@@ -516,53 +516,53 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {/* Slot rows */}
           <div className="space-y-3">
             {slots.map((slot, i) => (
-              <div key={i} className="border border-[var(--border)] rounded-lg p-3 space-y-2 relative">
+              <div key={i} className="border border-[var(--rule)] rounded-lg p-3 space-y-2 relative">
                 {slots.length > 1 && (
                   <button
                     onClick={() => setSlots(prev => prev.filter((_, idx) => idx !== i))}
-                    className="absolute top-2 right-2 p-1 rounded text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
+                    className="absolute top-2 right-2 p-1 rounded text-[var(--ink-faint)] hover:bg-red-50 hover:text-red-600 transition-colors"
                     title="Remove day"
                   ><X size={16} /></button>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Day *</label>
+                    <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Day *</label>
                     <select
                       value={slot.day_of_week}
                       onChange={e => updateSlot(i, { day_of_week: Number(e.target.value) })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     >
                       {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
+                    <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Location</label>
                     <input
                       type="text"
                       value={slot.location}
                       onChange={e => updateSlot(i, { location: e.target.value })}
                       placeholder="e.g. Compass One"
-                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time *</label>
+                    <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Start Time *</label>
                     <input
                       type="time"
                       value={slot.start_time}
                       onChange={e => updateSlot(i, { start_time: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
+                    <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">End Time</label>
                     <input
                       type="time"
                       value={slot.end_time}
                       onChange={e => updateSlot(i, { end_time: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                 </div>
@@ -572,7 +572,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
           <button
             onClick={() => setSlots(prev => [...prev, emptySlot()])}
-            className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 text-sm font-medium text-[var(--stem)] hover:opacity-80 transition-opacity"
           >
             <Plus size={16} /> Add another day
           </button>
@@ -585,7 +585,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               onChange={e => setIsActive(e.target.checked)}
               className="rounded"
             />
-            <label htmlFor="is_active" className="text-sm text-[var(--text-primary)]">Active slot{editing ? "" : "s"}</label>
+            <label htmlFor="is_active" className="text-sm text-[var(--ink)]">Active slot{editing ? "" : "s"}</label>
           </div>
 
           <div className="flex gap-2 pt-1">
@@ -599,7 +599,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
 
       {/* Delete confirm */}
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete schedule?" size="sm">
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
+        <p className="text-sm text-[var(--ink-soft)] mb-4">
           Remove the <strong>{confirmDelete ? dayLabel(confirmDelete.day_of_week) : ""}</strong> slot at{" "}
           <strong>{confirmDelete ? formatTime(confirmDelete.start_time) : ""}</strong>?
         </p>

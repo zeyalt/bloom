@@ -33,6 +33,11 @@ export function formatTime(timeStr: string): string {
 }
 
 // Merge class names (lightweight clsx)
+/** "1 session", "3 sessions". */
+export function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`;
+}
+
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }

@@ -41,8 +41,8 @@ export function EngagementTimeline({ activities, children }: Props) {
   if (dated.length === 0) {
     return (
       <div className={card}>
-        <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
-        <p className="mt-4 text-sm text-[var(--text-muted)]">No activities have a start date yet.</p>
+        <h3 className="font-semibold text-[var(--ink)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
+        <p className="mt-4 text-sm text-[var(--ink-faint)]">No activities have a start date yet.</p>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export function EngagementTimeline({ activities, children }: Props) {
       <div className="hidden sm:block w-36 shrink-0" />
       <div className="flex-1 flex">
         {years.map(y => (
-          <span key={y} className="flex-1 text-xs font-medium text-[var(--text-muted)] text-center">{y}</span>
+          <span key={y} className="flex-1 text-xs font-medium text-[var(--ink-faint)] text-center">{y}</span>
         ))}
       </div>
     </div>
@@ -95,7 +95,7 @@ export function EngagementTimeline({ activities, children }: Props) {
   return (
     <div className={card} data-chart>
       <div className="mb-4">
-        <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
+        <h3 className="font-semibold text-[var(--ink)]" style={{ fontFamily: DISPLAY_FONT }}>Timeline</h3>
       </div>
 
       <div className="space-y-4">
@@ -103,7 +103,7 @@ export function EngagementTimeline({ activities, children }: Props) {
           <div key={child.id}>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: child.color_code }} />
-              <span className="text-sm font-semibold text-[var(--text-primary)]">{child.name}</span>
+              <span className="text-sm font-semibold text-[var(--ink)]">{child.name}</span>
             </div>
 
             {yearAxis}
@@ -113,7 +113,7 @@ export function EngagementTimeline({ activities, children }: Props) {
             <div className="space-y-2 sm:space-y-1">
               {rows.map(({ label, stints }) => (
                 <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1 sm:h-7">
-                  <span className="sm:w-36 shrink-0 text-xs text-[var(--text-secondary)] whitespace-nowrap truncate" title={label}>{label}</span>
+                  <span className="sm:w-36 shrink-0 text-xs text-[var(--ink-soft)] whitespace-nowrap truncate" title={label}>{label}</span>
                   <div className="relative w-full sm:flex-1 h-5 bg-[var(--bg-secondary)] rounded-sm overflow-hidden">
                     {stints.map(a => {
                       const start = parseISO(a.start_date!.slice(0, 10));

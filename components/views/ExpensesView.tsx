@@ -293,7 +293,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
   const Shell = embedded ? Fragment : Page;
   return (
     <Shell>
-      {!embedded && <Header title="Expenses" subtitle="Class fees" />}
+      {!embedded && <Header title="Expenses" subtitle="Every fee paid, by child and class" />}
 
       <Utilities>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
@@ -368,7 +368,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
               aria-pressed={showColumnPicker}
-              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
             >
               <Columns3 size={16} /> Columns
             </button>
@@ -380,7 +380,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--rule)] rounded-lg bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -401,7 +401,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                     onChange={e => setVisibleColumns(v => ({ ...v, [col.key]: e.target.checked }))}
                     className="rounded"
                   />
-                  <span className="text-xs text-[var(--text-primary)]">{col.label}</span>
+                  <span className="text-xs text-[var(--ink)]">{col.label}</span>
                 </label>
               ))}
             </div>
@@ -416,11 +416,11 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             ))}
           </div>
         ) : expenses.length === 0 ? (
-          <div className="text-center py-12 text-[var(--text-muted)]">
+          <div className="text-center py-12 text-[var(--ink-faint)]">
             <p className="text-sm">No expenses</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
@@ -445,10 +445,10 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   return (
                     <tr
                       key={exp.id}
-                      className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      className="border-b border-[var(--rule)] hover:bg-[var(--bg-secondary)] transition-colors"
                     >
                       {visibleColumns.child && (
-                        <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                        <td className="px-3 py-2 text-[var(--ink-soft)] whitespace-nowrap">
                           {exp.child ? (
                             <span className="inline-flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: exp.child.color_code }} />
@@ -457,9 +457,9 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                           ) : "—"}
                         </td>
                       )}
-                      {visibleColumns.date && <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>}
+                      {visibleColumns.date && <td className="px-3 py-2 text-[var(--ink-soft)] whitespace-nowrap">{formatDate(exp.payment_date)}</td>}
                       {visibleColumns.activity && (
-                        <td className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap">
+                        <td className="px-3 py-2 text-[var(--ink)] whitespace-nowrap">
                           {exp.activity_id ? (
                             <button
                               onClick={e => { e.stopPropagation(); router.push(`/activity/${exp.activity_id}`); }}
@@ -470,32 +470,32 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                           ) : activityLabel(exp)}
                         </td>
                       )}
-                      {visibleColumns.institution && <td className="px-3 py-2 text-[var(--text-primary)]">{exp.institution || "—"}</td>}
+                      {visibleColumns.institution && <td className="px-3 py-2 text-[var(--ink)]">{exp.institution || "—"}</td>}
                       {visibleColumns.type && (
                         <td className="px-3 py-2 text-left whitespace-nowrap">
                           <Badge label={exp.expense_type || "Lesson"} />
                         </td>
                       )}
-                      {visibleColumns.description && <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[200px] truncate">{exp.description || "—"}</td>}
+                      {visibleColumns.description && <td className="px-3 py-2 text-[var(--ink-soft)] max-w-[200px] truncate">{exp.description || "—"}</td>}
                       {visibleColumns.amount && (
-                        <td className="px-3 py-2 font-medium text-[var(--text-primary)] text-left whitespace-nowrap">
+                        <td className="px-3 py-2 font-medium text-[var(--ink)] text-left whitespace-nowrap">
                           {formatCurrency(exp.amount)}
                         </td>
                       )}
-                      {visibleColumns.costPerLesson && <td className="px-3 py-2 text-[var(--text-secondary)] text-left whitespace-nowrap">{costPerLesson}</td>}
-                      {visibleColumns.paidBy && <td className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap">{exp.paid_by || "—"}</td>}
+                      {visibleColumns.costPerLesson && <td className="px-3 py-2 text-[var(--ink-soft)] text-left whitespace-nowrap">{costPerLesson}</td>}
+                      {visibleColumns.paidBy && <td className="px-3 py-2 text-[var(--ink-soft)] whitespace-nowrap">{exp.paid_by || "—"}</td>}
                       <td className="px-3 py-2 text-left">
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => openEdit(exp)}
-                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
                             title="Edit expense"
                           >
                             <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => { setDeleteError(""); setConfirmDelete(exp); }}
-                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                             title="Delete expense"
                           >
                             <Trash2 size={16} />
@@ -521,7 +521,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             >
               <ChevronLeft size={16} /> Prev
             </Button>
-            <span className="text-xs text-[var(--text-secondary)] tabular-nums">
+            <span className="text-xs text-[var(--ink-soft)] tabular-nums">
               Page {currentPage} of {totalPages}
             </span>
             <Button
@@ -543,13 +543,13 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             {/* Child & Activity */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Child <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={form.child_id}
                   onChange={e => onChildChange(e.target.value)}
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   <option value="">Select child</option>
                   {children.map(c => (
@@ -558,14 +558,14 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Activity <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={form.activity_name}
                   onChange={e => onActivityChange(e.target.value)}
                   disabled={!form.child_id}
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
                 >
                   <option value="">Select activity</option>
                   {activityNames.map(n => (
@@ -577,14 +577,14 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
 
             {/* Institution — filtered to the selected activity */}
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                 Institution
               </label>
               <select
                 value={form.institution}
                 onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
                 disabled={!form.activity_name}
-                className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
               >
                 <option value="">Select institution</option>
                 {institutionsForName.map(inst => (
@@ -596,13 +596,13 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             {/* Type & Description */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Type
                 </label>
                 <select
                   value={form.expense_type}
                   onChange={e => setForm(f => ({ ...f, expense_type: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   {EXPENSE_TYPES.map(t => (
                     <option key={t} value={t}>{t}</option>
@@ -610,7 +610,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Description
                 </label>
                 <input
@@ -625,7 +625,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                     }));
                   }}
                   placeholder="e.g. Term 2 fees, Registration"
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
             </div>
@@ -633,7 +633,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             {/* Amount & Date */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Amount <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -642,18 +642,18 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Payment Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={form.payment_date}
                   onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
             </div>
@@ -661,7 +661,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             {/* Number of lessons & Paid by */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   No. of Lessons
                 </label>
                 <input
@@ -670,17 +670,17 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   value={form.num_lessons}
                   onChange={e => setForm(f => ({ ...f, num_lessons: e.target.value }))}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">
                   Paid By
                 </label>
                 <select
                   value={form.paid_by}
                   onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--border)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
                 >
                   {PAYERS.map(p => (
                     <option key={p} value={p}>{p}</option>
@@ -702,7 +702,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
 
         <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete expense?" size="sm">
           {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
-          <p className="text-sm text-[var(--text-secondary)] mb-4">
+          <p className="text-sm text-[var(--ink-soft)] mb-4">
             Delete the {confirmDelete ? formatCurrency(confirmDelete.amount) : ""}{" "}
             {confirmDelete ? activityLabel(confirmDelete) : ""} record
             {confirmDelete?.description ? ` (${confirmDelete.description})` : ""}?

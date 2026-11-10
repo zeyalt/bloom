@@ -9,8 +9,8 @@ const DISPLAY_FONT = "var(--font-bricolage), ui-sans-serif, system-ui, sans-seri
 const PALETTE = ["#2f6f4e", "#b45309", "#3d6b7a", "#6b5344", "#4a6741", "#8b5a2b", "#5c7a6a", "#1a2c22"];
 
 const axisProps = {
-  stroke: "var(--text-muted)",
-  tick: { fontSize: 11, fill: "var(--text-muted)" } as const,
+  stroke: "var(--ink-faint)",
+  tick: { fontSize: 11, fill: "var(--ink-faint)" } as const,
   tickLine: false,
   axisLine: false,
 };
@@ -23,7 +23,7 @@ function useChildColor() {
 function Frame({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
     <div className="w-full border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)] p-4">
-      {title && <p className="text-sm font-semibold text-[var(--text-primary)] mb-3" style={{ fontFamily: DISPLAY_FONT }}>{title}</p>}
+      {title && <p className="text-sm font-semibold text-[var(--ink)] mb-3" style={{ fontFamily: DISPLAY_FONT }}>{title}</p>}
       {children}
     </div>
   );
@@ -33,12 +33,12 @@ function Tip({ active, payload, label, format }: { active?: boolean; payload?: {
   if (!active || !payload?.length) return null;
   return (
     <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2 text-xs">
-      {label != null && <p className="font-semibold text-[var(--text-primary)] mb-1">{label}</p>}
+      {label != null && <p className="font-semibold text-[var(--ink)] mb-1">{label}</p>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.color || p.payload?.fill }} />
-          <span className="text-[var(--text-secondary)]">{p.name}</span>
-          <span className="ml-auto font-semibold tabular-nums text-[var(--text-primary)]">{formatValue(p.value, format)}</span>
+          <span className="text-[var(--ink-soft)]">{p.name}</span>
+          <span className="ml-auto font-semibold tabular-nums text-[var(--ink)]">{formatValue(p.value, format)}</span>
         </div>
       ))}
     </div>
@@ -55,11 +55,11 @@ export default function ChatChart({ spec }: { spec: ChartSpec }) {
         <div className={`grid gap-2 ${spec.stats.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {spec.stats.map(s => (
             <div key={s.label} className="rounded-[var(--radius-md)] bg-[var(--bg-secondary)] px-3 py-3">
-              <p className="text-xs text-[var(--text-muted)]">{s.label}</p>
-              <p className="text-xl font-bold tabular-nums text-[var(--text-primary)] leading-tight mt-1" style={{ fontFamily: DISPLAY_FONT }}>
+              <p className="text-xs text-[var(--ink-faint)]">{s.label}</p>
+              <p className="text-xl font-bold tabular-nums text-[var(--ink)] leading-tight mt-1" style={{ fontFamily: DISPLAY_FONT }}>
                 {formatValue(s.value, spec.format)}
               </p>
-              {s.note && <p className="text-xs text-[var(--text-muted)] mt-1">{s.note}</p>}
+              {s.note && <p className="text-xs text-[var(--ink-faint)] mt-1">{s.note}</p>}
             </div>
           ))}
         </div>
@@ -80,8 +80,8 @@ export default function ChatChart({ spec }: { spec: ChartSpec }) {
                   className="absolute inset-y-0 left-0 rounded-[4px]"
                   style={{ width: `${max > 0 ? (Math.abs(it.value) / max) * 100 : 0}%`, backgroundColor: `color-mix(in srgb, ${color} 35%, transparent)` }}
                 />
-                <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--text-primary)] truncate">{it.label}</span>
-                <span className="relative shrink-0 pr-2 text-xs font-semibold tabular-nums text-[var(--text-primary)]">{formatValue(it.value, spec.format)}</span>
+                <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--ink)] truncate">{it.label}</span>
+                <span className="relative shrink-0 pr-2 text-xs font-semibold tabular-nums text-[var(--ink)]">{formatValue(it.value, spec.format)}</span>
               </div>
             );
           })}
@@ -106,17 +106,17 @@ export default function ChatChart({ spec }: { spec: ChartSpec }) {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-xs font-bold tabular-nums text-[var(--text-primary)]">{formatValue(total, spec.format)}</span>
+              <span className="text-xs font-bold tabular-nums text-[var(--ink)]">{formatValue(total, spec.format)}</span>
             </div>
           </div>
           <div className="flex flex-col gap-1 min-w-0 flex-1">
             {data.map(d => (
               <div key={d.name} className="flex items-center gap-2 text-xs min-w-0">
                 <span className="w-2 h-2 shrink-0" style={{ backgroundColor: d.fill }} />
-                <span className="truncate text-[var(--text-secondary)]">{d.name}</span>
-                <span className="ml-auto shrink-0 tabular-nums text-[var(--text-primary)]">
+                <span className="truncate text-[var(--ink-soft)]">{d.name}</span>
+                <span className="ml-auto shrink-0 tabular-nums text-[var(--ink)]">
                   {formatValue(d.value, spec.format)}
-                  <span className="text-[var(--text-muted)]"> · {total > 0 ? Math.round((d.value / total) * 100) : 0}%</span>
+                  <span className="text-[var(--ink-faint)]"> · {total > 0 ? Math.round((d.value / total) * 100) : 0}%</span>
                 </span>
               </div>
             ))}
@@ -146,7 +146,7 @@ export default function ChatChart({ spec }: { spec: ChartSpec }) {
           {spec.series.map((s, i) => (
             <div key={s.name} className="flex items-center gap-2 text-xs">
               <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: colorOf(s.child, i) }} />
-              <span className="text-[var(--text-secondary)]">{s.name}</span>
+              <span className="text-[var(--ink-soft)]">{s.name}</span>
             </div>
           ))}
         </div>

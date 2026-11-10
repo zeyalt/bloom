@@ -14,7 +14,7 @@ import { useChildren, useGoals } from "@/lib/api-hooks";
 import { goalApi, useRefreshGoals } from "@/lib/goal-api";
 import { cn, formatDate } from "@/lib/utils";
 import {
-  TONE_CLASSES, achievedDate, day, earlyLateLabel, fmtValue, goalStatus, measuredProgress, round1,
+  TONE_CLASSES, achievedDate, day, earlyLateLabel, fmtValue, goalStatus, measuredProgress, milestoneProgress, round1,
   timeLeftLabel, todayISO,
 } from "@/lib/goal-progress";
 import type { Goal } from "@/lib/types";
@@ -56,7 +56,7 @@ export function GoalDetailView({ goalId }: { goalId: string }) {
       {/* The header carries the child; the goal title sits below it so long titles wrap instead of truncating. */}
       <Header
         title={child?.name ?? "Goal"}
-        subtitle={goal.kind === "measured" ? "Measured goal" : "Milestone goal"}
+        subtitle={goalLine(goal, today)}
         leading={back}
         action={<IconButton icon={Pencil} label="Edit goal" onClick={() => setEditing(true)} />}
       />
@@ -282,4 +282,16 @@ function Tile({ big, small }: { big: string; small: string }) {
       <div className="text-xs text-[var(--ink-soft)] mt-1">{small}</div>
     </div>
   );
+}
+
+/** "Milestone · 3 of 7 steps done" / "Measured · latest 124 cm, 6 cm to go". */
+function goalLine(goal: Goal, today: string): string {
+  if (goal.kind === "milestone") {
+    const { checkpoints, hitCount } = milestoneProgress(goal, today);
+    return checkpoints.length ? `Milestone · ${hitCount} of ${checkpoints.length} steps done` : "Milestone · no plan yet";
+  }
+  const { latest, remaining, reached } = measuredProgress(goal);
+  if (!latest) return "Measured · no readings yet";
+  const now = `latest ${fmtValue(latest.value, goal.unit)}`;
+  return reached || remaining === null ? `Measured · ${now}, target reached` : `Measured · ${now}, ${fmtValue(round1(remaining), goal.unit)} to go`;
 }

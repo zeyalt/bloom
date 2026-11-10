@@ -111,7 +111,7 @@ const recordBucket = (dateStr: string, gran: "week" | "month") =>
 // ── Reusable presentation pieces ──────────────────────────────────────────
 
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>{children}</h3>;
+  return <h3 className="font-semibold text-[var(--ink)]" style={{ fontFamily: DISPLAY_FONT }}>{children}</h3>;
 }
 
 function ChartCard({ title, subtitle, action, children, className = "" }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -120,7 +120,7 @@ function ChartCard({ title, subtitle, action, children, className = "" }: { titl
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          {subtitle && <p className="text-xs text-[var(--text-muted)] mt-1">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[var(--ink-faint)] mt-1">{subtitle}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
@@ -133,12 +133,12 @@ function ChartTooltip({ active, payload, label, formatter }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
-      {label != null && <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{label}</p>}
+      {label != null && <p className="text-xs font-semibold text-[var(--ink)] mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 text-xs">
           <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.color || p.payload?.fill }} />
-          <span className="text-[var(--text-secondary)]">{p.name}</span>
-          <span className="ml-auto font-semibold tabular-nums text-[var(--text-primary)]">
+          <span className="text-[var(--ink-soft)]">{p.name}</span>
+          <span className="ml-auto font-semibold tabular-nums text-[var(--ink)]">
             {formatter ? formatter(p.value) : p.value}
           </span>
         </div>
@@ -157,10 +157,10 @@ function DonutTooltip({ active, payload, formatter, total }: any) {
     <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
       <div className="flex items-center gap-2 text-xs">
         <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.payload?.fill || p.color }} />
-        <span className="text-[var(--text-secondary)]">{p.name}</span>
-        <span className="ml-auto font-semibold tabular-nums text-[var(--text-primary)]">
+        <span className="text-[var(--ink-soft)]">{p.name}</span>
+        <span className="ml-auto font-semibold tabular-nums text-[var(--ink)]">
           {formatter ? formatter(p.value) : p.value}
-          <span className="ml-1 font-normal text-[var(--text-muted)]">({Math.round(pct)}%)</span>
+          <span className="ml-1 font-normal text-[var(--ink-faint)]">({Math.round(pct)}%)</span>
         </span>
       </div>
     </div>
@@ -205,14 +205,14 @@ function MiniDonutKpi({ label, data, center, formatter, animate }: { label: stri
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">{center}</span>
+            <span className="text-sm font-bold tabular-nums text-[var(--ink)]">{center}</span>
           </div>
         </div>
         <div className="flex flex-col gap-1 min-w-0">
           {data.map((d, i) => (
             <div key={i} className="flex items-center gap-2 text-xs min-w-0">
               <span className="w-2 h-2 shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="truncate text-[var(--text-secondary)]">{d.name}</span>
+              <span className="truncate text-[var(--ink-soft)]">{d.name}</span>
             </div>
           ))}
         </div>
@@ -241,7 +241,7 @@ function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGr
           <div key={g.id}>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2.5 h-2.5" style={{ backgroundColor: g.color }} />
-              <h4 className="text-sm font-semibold text-[var(--text-primary)]">{g.name}</h4>
+              <h4 className="text-sm font-semibold text-[var(--ink)]">{g.name}</h4>
             </div>
             <div className="space-y-2">
               {rows.map(r => (
@@ -255,8 +255,8 @@ function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGr
                     className="absolute inset-y-0 left-0 rounded-[4px]"
                     style={{ width: `${(r.value / max) * 100}%`, backgroundColor: `color-mix(in srgb, ${g.color} 35%, transparent)` }}
                   />
-                  <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--text-primary)] truncate">{r.name}</span>
-                  <span className="relative shrink-0 pr-2 text-xs font-semibold tabular-nums text-[var(--text-primary)]">{format(r.value)}</span>
+                  <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--ink)] truncate">{r.name}</span>
+                  <span className="relative shrink-0 pr-2 text-xs font-semibold tabular-nums text-[var(--ink)]">{format(r.value)}</span>
                 </button>
               ))}
             </div>
@@ -268,8 +268,8 @@ function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGr
 }
 
 const axisProps = {
-  stroke: "var(--text-muted)",
-  tick: { fontSize: 11, fill: "var(--text-muted)" } as const,
+  stroke: "var(--ink-faint)",
+  tick: { fontSize: 11, fill: "var(--ink-faint)" } as const,
   tickLine: false,
   axisLine: false,
 };
@@ -693,14 +693,14 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[200px] flex items-center justify-center text-sm text-[var(--text-muted)]">No attended sessions in this period</div>
+                <div className="h-[200px] flex items-center justify-center text-sm text-[var(--ink-faint)]">No attended sessions in this period</div>
               )}
               {hoursViz.overTime.length > 0 && (
                 <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
                   {hoursViz.groupNames.map((g, i) => (
                     <div key={g} className="flex items-center gap-2 text-xs">
                       <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.colorForCat(g, i) }} />
-                      <span className="text-[var(--text-secondary)]">{g}</span>
+                      <span className="text-[var(--ink-soft)]">{g}</span>
                     </div>
                   ))}
                 </div>
@@ -742,7 +742,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                     {series.map(s => (
                       <div key={s.key} className="flex items-center gap-2 text-xs">
                         <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: s.color }} />
-                        <span className="text-[var(--text-secondary)]">{s.name}</span>
+                        <span className="text-[var(--ink-soft)]">{s.name}</span>
                       </div>
                     ))}
                   </div>
@@ -762,14 +762,14 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                   action={<Segmented value={loadView} onChange={setLoadView} options={[{ value: "total", label: "Total hours" }, { value: "scheduled", label: "Scheduled" }]} />}
                 >
                   {load.rows.length === 0 ? (
-                    <p className="text-sm text-[var(--text-muted)]">
+                    <p className="text-sm text-[var(--ink-faint)]">
                       {loadView === "total" ? "No attended sessions in this period." : "No classes on the current schedule."}
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {load.rows.map(row => (
                         <div key={row.name} className="flex items-center gap-2">
-                          <span className="w-14 shrink-0 text-xs text-[var(--text-secondary)]">{row.name}</span>
+                          <span className="w-14 shrink-0 text-xs text-[var(--ink-soft)]">{row.name}</span>
                           <div className="flex-1 grid grid-cols-7 gap-1">
                             {row.hours.map((h, i) => (
                               <div
@@ -787,7 +787,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                       <div className="flex items-center gap-2 pl-16">
                         <div className="flex-1 grid grid-cols-7 gap-1">
                           {load.dayNames.map((d, i) => (
-                            <span key={i} className="text-center text-xs text-[var(--text-muted)]">{d}</span>
+                            <span key={i} className="text-center text-xs text-[var(--ink-faint)]">{d}</span>
                           ))}
                         </div>
                       </div>
@@ -854,7 +854,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                   {data.childNames.map(cn => (
                     <div key={cn} className="flex items-center gap-2 text-xs">
                       <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: data.childColor(cn) }} />
-                      <span className="text-[var(--text-secondary)]">{cn}</span>
+                      <span className="text-[var(--ink-soft)]">{cn}</span>
                     </div>
                   ))}
                 </div>
@@ -876,14 +876,14 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                   >
                     <div />
                     {data.payerByChild.children.map(c => (
-                      <div key={c.id} className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] truncate">
+                      <div key={c.id} className="flex items-center justify-center gap-2 text-xs text-[var(--ink-faint)] truncate">
                         <span className="w-2 h-2 shrink-0" style={{ backgroundColor: c.color }} />
                         {c.name}
                       </div>
                     ))}
                     {data.payerByChild.rows.map(row => (
                       <Fragment key={row.payer}>
-                        <div className="h-9 flex items-center pr-1 text-xs text-[var(--text-secondary)]">
+                        <div className="h-9 flex items-center pr-1 text-xs text-[var(--ink-soft)]">
                           <span className="truncate" title={row.payer}>{row.payer}</span>
                         </div>
                         {row.amounts.map((amt, i) => {
@@ -896,7 +896,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                               className="h-9 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
                               style={{
                                 backgroundColor: amt === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${c.color} ${Math.round(alpha * 100)}%, transparent)`,
-                                color: alpha > 0.55 ? "#fff" : "var(--text-primary)",
+                                color: alpha > 0.55 ? "#fff" : "var(--ink)",
                               }}
                             >
                               {amt > 0 ? formatCurrency(amt) : ""}
@@ -921,8 +921,8 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                             className="absolute inset-y-0 left-0 rounded-[4px]"
                             style={{ width: `${max > 0 ? (d.value / max) * 100 : 0}%`, backgroundColor: `color-mix(in srgb, ${d.color} 35%, transparent)` }}
                           />
-                          <span className="relative flex-1 min-w-0 px-3 text-sm text-[var(--text-primary)] truncate">{d.name}</span>
-                          <span className="relative shrink-0 pr-3 text-sm font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(d.value)}</span>
+                          <span className="relative flex-1 min-w-0 px-3 text-sm text-[var(--ink)] truncate">{d.name}</span>
+                          <span className="relative shrink-0 pr-3 text-sm font-semibold tabular-nums text-[var(--ink)]">{formatCurrency(d.value)}</span>
                         </div>
                       ));
                     })()}

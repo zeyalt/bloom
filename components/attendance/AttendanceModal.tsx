@@ -224,14 +224,14 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Child *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Child *</label>
             <select value={form.child_id} onChange={e => setForm(f => ({ ...f, child_id: e.target.value }))} className={inputCls}>
               <option value="">Select child</option>
               {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Activity *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Activity *</label>
             <select value={form.activity_id} onChange={e => setForm(f => ({ ...f, activity_id: e.target.value }))} className={inputCls}>
               <option value="">Select activity</option>
               {childActivities.map(a => <option key={a.id} value={a.id}>{actLabel(a)}</option>)}
@@ -241,11 +241,11 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Date *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Date *</label>
             <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Status *</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Status *</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as AttendanceStatus }))} className={inputCls}>
               {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
@@ -254,28 +254,28 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Start Time</label>
             <input type="time" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">End Time</label>
             <input type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} className={inputCls} />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Instructor</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Instructor</label>
             <input type="text" value={form.instructor_name} onChange={e => setForm(f => ({ ...f, instructor_name: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Location</label>
             <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className={inputCls} />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Lesson Type</label>
+          <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Lesson Type</label>
           <div className="flex flex-wrap items-center gap-2">
             {(() => {
               const norm = normalizeLessonType(form.lesson_type);
@@ -327,7 +327,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         {showSenderFetcher && (
           <>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Sender</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Sender</label>
               <div className="flex flex-wrap items-center gap-2">
                 {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
                   const active = form.sent_by.includes(s);
@@ -373,7 +373,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Fetcher</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Fetcher</label>
               <div className="flex flex-wrap items-center gap-2">
                 {[...FETCHER_OPTIONS, ...form.fetcher.filter(s => !FETCHER_OPTIONS.includes(s))].map(s => {
                   const active = form.fetcher.includes(s);
@@ -422,7 +422,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         {form.status === "absent" && (
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Absence Reason</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Absence Reason</label>
             <select value={form.absence_reason} onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))} className={inputCls}>
               <option value="">Select reason</option>
               {ABSENCE_REASON_OPTIONS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
@@ -432,7 +432,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         {form.status === "cancelled_by_provider" && (
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Cancellation Reason</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Cancellation Reason</label>
             <input
               type="text"
               value={form.absence_reason}
@@ -448,7 +448,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         {activeTab === "reflections" && (
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Reflection</label>
+          <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Reflection</label>
           <textarea
             value={form.reflection}
             onChange={e => setForm(f => ({ ...f, reflection: e.target.value }))}

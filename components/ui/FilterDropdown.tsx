@@ -102,7 +102,7 @@ function DropdownShell({
       <ChevronDown
         size={16}
         className={cn(
-          "pointer-events-none absolute right-4 top-6 -translate-y-1/2 text-[var(--text-muted)] transition-transform",
+          "pointer-events-none absolute right-4 top-6 -translate-y-1/2 text-[var(--ink-faint)] transition-transform",
           open && "rotate-180"
         )}
       />
@@ -125,7 +125,7 @@ function DropdownShell({
 }
 
 const optionRow =
-  "flex items-center gap-2 w-full px-3 min-h-12 rounded-lg text-sm text-left text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)]";
+  "flex items-center gap-2 w-full px-3 min-h-12 rounded-lg text-sm text-left text-[var(--ink)] cursor-pointer hover:bg-[var(--bg-secondary)]";
 
 /** Single-value filter dropdown. Picking an option closes the panel. */
 export function SingleSelect({
@@ -156,7 +156,7 @@ export function SingleSelect({
             onClick={() => { onChange(opt.value); close(); }}
             className={optionRow}
           >
-            <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+            <span className="w-4 shrink-0 text-[var(--stem)]">
               {selected && <Check size={16} />}
             </span>
             {opt.colorCode && (
@@ -227,7 +227,7 @@ export function MultiSelect({
             onClick={toggleAll}
             className={cn(optionRow, "font-medium border-b border-[var(--rule)] mb-1")}
           >
-            <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+            <span className="w-4 shrink-0 text-[var(--stem)]">
               {allSelected && <Check size={16} />}
             </span>
             <span className="whitespace-nowrap">Select All</span>
@@ -243,7 +243,7 @@ export function MultiSelect({
                 onClick={() => onToggle(opt.value)}
                 className={optionRow}
               >
-                <span className="w-4 shrink-0 text-[var(--accent-primary)]">
+                <span className="w-4 shrink-0 text-[var(--stem)]">
                   {checked && <Check size={16} />}
                 </span>
                 {opt.colorCode && (

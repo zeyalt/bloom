@@ -165,7 +165,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
     <Page>
       <Header
         title={title}
-        subtitle={child?.name ?? ""}
+        subtitle={[child?.name, activity.activity_name ? activity.institution : null, activity.level].filter(Boolean).join(" · ")}
         leading={<BackButton icon={ArrowLeft} onClick={() => router.back()} />}
       />
 
@@ -174,10 +174,10 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         <dl className="border border-[var(--rule)] bg-[var(--sheet)] px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
           {details.map(d => (
             <div key={d.label} className="flex items-baseline gap-3 min-w-0">
-              <dt className="w-28 shrink-0 text-xs text-[var(--text-muted)]">{d.label}</dt>
-              <dd className="min-w-0 text-sm font-medium text-[var(--text-primary)]">
+              <dt className="w-28 shrink-0 text-xs text-[var(--ink-faint)]">{d.label}</dt>
+              <dd className="min-w-0 text-sm font-medium text-[var(--ink)]">
                 {d.value}
-                {d.note && <span className="block text-xs font-normal text-[var(--text-muted)]">{d.note}</span>}
+                {d.note && <span className="block text-xs font-normal text-[var(--ink-faint)]">{d.note}</span>}
               </dd>
             </div>
           ))}
@@ -199,11 +199,11 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
             </div>
             <div className="text-xs text-[var(--ink-faint)] mt-1">per hour</div>
             {price ? (
-              <div className="text-xs text-[var(--text-muted)] mt-1 leading-tight">
+              <div className="text-xs text-[var(--ink-faint)] mt-1 leading-tight">
                 {formatCurrency(price.perLesson)} per {Math.round(price.sessionMinutes)}-min lesson
               </div>
             ) : (
-              <div className="text-xs text-[var(--text-muted)] mt-1 leading-tight">No lesson payment with a lesson count</div>
+              <div className="text-xs text-[var(--ink-faint)] mt-1 leading-tight">No lesson payment with a lesson count</div>
             )}
           </div>
         </div>
@@ -211,13 +211,13 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         {/* 4: sender / fetcher distribution — one 100% bar each */}
         {(stats.senders.length > 0 || stats.fetchers.length > 0) && (
           <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4">
-            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Who sends &amp; fetches</h3>
+            <h3 className="font-semibold text-[var(--ink)] mb-4">Who sends &amp; fetches</h3>
             <div className="space-y-4">
               {([["Sender", stats.senders], ["Fetcher", stats.fetchers]] as const).map(([role, rows]) => (
                 <div key={role}>
-                  <p className="text-xs text-[var(--text-muted)] mb-2">{role}</p>
+                  <p className="text-xs text-[var(--ink-faint)] mb-2">{role}</p>
                   {rows.length === 0 ? (
-                    <p className="text-xs text-[var(--text-muted)]">None recorded.</p>
+                    <p className="text-xs text-[var(--ink-faint)]">None recorded.</p>
                   ) : (
                     <div className="flex h-6 w-full overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-secondary)]">
                       {rows.map(f => {
@@ -240,7 +240,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
               {stats.people.map((name, i) => (
-                <span key={name} className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                <span key={name} className="inline-flex items-center gap-2 text-xs text-[var(--ink-soft)]">
                   <span className="w-2 h-2 shrink-0" style={{ backgroundColor: ferryPalette[i % ferryPalette.length] }} />
                   {name}
                 </span>
@@ -251,10 +251,10 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
         {/* Milestones timeline */}
         <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4">
-          <h3 className="font-semibold text-[var(--text-primary)] mb-1">Milestones</h3>
-          <p className="text-xs text-[var(--text-muted)] mb-4">Gradings, achievements, and other key moments</p>
+          <h3 className="font-semibold text-[var(--ink)] mb-1">Milestones</h3>
+          <p className="text-xs text-[var(--ink-faint)] mb-4">Gradings, achievements, and other key moments</p>
           {milestones.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">No milestones logged yet for this activity.</p>
+            <p className="text-sm text-[var(--ink-faint)]">No milestones logged yet for this activity.</p>
           ) : (
             <div className="relative pl-4">
               <div className="absolute left-[5px] top-1 bottom-1 w-px bg-[var(--rule)]" />
@@ -263,11 +263,11 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                   <div key={m.id} className="relative">
                     <span className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[var(--stem)] ring-2 ring-[var(--sheet)]" />
                     <div className="flex items-start gap-2">
-                      <Trophy size={16} className="text-[var(--accent-warning)] mt-1 shrink-0" />
+                      <Trophy size={16} className="text-[var(--warn)] mt-1 shrink-0" />
                       <div className="min-w-0">
-                        <div className="text-xs text-[var(--text-muted)]">{formatDate(m.date)}</div>
-                        <div className="text-sm font-medium text-[var(--text-primary)]">{m.title}</div>
-                        {m.result && <div className="text-xs text-[var(--text-secondary)] mt-1">{m.result}</div>}
+                        <div className="text-xs text-[var(--ink-faint)]">{formatDate(m.date)}</div>
+                        <div className="text-sm font-medium text-[var(--ink)]">{m.title}</div>
+                        {m.result && <div className="text-xs text-[var(--ink-soft)] mt-1">{m.result}</div>}
                       </div>
                     </div>
                   </div>
@@ -280,23 +280,23 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         {/* 5: recent attendance */}
         <div className="border border-[var(--rule)] bg-[var(--sheet)]">
           <div className="px-4 pt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-            <h3 className="font-semibold text-[var(--text-primary)]">Recent attendance</h3>
+            <h3 className="font-semibold text-[var(--ink)]">Recent attendance</h3>
             {stats.recentLogs.length > 0 && (
-              <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]" aria-label="All-time attendance">
-                <li className="basis-full sm:basis-auto whitespace-nowrap text-xs sm:text-xs uppercase sm:normal-case tracking-wide sm:tracking-normal text-[var(--text-muted)]">All time</li>
+              <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]" aria-label="All-time attendance">
+                <li className="basis-full sm:basis-auto whitespace-nowrap text-xs sm:text-xs uppercase sm:normal-case tracking-wide sm:tracking-normal text-[var(--ink-faint)]">All time</li>
                 {(Object.entries(MARKS) as [Mark, (typeof MARKS)[Mark]][]).map(([key, { color, Icon }]) => (
                   <li key={key} className="inline-flex items-center gap-1 whitespace-nowrap">
                     <span className="flex items-center justify-center w-4 h-4 rounded-full text-white" style={{ backgroundColor: color }}>
                       <Icon size={12} strokeWidth={3.5} />
                     </span>
-                    <span className="font-semibold text-[var(--text-primary)]">{stats.statusTally[key]}</span> {key}
+                    <span className="font-semibold text-[var(--ink)]">{stats.statusTally[key]}</span> {key}
                   </li>
                 ))}
               </ul>
             )}
           </div>
           {stats.recentLogs.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-[var(--text-muted)]">No attendance logged yet.</p>
+            <p className="px-4 py-4 text-sm text-[var(--ink-faint)]">No attendance logged yet.</p>
           ) : (
             <div className="px-3 sm:px-4 pt-3 pb-4">
               {/* One column per session, oldest → newest; the latest is ringed. */}
@@ -320,8 +320,8 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                         className={`w-full flex flex-col items-center gap-2 pt-2 pb-1 rounded-[var(--radius-md)] cursor-pointer transition-colors ${selected ? "bg-[var(--bg-secondary)]" : "hover:bg-[var(--bg-secondary)]/60"}`}
                       >
                         <span className="flex flex-col items-center leading-tight">
-                          <span className="text-xs font-semibold text-[var(--text-primary)]">{format(parseISO(iso), "d")}</span>
-                          <span className="text-xs text-[var(--text-muted)]">{format(parseISO(iso), "MMM")}</span>
+                          <span className="text-xs font-semibold text-[var(--ink)]">{format(parseISO(iso), "d")}</span>
+                          <span className="text-xs text-[var(--ink-faint)]">{format(parseISO(iso), "MMM")}</span>
                         </span>
                         <span
                           className={`flex items-center justify-center rounded-full text-white w-6 h-6 sm:w-7 sm:h-7 ${latest ? "ring-2 ring-offset-2 ring-offset-[var(--sheet)]" : ""}`}
@@ -341,9 +341,9 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
               </ol>
               {selectedLog && (
                 <div className="mt-2 px-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-live="polite">
-                  <span className="font-medium text-[var(--text-primary)]">{format(parseISO(selectedLog.date.slice(0, 10)), "EEE, d MMM yyyy")}</span>
+                  <span className="font-medium text-[var(--ink)]">{format(parseISO(selectedLog.date.slice(0, 10)), "EEE, d MMM yyyy")}</span>
                   {selectedLog.start_time && (
-                    <span className="text-[var(--text-secondary)]">{formatTime(selectedLog.start_time)}</span>
+                    <span className="text-[var(--ink-soft)]">{formatTime(selectedLog.start_time)}</span>
                   )}
                   <Badge
                     label={ATTENDANCE_STATUS_LABELS[selectedLog.status] || selectedLog.status}
@@ -351,7 +351,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                   />
                 </div>
               )}
-              <p className="mt-2 px-1 text-xs text-[var(--text-muted)]">
+              <p className="mt-2 px-1 text-xs text-[var(--ink-faint)]">
                 Last {stats.recentLogs.length} sessions · scroll left for older · tap a date for details
               </p>
             </div>
@@ -360,11 +360,11 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
         {/* 6: recent expenses */}
         <div className="border border-[var(--rule)] bg-[var(--sheet)]">
-          <h3 className="font-semibold text-[var(--text-primary)] px-4 pt-6">Recent expenses</h3>
+          <h3 className="font-semibold text-[var(--ink)] px-4 pt-6">Recent expenses</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm mt-3">
               <thead>
-                <tr className="border-b border-[var(--border)] text-xs text-[var(--text-muted)]">
+                <tr className="border-b border-[var(--rule)] text-xs text-[var(--ink-faint)]">
                   <th className="text-left font-semibold px-4 py-2">Date</th>
                   <th className="text-left font-semibold px-3 py-2">Description</th>
                   <th className="text-right font-semibold px-4 py-2">Amount</th>
@@ -372,11 +372,11 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
               </thead>
               <tbody>
                 {stats.recentExpenses.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-4 text-[var(--text-muted)]">No expenses logged yet.</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-4 text-[var(--ink-faint)]">No expenses logged yet.</td></tr>
                 ) : stats.recentExpenses.map(e => (
-                  <tr key={e.id} className="border-b border-[var(--border)] last:border-0">
+                  <tr key={e.id} className="border-b border-[var(--rule)] last:border-0">
                     <td className="px-4 py-2 whitespace-nowrap">{formatDate(e.payment_date)}</td>
-                    <td className="px-3 py-2 text-[var(--text-secondary)] max-w-[220px] truncate">{e.description || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--ink-soft)] max-w-[220px] truncate">{e.description || "—"}</td>
                     <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{formatCurrency(e.amount)}</td>
                   </tr>
                 ))}

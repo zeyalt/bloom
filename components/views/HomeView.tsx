@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, AlertCircle, CheckCircle2, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X, NotebookPen, CalendarDays, Pencil, AlertCircle, CheckCircle2, Ban } from "lucide-react";
 import { DueCheckpoints } from "@/components/goals/DueCheckpoints";
 import { startOfWeek, differenceInCalendarDays, parseISO, format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,16 +10,15 @@ import { Header } from "@/components/layout/Header";
 import { Page, Utilities, PageBody } from "@/components/layout/Page";
 import { IconButton } from "@/components/ui/IconButton";
 import { Fab } from "@/components/ui/Fab";
-import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
-import { DAYS_OF_WEEK } from "@/lib/constants";
-import { cn, formatTime } from "@/lib/utils";
+import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
+import { cn, formatTime, plural } from "@/lib/utils";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { getWeekDays, getWeekRange, scheduleOccursOn, occurrenceKey, WeekDay } from "@/lib/week";
 import { useChildren, useSchedules, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
-import type { Schedule, Activity, ActivityCategory, Child, AttendanceLog } from "@/lib/types";
+import type { Schedule, Activity, ActivityCategory, Child, AttendanceLog, AttendanceStatus } from "@/lib/types";
 
 interface ScheduleWithDetails extends Schedule {
   activity?: Activity & { child?: Child; category?: ActivityCategory };
@@ -71,6 +70,13 @@ function weekName(offset: number) {
   return `${format(days[0].date, "d MMM")} – ${format(days[6].date, "d MMM")}`;
 }
 
+/** The three outcomes a scheduled session can have; each opens the attendance dialog pre-filled. */
+const QUICK_LOG: { status: AttendanceStatus; label: string; icon: typeof Check; cls: string }[] = [
+  { status: "attended", label: "Attended", icon: Check, cls: "text-[var(--stem)]" },
+  { status: "absent", label: "Absent", icon: X, cls: "text-[var(--margin)]" },
+  { status: "cancelled_by_provider", label: "Cancelled", icon: Ban, cls: "text-[var(--ink-soft)]" },
+];
+
 export default function AgendaPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -83,14 +89,6 @@ export default function AgendaPage() {
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
   const todayRef = useRef<HTMLDivElement>(null);
   const hasScrolledToToday = useRef(false);
-
-  // Editing/deleting the underlying recurring schedule slot behind an occurrence card.
-  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
-  const [scheduleForm, setScheduleForm] = useState({ day_of_week: 1, start_time: "", end_time: "", location: "" });
-  const [savingSchedule, setSavingSchedule] = useState(false);
-  const [scheduleError, setScheduleError] = useState("");
-  const [confirmDeleteSchedule, setConfirmDeleteSchedule] = useState<Schedule | null>(null);
-  const [deletingSchedule, setDeletingSchedule] = useState(false);
 
   // Rebuilt only when the user moves weeks — these feed the memoised derivations
   // below, which would otherwise miss on every render.
@@ -141,13 +139,13 @@ export default function AgendaPage() {
     await queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
   }
 
-  function openAbsentModal(s: ScheduleWithDetails, day: WeekDay) {
+  function openLog(s: ScheduleWithDetails, day: WeekDay, status: AttendanceStatus) {
     const a = s.activity!;
     setPrefill({
       activity_id: a.id,
       child_id: a.child_id,
       date: day.iso,
-      status: "absent",
+      status,
       start_time: s.start_time,
       end_time: s.end_time,
       instructor_name: a.instructor_name,
@@ -175,48 +173,6 @@ export default function AgendaPage() {
       diary_notes: getReflectionText(log.learned, log.diary_notes),
     });
     setModalOpen(true);
-  }
-
-  function openEditSchedule(s: Schedule) {
-    setScheduleForm({
-      day_of_week: s.day_of_week,
-      start_time: s.start_time,
-      end_time: s.end_time ?? "",
-      location: s.location ?? "",
-    });
-    setScheduleError("");
-    setEditingSchedule(s);
-  }
-
-  async function saveSchedule() {
-    if (!editingSchedule || !scheduleForm.start_time) { setScheduleError("Start time is required."); return; }
-    setSavingSchedule(true); setScheduleError("");
-    try {
-      const res = await fetch(`/api/schedules/${editingSchedule.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          day_of_week: scheduleForm.day_of_week,
-          start_time: scheduleForm.start_time,
-          end_time: scheduleForm.end_time.trim() || null,
-          location: scheduleForm.location.trim() || null,
-        }),
-      });
-      if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Save failed"); }
-      setEditingSchedule(null);
-      await queryClient.invalidateQueries({ queryKey: ["schedules"] });
-    } catch (e) { setScheduleError((e as Error).message); }
-    finally { setSavingSchedule(false); }
-  }
-
-  async function deleteSchedule() {
-    if (!confirmDeleteSchedule) return;
-    setDeletingSchedule(true);
-    try {
-      await fetch(`/api/schedules/${confirmDeleteSchedule.id}`, { method: "DELETE" });
-      setConfirmDeleteSchedule(null);
-      await queryClient.invalidateQueries({ queryKey: ["schedules"] });
-    } finally { setDeletingSchedule(false); }
   }
 
   function openAdhoc() {
@@ -288,6 +244,29 @@ export default function AgendaPage() {
     // nowHHMM is minute-grained, so this re-derives at most once a minute of re-renders.
   }, [windowLogs, schedules, selectedChildren, todayIso, nowHHMM]);
 
+  // Header line: what this week holds, so the page answers "what's on?" before scrolling.
+  const weekLine = useMemo(() => {
+    const days = dayBlocks.map(({ day, occ }) => ({
+      day,
+      planned: occ.length + (adhocByDay.get(day.iso)?.length ?? 0),
+      upcoming: occ.filter(o => !logsByKey.has(o.key) && !isPastOccurrence(day, o.schedule, todayIso, nowHHMM)).length,
+    }));
+    const planned = days.reduce((n, d) => n + d.planned, 0);
+    if (weekOffset === 0) {
+      const today = days.find(d => d.day.isToday)?.upcoming ?? 0;
+      const later = days.filter(d => d.day.iso > todayIso).reduce((n, d) => n + d.upcoming, 0);
+      const date = format(parseISO(todayIso), "EEE d MMM");
+      if (!today && !later) return `${date} · all done this week`;
+      if (!today) return `${date} · ${later} more this week`;
+      return `${date} · ${today} today${later ? `, ${later} more this week` : ""}`;
+    }
+    const span = `${format(week[0].date, "d MMM")} – ${format(week[6].date, "d MMM")}`;
+    if (weekOffset > 0) return `${span} · ${planned ? `${plural(planned, "session")} planned` : "nothing planned"}`;
+    const missing = unlogged.byOffset.get(weekOffset)?.missing ?? 0;
+    if (!planned) return `${span} · no sessions`;
+    return `${span} · ${missing ? `${missing} of ${planned} not logged` : `all ${planned} logged`}`;
+  }, [dayBlocks, adhocByDay, logsByKey, week, weekOffset, unlogged, todayIso, nowHHMM]);
+
   // One row per session: time · title (+ quick log buttons) · child/status · one 48px action.
   const rowCls = "grid grid-cols-[4.5rem_minmax(0,1fr)_auto_3rem] gap-x-3 items-start py-3";
   const childTag = (child?: Child) => child && (
@@ -309,7 +288,7 @@ export default function AgendaPage() {
 
   return (
     <Page>
-      <Header title="Home" subtitle={weekOffset === 0 ? "This week" : range.label} />
+      <Header title="Home" subtitle={loading ? " " : weekLine} />
 
       <Utilities>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
@@ -383,59 +362,59 @@ export default function AgendaPage() {
             {dayBlocks.map(({ day, occ }) => {
               const adhoc = adhocByDay.get(day.iso) ?? [];
               const hasItems = occ.length > 0 || adhoc.length > 0;
+              // Today: the first session still to come (or under way) gets a marker.
+              const upNext = day.isToday ? occ.find(o => !logsByKey.has(o.key) && !isPastOccurrence(day, o.schedule, todayIso, nowHHMM)) : undefined;
               return (
                 <section key={day.iso} ref={day.isToday ? todayRef : undefined} className="scroll-mt-4" aria-label={`${day.fullLabel} ${day.iso}`}>
-                  <div className={cn("flex items-baseline gap-2 pb-2", day.isToday && "pl-3 border-l-4 border-[var(--stem)]")}>
+                  <div className="flex items-center gap-2 pb-2">
                     <h2 className={cn("text-xl leading-7 font-extrabold tracking-tight", day.isToday ? "text-[var(--stem)]" : "text-[var(--ink)]")}>
                       {day.fullLabel}
                     </h2>
                     <span className="text-sm leading-5 text-[var(--ink-soft)]">
                       {day.date.toLocaleDateString("en-SG", { day: "numeric", month: "short" })}
                     </span>
-                    {day.isToday && <span className="text-sm leading-5 font-medium text-[var(--stem)]">Today</span>}
+                    {day.isToday && <span className="ml-auto h-6 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-bold uppercase tracking-wide">Today</span>}
                   </div>
 
                   {!hasItems ? (
                     <p className="text-sm leading-5 text-[var(--ink-soft)] py-4">No classes this day.</p>
                   ) : (
-                    <div className="divide-y divide-[var(--rule)] border-y border-[var(--rule)] bg-[var(--sheet)]">
+                    <div className={cn(
+                      "divide-y bg-[var(--sheet)]",
+                      day.isToday
+                        ? "border-2 border-[var(--stem)] divide-[#cfe0d4] rounded-[var(--radius-lg)] overflow-hidden shadow-[0_2px_12px_rgba(47,111,78,0.14)]"
+                        : "border-y border-[var(--rule)] divide-[var(--rule)]"
+                    )}>
                       {occ.map(({ key, schedule: s }) => {
                         const a = s.activity!;
                         const log = logsByKey.get(key);
                         const title = a.activity_name || a.institution;
                         const missing = !log && isPastOccurrence(day, s, todayIso, nowHHMM);
+                        const isNext = upNext?.key === key;
+                        const underway = isNext && !!s.start_time && s.start_time.slice(0, 5) <= nowHHMM;
                         return (
-                          <div key={s.id} onClick={log ? () => openEditLog(log) : undefined} className={cn(rowCls, "pl-2", log && "cursor-pointer")}>
-                            <time className="tabular-nums text-sm leading-6 text-[var(--ink-soft)]">
-                              {s.start_time ? formatTime(s.start_time) : "—"}
-                            </time>
+                          <div key={s.id} onClick={log ? () => openEditLog(log) : undefined} className={cn(rowCls, "px-3", log && "cursor-pointer", isNext && "bg-[#e8f2eb]")}>
+                            <div className="flex flex-col items-start gap-1">
+                              <time className={cn("tabular-nums text-sm leading-6", isNext ? "font-semibold text-[var(--ink)]" : "text-[var(--ink-soft)]")}>
+                                {s.start_time ? formatTime(s.start_time) : "—"}
+                              </time>
+                              {isNext && (
+                                <span className="h-5 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-semibold whitespace-nowrap">
+                                  {underway ? "Now" : "Up next"}
+                                </span>
+                              )}
+                            </div>
                             <div className="min-w-0">
                               {titleLink(title, a.id)}
                               {(a.institution || a.instructor_name) && (
                                 <div className="text-sm leading-5 text-[var(--ink-soft)] truncate">{a.institution || a.instructor_name}</div>
-                              )}
-                              {!log && (
-                                <div className="mt-2 flex gap-2">
-                                  <button
-                                    onClick={() => openAbsentModal(s, day)}
-                                    className="relative inline-flex items-center gap-1 h-10 px-3 text-sm font-medium text-[var(--margin)] border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']"
-                                  >
-                                    <X size={16} aria-hidden="true" /> Absent
-                                  </button>
-                                  <button
-                                    onClick={() => { setPrefill({ activity_id: a.id, child_id: a.child_id, date: day.iso, status: "attended", start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location }); setModalOpen(true); }}
-                                    className="relative inline-flex items-center gap-1 h-10 px-3 text-sm font-medium text-[var(--stem)] border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']"
-                                  >
-                                    <Check size={16} aria-hidden="true" /> Attended
-                                  </button>
-                                </div>
                               )}
                             </div>
                             <div className="flex flex-col items-end gap-1">
                               {childTag(a.child)}
                               {log && (
                                 <span className="text-xs leading-4 text-[var(--ink-soft)]">
-                                  {log.status === "absent" || log.status === "cancelled_by_provider" ? "Absent" : "Logged"}
+                                  {ATTENDANCE_STATUS_LABELS[log.status] ?? "Logged"}
                                 </span>
                               )}
                               {missing && <span className="text-xs leading-4 font-semibold text-[#8a3f06]">Not logged</span>}
@@ -443,12 +422,23 @@ export default function AgendaPage() {
                                 <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
                               )}
                             </div>
-                            {log ? (
-                              <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3"
+                            {log && (
+                              <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3 -mr-3"
                                 onClick={e => { e.stopPropagation(); openEditLog(log); }} />
-                            ) : (
-                              <IconButton icon={Settings2} label={`Edit the recurring schedule for ${title}`} className="-mt-3"
-                                onClick={() => openEditSchedule(s)} />
+                            )}
+                            {!log && (
+                              <div role="group" aria-label={`Log ${title}`} className="col-span-4 md:col-start-2 md:col-span-3 md:max-w-md grid grid-cols-3 gap-2 mt-3">
+                                {QUICK_LOG.map(q => (
+                                  <button key={q.status} type="button" onClick={() => openLog(s, day, q.status)}
+                                    className={cn(
+                                      "relative inline-flex items-center justify-center gap-1 h-10 px-2 text-sm font-medium border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer",
+                                      "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
+                                      q.cls
+                                    )}>
+                                    <q.icon size={16} aria-hidden="true" /> {q.label}
+                                  </button>
+                                ))}
+                              </div>
                             )}
                           </div>
                         );
@@ -458,7 +448,7 @@ export default function AgendaPage() {
                         const a = log.activity;
                         const title = a?.activity_name || a?.institution || "Activity";
                         return (
-                          <div key={log.id} onClick={() => openEditLog(log)} className={cn(rowCls, "pl-2 cursor-pointer")}>
+                          <div key={log.id} onClick={() => openEditLog(log)} className={cn(rowCls, "px-3 cursor-pointer")}>
                             <time className="tabular-nums text-sm leading-6 text-[var(--ink-soft)]">
                               {log.start_time ? formatTime(log.start_time) : "—"}
                             </time>
@@ -471,13 +461,13 @@ export default function AgendaPage() {
                             <div className="flex flex-col items-end gap-1">
                               {childTag(log.child)}
                               <span className="text-xs leading-4 text-[var(--ink-soft)]">
-                                {log.status === "absent" || log.status === "cancelled_by_provider" ? "Absent" : "Logged"}
+                                {ATTENDANCE_STATUS_LABELS[log.status] ?? "Logged"}
                               </span>
                               {hasReflection(log.learned, log.diary_notes) && (
                                 <NotebookPen size={16} className="text-[var(--ink-soft)]" aria-label="Has reflection" />
                               )}
                             </div>
-                            <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3"
+                            <IconButton icon={Pencil} label={`Edit attendance for ${title}`} className="-mt-3 -mr-3"
                               onClick={e => { e.stopPropagation(); openEditLog(log); }} />
                           </div>
                         );
@@ -522,7 +512,7 @@ export default function AgendaPage() {
           })}
         </ul>
         <div className="mt-4 pt-4 border-t border-[var(--rule)]">
-          <label htmlFor="week-jump" className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Further back? Pick any date</label>
+          <label htmlFor="week-jump" className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Further back? Pick any date</label>
           <input
             id="week-jump"
             type="date"
@@ -542,72 +532,6 @@ export default function AgendaPage() {
         onSaved={refetchLogs}
       />
 
-      <Modal open={!!editingSchedule} onClose={() => setEditingSchedule(null)} title="Edit Schedule" size="sm">
-        <div className="space-y-4">
-          {scheduleError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{scheduleError}</p>}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Day *</label>
-              <select
-                value={scheduleForm.day_of_week}
-                onChange={e => setScheduleForm(f => ({ ...f, day_of_week: Number(e.target.value) }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              >
-                {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Location</label>
-              <input
-                type="text"
-                value={scheduleForm.location}
-                onChange={e => setScheduleForm(f => ({ ...f, location: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Start Time *</label>
-              <input
-                type="time"
-                value={scheduleForm.start_time}
-                onChange={e => setScheduleForm(f => ({ ...f, start_time: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">End Time</label>
-              <input
-                type="time"
-                value={scheduleForm.end_time}
-                onChange={e => setScheduleForm(f => ({ ...f, end_time: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button variant="secondary" className="flex-1" onClick={() => setEditingSchedule(null)}>Cancel</Button>
-            <Button className="flex-1" onClick={saveSchedule} loading={savingSchedule}>Save</Button>
-          </div>
-          <Button variant="danger" size="sm" className="w-full"
-            onClick={() => { const sch = editingSchedule; setEditingSchedule(null); setConfirmDeleteSchedule(sch); }}>
-            Delete this recurring slot
-          </Button>
-        </div>
-      </Modal>
-
-      <Modal open={!!confirmDeleteSchedule} onClose={() => setConfirmDeleteSchedule(null)} title="Delete schedule?" size="sm">
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
-          This removes the recurring slot entirely — every future and past week showing{" "}
-          <strong>{confirmDeleteSchedule ? DAYS_OF_WEEK.find(d => d.value === confirmDeleteSchedule.day_of_week)?.label : ""}</strong>{" "}
-          at <strong>{confirmDeleteSchedule ? formatTime(confirmDeleteSchedule.start_time) : ""}</strong> for this activity will lose it. Attendance already logged is unaffected.
-        </p>
-        <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={() => setConfirmDeleteSchedule(null)}>Cancel</Button>
-          <Button variant="danger" className="flex-1" onClick={deleteSchedule} loading={deletingSchedule}>Delete</Button>
-        </div>
-      </Modal>
     </Page>
   );
 }

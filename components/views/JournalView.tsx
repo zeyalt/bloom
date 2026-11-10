@@ -27,6 +27,12 @@ interface LogWithDetails extends AttendanceLog {
 
 type SubTab = "reflections" | "highlights" | "chat";
 
+const JOURNAL_LINES: Record<SubTab, string> = {
+  reflections: "What they learned, session by session",
+  highlights: "Claude's read on progress across the notes",
+  chat: "Ask anything about the classes and notes",
+};
+
 export default function JournalPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -133,7 +139,7 @@ export default function JournalPage() {
 
   return (
     <Page>
-      <Header title="Journal" subtitle="Notes from class" />
+      <Header title="Journal" subtitle={JOURNAL_LINES[subTab]} />
 
       <Utilities>
         {/* Chat ignores the child filter, but keeps its row so the switch below never moves. */}
@@ -166,7 +172,7 @@ export default function JournalPage() {
           isLoading ? (
             <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-[var(--bg-secondary)] rounded-xl animate-pulse" />)}</div>
           ) : entries.length === 0 ? (
-            <div className="text-center py-16 text-[var(--text-muted)]">
+            <div className="text-center py-16 text-[var(--ink-faint)]">
               <NotebookPen size={32} className="mx-auto mb-3 opacity-60" />
               <p className="text-sm">No reflections yet.</p>
               <p className="text-xs mt-1">Add a reflection when confirming a session.</p>
@@ -185,17 +191,17 @@ export default function JournalPage() {
                       return (
                         <div key={log.id} className="border-b border-[var(--rule)] overflow-hidden">
                           <button onClick={() => toggle(log.id)} className="w-full text-left px-4 py-3 min-h-12 flex items-center gap-2 cursor-pointer">
-                            <span className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums shrink-0 w-12">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
+                            <span className="text-xs font-semibold text-[var(--ink-soft)] tabular-nums shrink-0 w-12">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
                             {child && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />}
-                            <span className="text-sm font-medium text-[var(--text-primary)] shrink-0 max-w-[38%] truncate">{title}</span>
-                            {!isOpen && <span className="text-sm text-[var(--text-muted)] truncate flex-1 min-w-0">{snippet}</span>}
-                            <ChevronDown size={16} className={cn("shrink-0 ml-auto text-[var(--text-muted)] transition-transform", isOpen && "rotate-180")} />
+                            <span className="text-sm font-medium text-[var(--ink)] shrink-0 max-w-[38%] truncate">{title}</span>
+                            {!isOpen && <span className="text-sm text-[var(--ink-faint)] truncate flex-1 min-w-0">{snippet}</span>}
+                            <ChevronDown size={16} className={cn("shrink-0 ml-auto text-[var(--ink-faint)] transition-transform", isOpen && "rotate-180")} />
                           </button>
                           {isOpen && (
-                            <div className="px-4 pb-3 pt-1 border-t border-[var(--border)]/60">
-                              <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap mt-2">{snippet}</p>
+                            <div className="px-4 pb-3 pt-1 border-t border-[var(--rule)]/60">
+                              <p className="text-sm text-[var(--ink)] whitespace-pre-wrap mt-2">{snippet}</p>
                               <div className="mt-3 flex items-center gap-4">
-                                <button onClick={() => openEdit(log)} className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--accent-primary)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
+                                <button onClick={() => openEdit(log)} className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--stem)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
                                   <Pencil size={16} /> Edit
                                 </button>
                                 <button onClick={() => router.push(`/activity/${log.activity_id}`)} className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
@@ -217,14 +223,14 @@ export default function JournalPage() {
         {/* ── Highlights (AI) ── */}
         {subTab === "highlights" && (
           entries.length === 0 ? (
-            <div className="text-center py-16 text-[var(--text-muted)]">
+            <div className="text-center py-16 text-[var(--ink-faint)]">
               <Sparkles size={32} className="mx-auto mb-3 opacity-60" />
               <p className="text-sm">Nothing to summarise yet.</p>
               <p className="text-xs mt-1">Add reflections to a child’s activities, then generate highlights here.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-[var(--ink-soft)]">
                 {selectedActivity
                   ? "A deep dive into this activity’s journey."
                   : singleChild

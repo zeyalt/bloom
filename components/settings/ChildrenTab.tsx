@@ -68,24 +68,24 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
       <div className="space-y-3">
         {children.map(c => (
-          <div key={c.id} className="flex items-center gap-4 p-4 border border-[var(--border)] rounded-xl bg-[var(--bg-card)]">
+          <div key={c.id} className="flex items-center gap-4 p-4 border border-[var(--rule)] rounded-xl bg-[var(--sheet)]">
             {/* Avatar */}
             <Avatar avatarKey={c.avatar_key} fallbackEmoji={c.avatar_emoji} size={48} className="shrink-0" />
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-[var(--text-primary)]">{c.name}</span>
+                <span className="font-semibold text-[var(--ink)]">{c.name}</span>
                 {c.nickname && (
-                  <span className="text-sm text-[var(--text-muted)]">"{c.nickname}"</span>
+                  <span className="text-sm text-[var(--ink-faint)]">"{c.nickname}"</span>
                 )}
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: c.color_code }}
                 />
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {c.date_of_birth && <span className="font-medium text-[var(--text-primary)]">{calcAge(c.date_of_birth)}</span>}
+              <p className="text-xs text-[var(--ink-soft)] mt-1">
+                {c.date_of_birth && <span className="font-medium text-[var(--ink)]">{calcAge(c.date_of_birth)}</span>}
                 {c.school && <span>{c.date_of_birth ? " · " : ""}{c.school}</span>}
                 {c.date_of_birth && <span> · Born {formatDate(c.date_of_birth)}</span>}
               </p>
@@ -94,7 +94,7 @@ export function ChildrenTab({ children, onRefresh }: Props) {
             {/* Edit */}
             <button
               onClick={() => openEdit(c)}
-              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+              className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-[var(--bg-secondary)] hover:text-[var(--ink)] transition-colors shrink-0"
               title="Edit child"
             >
               <Pencil size={16} />
@@ -110,28 +110,28 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Name *</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Name *</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Colour</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Colour</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={form.color_code}
                   onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                  className="w-10 h-12 rounded border border-[var(--border)] cursor-pointer shrink-0"
+                  className="w-10 h-12 rounded border border-[var(--rule)] cursor-pointer shrink-0"
                 />
                 <input
                   type="text"
                   value={form.color_code}
                   onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
                   placeholder="#000000"
                 />
               </div>
@@ -140,27 +140,27 @@ export function ChildrenTab({ children, onRefresh }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">School</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">School</label>
               <input
                 type="text"
                 value={form.school}
                 onChange={e => setForm(f => ({ ...f, school: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Date of Birth</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Date of Birth</label>
               <input
                 type="date"
                 value={form.date_of_birth}
                 onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Avatar</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-2">Avatar</label>
             <AvatarPicker
               value={form.avatar_key}
               onChange={key => setForm(f => ({ ...f, avatar_key: key }))}

@@ -278,7 +278,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
   const Shell = embedded ? Fragment : Page;
   return (
     <Shell>
-      {!embedded && <Header title="Attendance" subtitle="Session log" />}
+      {!embedded && <Header title="Attendance" subtitle="Every class attended, missed or cancelled" />}
 
       <Utilities>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
@@ -327,7 +327,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
               aria-pressed={showColumnPicker}
-              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
             >
               <Columns3 size={16} /> Columns
             </button>
@@ -339,7 +339,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--rule)] rounded-lg bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -363,7 +363,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                     onChange={e => setVisibleColumns(v => ({ ...v, [col.key]: e.target.checked }))}
                     className="rounded"
                   />
-                  <span className="text-xs text-[var(--text-primary)]">{col.label}</span>
+                  <span className="text-xs text-[var(--ink)]">{col.label}</span>
                 </label>
               ))}
             </div>
@@ -376,25 +376,25 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />)}
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div className="text-center py-12 text-[var(--text-muted)]">
+          <div className="text-center py-12 text-[var(--ink-faint)]">
             <p className="text-sm">No attendance records</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
-                  {visibleColumns.child && <th onClick={() => toggleSort("child")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Child<SortIcon col="child" /></th>}
-                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Date &<br />Time<SortIcon col="dateTime" /></th>}
-                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Activity<SortIcon col="activity" /></th>}
-                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Institution<SortIcon col="institution" /></th>}
-                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Level<SortIcon col="level" /></th>}
-                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Coach<SortIcon col="coach" /></th>}
-                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Lesson Type<SortIcon col="lessonType" /></th>}
-                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Sender<SortIcon col="sentBy" /></th>}
-                  {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Fetcher<SortIcon col="fetcher" /></th>}
-                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Absence Reason<SortIcon col="absenceReason" /></th>}
-                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--text-primary)]">Status<SortIcon col="status" /></th>}
+                  {visibleColumns.child && <th onClick={() => toggleSort("child")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Child<SortIcon col="child" /></th>}
+                  {visibleColumns.dateTime && <th onClick={() => toggleSort("dateTime")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Date &<br />Time<SortIcon col="dateTime" /></th>}
+                  {visibleColumns.activity && <th onClick={() => toggleSort("activity")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Activity<SortIcon col="activity" /></th>}
+                  {visibleColumns.institution && <th onClick={() => toggleSort("institution")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Institution<SortIcon col="institution" /></th>}
+                  {visibleColumns.level && <th onClick={() => toggleSort("level")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Level<SortIcon col="level" /></th>}
+                  {visibleColumns.coach && <th onClick={() => toggleSort("coach")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Coach<SortIcon col="coach" /></th>}
+                  {visibleColumns.lessonType && <th onClick={() => toggleSort("lessonType")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Lesson Type<SortIcon col="lessonType" /></th>}
+                  {visibleColumns.sentBy && <th onClick={() => toggleSort("sentBy")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Sender<SortIcon col="sentBy" /></th>}
+                  {visibleColumns.fetcher && <th onClick={() => toggleSort("fetcher")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Fetcher<SortIcon col="fetcher" /></th>}
+                  {visibleColumns.absenceReason && <th onClick={() => toggleSort("absenceReason")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Absence Reason<SortIcon col="absenceReason" /></th>}
+                  {visibleColumns.status && <th onClick={() => toggleSort("status")} className="px-2 py-2 text-left font-semibold cursor-pointer select-none hover:text-[var(--ink)]">Status<SortIcon col="status" /></th>}
                   {visibleColumns.notes && <th className="px-2 py-2 text-left font-semibold">Notes</th>}
                   <th className="px-2 py-2 text-left font-semibold">Action</th>
                 </tr>
@@ -403,12 +403,12 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                 {pagedLogs.map(log => (
                   <tr
                     key={log.id}
-                    className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    className="border-b border-[var(--rule)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     {visibleColumns.child && (() => {
                       const child = log.child ?? children.find(c => c.id === log.child_id);
                       return (
-                        <td className="px-2 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                        <td className="px-2 py-2 text-[var(--ink-soft)] whitespace-nowrap">
                           {child ? (
                             <span className="inline-flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />
@@ -419,13 +419,13 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                       );
                     })()}
                     {visibleColumns.dateTime && (
-                      <td className="px-2 py-2 text-[var(--text-secondary)] whitespace-nowrap">
+                      <td className="px-2 py-2 text-[var(--ink-soft)] whitespace-nowrap">
                         <div>{formatDate(log.date)}</div>
-                        {log.start_time && <div className="text-xs text-[var(--text-muted)]">{formatTime(log.start_time)}</div>}
+                        {log.start_time && <div className="text-xs text-[var(--ink-faint)]">{formatTime(log.start_time)}</div>}
                       </td>
                     )}
                     {visibleColumns.activity && (
-                      <td className="px-2 py-2 text-[var(--text-primary)]">
+                      <td className="px-2 py-2 text-[var(--ink)]">
                         {log.activity ? (
                           <button
                             onClick={e => { e.stopPropagation(); router.push(`/activity/${log.activity_id}`); }}
@@ -436,13 +436,13 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                         ) : "—"}
                       </td>
                     )}
-                    {visibleColumns.institution && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.activity?.institution || "—"}</td>}
-                    {visibleColumns.level && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.level || log.activity?.level || "—"}</td>}
-                    {visibleColumns.coach && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.instructor_name || "—"}</td>}
-                    {visibleColumns.lessonType && <td className="px-2 py-2 text-[var(--text-secondary)]">{normalizeLessonType(log.lesson_type) || "—"}</td>}
-                    {visibleColumns.sentBy && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.sent_by || "—"}</td>}
-                    {visibleColumns.fetcher && <td className="px-2 py-2 text-[var(--text-secondary)]">{log.fetcher || "—"}</td>}
-                    {visibleColumns.absenceReason && <td className="px-2 py-2 text-[var(--text-secondary)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
+                    {visibleColumns.institution && <td className="px-2 py-2 text-[var(--ink-soft)]">{log.activity?.institution || "—"}</td>}
+                    {visibleColumns.level && <td className="px-2 py-2 text-[var(--ink-soft)]">{log.level || log.activity?.level || "—"}</td>}
+                    {visibleColumns.coach && <td className="px-2 py-2 text-[var(--ink-soft)]">{log.instructor_name || "—"}</td>}
+                    {visibleColumns.lessonType && <td className="px-2 py-2 text-[var(--ink-soft)]">{normalizeLessonType(log.lesson_type) || "—"}</td>}
+                    {visibleColumns.sentBy && <td className="px-2 py-2 text-[var(--ink-soft)]">{log.sent_by || "—"}</td>}
+                    {visibleColumns.fetcher && <td className="px-2 py-2 text-[var(--ink-soft)]">{log.fetcher || "—"}</td>}
+                    {visibleColumns.absenceReason && <td className="px-2 py-2 text-[var(--ink-soft)]">{(log.status === "absent" || log.status === "cancelled_by_provider") ? log.absence_reason || "—" : "—"}</td>}
                     {visibleColumns.status && (
                       <td className="px-2 py-2 text-left">
                         <Badge
@@ -455,23 +455,23 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                       <td className="px-2 py-2 text-left">
                         {hasReflection(log.learned, log.diary_notes) ? (
                           <span title={getReflectionText(log.learned, log.diary_notes)}>
-                            <NotebookPen size={16} className="inline text-[var(--text-secondary)]" />
+                            <NotebookPen size={16} className="inline text-[var(--ink-soft)]" />
                           </span>
-                        ) : <span className="text-[var(--text-muted)]">—</span>}
+                        ) : <span className="text-[var(--ink-faint)]">—</span>}
                       </td>
                     )}
                     <td className="px-2 py-2 text-left">
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => openEdit(log)}
-                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-primary)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
                           title="Edit attendance"
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => { setDeleteError(""); setConfirmDelete(log); }}
-                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                           title="Delete attendance"
                         >
                           <Trash2 size={16} />
@@ -496,7 +496,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
             >
               <ChevronLeft size={16} /> Prev
             </Button>
-            <span className="text-xs text-[var(--text-secondary)] tabular-nums">
+            <span className="text-xs text-[var(--ink-soft)] tabular-nums">
               Page {currentPage} of {totalPages}
             </span>
             <Button
@@ -512,7 +512,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
 
         <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete attendance?" size="sm">
           {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
-          <p className="text-sm text-[var(--text-secondary)] mb-4">
+          <p className="text-sm text-[var(--ink-soft)] mb-4">
             Delete the {confirmDelete ? formatDate(confirmDelete.date) : ""}{" "}
             {confirmDelete?.start_time ? `at ${formatTime(confirmDelete.start_time)} ` : ""}
             record for{" "}

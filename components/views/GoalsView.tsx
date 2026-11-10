@@ -46,11 +46,20 @@ export default function GoalsView() {
     };
   }, [goals, childId]);
 
+  const overdue = active.filter(g => day(g.target_date) < today).length;
+  const goalsLine = isLoading ? " "
+    : !active.length && !achieved.length ? `No goals for ${child?.name ?? "this child"} yet`
+    : [
+        active.length ? `${active.length} in progress` : "nothing in progress",
+        overdue ? `${overdue} overdue` : "",
+        achieved.length ? `${achieved.length} achieved` : "",
+      ].filter(Boolean).join(" · ");
+
   const open = (g: Goal) => router.push(`/goals/${g.id}`);
 
   return (
     <Page>
-      <Header title="Goals" subtitle="Aims and plans" />
+      <Header title="Goals" subtitle={goalsLine} />
 
       <Utilities>
         <ChildFilter single childList={children} selected={childId ? [childId] : []} onToggle={pickChild} />

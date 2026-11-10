@@ -79,7 +79,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
       <InteractionLock />
       <div className="flex h-full min-h-0">
         <Sidebar />
-        <main className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[var(--bg-primary)]">
+        <main className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[var(--paper)]">
           <div className="relative flex-1 min-h-0">
             <TabScreens />
             {!onTab && <div className="h-full overflow-y-auto">{children}</div>}

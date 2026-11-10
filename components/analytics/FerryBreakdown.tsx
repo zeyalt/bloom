@@ -74,7 +74,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
   }, [logs, children]);
 
   if (perChild.length === 0 || people.length === 0) {
-    return <p className="text-sm text-[var(--text-muted)]">No sender or fetcher recorded in this range.</p>;
+    return <p className="text-sm text-[var(--ink-faint)]">No sender or fetcher recorded in this range.</p>;
   }
 
   // Rank columns left-to-right by total count for the role currently shown, across
@@ -87,7 +87,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
   return (
     <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[var(--text-primary)]" style={{ fontFamily: DISPLAY_FONT }}>Who Ferries Whom</h3>
+        <h3 className="font-semibold text-[var(--ink)]" style={{ fontFamily: DISPLAY_FONT }}>Who Ferries Whom</h3>
         <Segmented
           value={role}
           onChange={setRole}
@@ -105,7 +105,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
             <div key={child.id}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2.5 h-2.5" style={{ backgroundColor: child.color_code }} />
-                <h4 className="text-sm font-semibold text-[var(--text-primary)]">{child.name}</h4>
+                <h4 className="text-sm font-semibold text-[var(--ink)]">{child.name}</h4>
               </div>
 
               {/* Phones: each activity name gets its own full-width line above its cells, so the
@@ -119,7 +119,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
               >
                 <div className="hidden sm:block" />
                 {rankedPeople.map(p => (
-                  <div key={p} className="text-xs text-[var(--text-muted)] text-center truncate" title={p}>{p}</div>
+                  <div key={p} className="text-xs text-[var(--ink-faint)] text-center truncate" title={p}>{p}</div>
                 ))}
                 {activities.map(a => (
                   <FerryRow key={a.name} name={a.name} activityId={a.id} counts={a[role]} people={rankedPeople} maxCell={maxCell} color={child.color_code} />
@@ -137,7 +137,7 @@ function FerryRow({ name, activityId, counts, people, maxCell, color }: { name: 
   const router = useRouter();
   return (
     <>
-      <div className="col-span-full sm:col-span-1 pt-2 sm:pt-0 sm:h-8 flex items-center pr-1 text-xs leading-tight text-[var(--text-secondary)]">
+      <div className="col-span-full sm:col-span-1 pt-2 sm:pt-0 sm:h-8 flex items-center pr-1 text-xs leading-tight text-[var(--ink-soft)]">
         <button onClick={() => router.push(`/activity/${activityId}`)} className="min-w-0 max-w-full text-left hover:underline hover:text-[var(--stem)] cursor-pointer relative before:absolute before:left-0 before:w-full before:min-w-12 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']" title={name}><span className="block truncate">{name}</span></button>
       </div>
       {people.map(p => {
@@ -149,7 +149,7 @@ function FerryRow({ name, activityId, counts, people, maxCell, color }: { name: 
             className="h-7 sm:h-8 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
             style={{
               backgroundColor: c === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`,
-              color: alpha > 0.55 ? "#fff" : "var(--text-muted)",
+              color: alpha > 0.55 ? "#fff" : "var(--ink-faint)",
             }}
           >
             {c || ""}

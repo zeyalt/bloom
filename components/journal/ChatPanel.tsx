@@ -75,7 +75,7 @@ export function ChatPanel() {
     <div className="flex flex-col">
       {messages.length > 0 && (
         <div className="flex justify-end mb-3">
-          <button onClick={reset} disabled={loading} className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--ink)] cursor-pointer disabled:opacity-50">
+          <button onClick={reset} disabled={loading} className="inline-flex items-center gap-2 text-xs font-medium text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer disabled:opacity-50">
             <RotateCcw size={16} /> New chat
           </button>
         </div>
@@ -85,7 +85,7 @@ export function ChatPanel() {
       <div className="flex flex-col justify-end gap-3 min-h-[55dvh] pb-3">
         {messages.length === 0 && (
           <div className="space-y-3">
-            <p className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-[var(--ink-soft)]">
               Ask anything about attendance, schedules, spending or reflections. Answers come from your own records.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export function ChatPanel() {
                   key={s}
                   onClick={() => send(s)}
                   disabled={loading}
-                  className="text-left text-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--text-primary)] hover:border-[var(--stem)] cursor-pointer disabled:opacity-50"
+                  className="text-left text-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] hover:border-[var(--stem)] cursor-pointer disabled:opacity-50"
                 >
                   {s}
                 </button>
@@ -112,7 +112,7 @@ export function ChatPanel() {
             </div>
           ) : (
             <div key={i} className="space-y-2">
-              <div className="max-w-[95%] px-4 py-3 text-sm leading-relaxed rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-primary)]">
+              <div className="max-w-[95%] px-4 py-3 text-sm leading-relaxed rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--ink)]">
                 <ChatMarkdown text={m.content} />
               </div>
               {m.charts?.map((c, j) => <ChatChart key={j} spec={c} />)}
@@ -122,7 +122,7 @@ export function ChatPanel() {
 
         {loading && (
           <div className="flex justify-start" aria-live="polite">
-            <div className="px-4 py-3 text-sm rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--text-muted)]">
+            <div className="px-4 py-3 text-sm rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--ink-faint)]">
               Looking through your records…
             </div>
           </div>
@@ -137,7 +137,7 @@ export function ChatPanel() {
 
       {/* Pinned to the bottom of the screen: just above the bottom nav on phones, the
           window's edge on desktop. The page-coloured backing hides messages scrolling under it. */}
-      <div className="sticky z-10 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-2 pb-3 bg-[var(--bg-primary)]">
+      <div className="sticky z-10 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-2 pb-3 bg-[var(--paper)]">
         <form
           onSubmit={e => { e.preventDefault(); send(input); }}
           className="flex items-end gap-2 border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)] p-2 focus-within:border-[var(--stem)]"
@@ -152,7 +152,7 @@ export function ChatPanel() {
             rows={1}
             placeholder="Ask about your children's activities…"
             aria-label="Your question"
-            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none max-h-32 [field-sizing:content]"
+            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none max-h-32 [field-sizing:content]"
           />
           <button
             type="submit"

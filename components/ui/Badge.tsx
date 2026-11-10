@@ -10,7 +10,7 @@ interface BadgeProps {
 const variantStyles: Record<string, string> = {
   default: "text-[var(--ink-soft)]",
   success: "text-[var(--stem)]",
-  warning: "text-[var(--accent-warning)]",
+  warning: "text-[var(--warn)]",
   danger:  "text-[var(--margin)]",
   muted:   "text-[var(--ink-faint)]",
 };
