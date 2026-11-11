@@ -29,8 +29,8 @@ export interface CostPerHour {
 }
 
 /**
- * An activity's hourly price: its latest Lesson-type payment (amount ÷ lessons it
- * covers) over the median length of its attended sessions. Pass expenses and logs
+ * An activity's hourly price: its latest Lesson-type payment with a lesson count
+ * (amount ÷ lessons it covers) over the median length of its attended sessions. Pass expenses and logs
  * already narrowed to one activity for one child (all its stints).
  *
  * Returns null when there's no Lesson payment with a lesson count, or no session
@@ -38,10 +38,12 @@ export interface CostPerHour {
  * grading/registration fees and penalise absences, so we don't fall back to that.
  */
 export function costPerHour(expenses: Expense[], logs: AttendanceLog[]): CostPerHour | null {
+  // Lesson-category payments only (never grading, competition, registration or misc),
+  // and only ones that say how many lessons they cover, so they can be priced per lesson.
   const latest = expenses
-    .filter(e => (e.expense_type || "Lesson") === "Lesson")
+    .filter(e => e.expense_type === "Lesson" && (e.num_lessons ?? 0) > 0)
     .reduce<Expense | null>((best, e) => (!best || e.payment_date > best.payment_date ? e : best), null);
-  if (!latest?.num_lessons || latest.num_lessons <= 0) return null;
+  if (!latest?.num_lessons) return null;
 
   const lengths = logs.filter(l => happened(l.status)).map(minutes).filter(m => m > 0);
   if (lengths.length === 0) return null;

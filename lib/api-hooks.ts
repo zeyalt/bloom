@@ -85,7 +85,8 @@ export function useActivities() {
  * download and JSON parse on each tab switch, and again on every week arrow.
  * One shared entry means the second tab reads from cache.
  */
-function useAllAttendanceLogs() {
+/** Every attendance log, one shared cache entry (the other log hooks filter this). */
+export function useAllAttendanceLogs() {
   return useQuery({
     queryKey: ["attendance-logs"],
     queryFn: fetchAttendanceLogs,

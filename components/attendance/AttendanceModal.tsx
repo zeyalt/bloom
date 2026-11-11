@@ -6,7 +6,10 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { Activity, Child, AttendanceStatus } from "@/lib/types";
 import { getReflectionText } from "@/lib/reflection";
-import { LESSON_TYPE_OPTIONS, normalizeLessonType } from "@/lib/constants";
+import { LESSON_TYPE_OPTIONS, CANCELLATION_REASON_OPTIONS, normalizeLessonType } from "@/lib/constants";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { useAllAttendanceLogs } from "@/lib/api-hooks";
+import { usualPeople } from "@/lib/usual-people";
 
 export interface AttendancePrefill {
   id?: string;            // present → edit existing log (PATCH); absent → create (POST)
@@ -42,7 +45,8 @@ interface AttForm {
   reflection: string;
 }
 
-const ABSENCE_REASON_OPTIONS = ["Sick", "Conflict", "Overseas", "Other"];
+// "Other" is gone as a preset: "+ Add other" captures the actual reason instead.
+const ABSENCE_REASON_OPTIONS = ["Sick", "Conflict", "Overseas"];
 const SENT_BY_OPTIONS = ["Zeya", "Atiqah", "Helper"];
 const FETCHER_OPTIONS = SENT_BY_OPTIONS;
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
@@ -57,7 +61,7 @@ const parseSenders = (raw?: string | null): string[] =>
 const blankForm = (): AttForm => ({
   activity_id: "", child_id: "", date: "", status: "attended",
   start_time: "", end_time: "", sent_by: [], fetcher: [],
-  instructor_name: "", lesson_type: "",
+  instructor_name: "", lesson_type: "Normal",
   location: "", absence_reason: "",
   reflection: "",
 });
@@ -78,7 +82,8 @@ function fromPrefill(p?: AttendancePrefill): AttForm {
     sent_by: senders,
     fetcher: fetchers,
     instructor_name: p.instructor_name ?? "",
-    lesson_type: normalizeLessonType(p.lesson_type) ?? "",
+    // New sessions default to a normal lesson; saved ones keep whatever they had.
+    lesson_type: normalizeLessonType(p.lesson_type) ?? (p.id ? "" : "Normal"),
     location: p.location ?? "",
     absence_reason: p.absence_reason ?? "",
     reflection: getReflectionText(p.learned, p.diary_notes),
@@ -103,9 +108,9 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "reflections">("details");
-  const [customSender, setCustomSender] = useState("");
-  const [customFetcher, setCustomFetcher] = useState("");
-  const [customLesson, setCustomLesson] = useState("");
+  // Once the user picks a sender / fetcher themselves, their choice wins over the guess.
+  const [touchedPeople, setTouchedPeople] = useState({ sent: false, fetch: false });
+  const { data: allLogs } = useAllAttendanceLogs();
   // Set (even to "") when the session is somewhere the child doesn't normally go, e.g. a trial.
   const [newInstitution, setNewInstitution] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -116,13 +121,21 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
       setForm(fromPrefill(prefill));
       setError("");
       setActiveTab("details");
-      setCustomSender("");
-      setCustomFetcher("");
-      setCustomLesson("");
+      setTouchedPeople({ sent: false, fetch: false });
       setNewInstitution(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // New sessions show whoever usually sends / fetches this child to this class (see
+  // usualPeople) until the user picks someone; it follows the class, child and time as
+  // they change. Editing a saved record always shows what was saved.
+  const isNew = !prefill?.id;
+  const guess = isNew && allLogs && form.activity_id && form.child_id
+    ? usualPeople(allLogs, { activityId: form.activity_id, childId: form.child_id, startTime: form.start_time })
+    : null;
+  const sentBy = guess && !touchedPeople.sent ? guess.sentBy : form.sent_by;
+  const fetcher = guess && !touchedPeople.fetch ? guess.fetcher : form.fetcher;
 
   /**
    * The activity for this class at `institution`: the child's existing one if they've been
@@ -177,8 +190,8 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         status: form.status,
         start_time: form.start_time || null,
         end_time: form.end_time && form.end_time.trim() ? form.end_time : null,
-        sent_by: includeSenderFetcher && form.sent_by.length ? form.sent_by.join(", ") : null,
-        fetcher: includeSenderFetcher && form.fetcher.length ? form.fetcher.join(", ") : null,
+        sent_by: includeSenderFetcher && sentBy.length ? sentBy.join(", ") : null,
+        fetcher: includeSenderFetcher && fetcher.length ? fetcher.join(", ") : null,
         instructor_name: form.instructor_name || null,
         lesson_type: normalizeLessonType(form.lesson_type) || null,
         location: form.location || null,
@@ -369,146 +382,36 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
 
         <div>
           <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Lesson Type</label>
-          <div className="flex flex-wrap items-center gap-2">
-            {(() => {
-              const norm = normalizeLessonType(form.lesson_type);
-              const extras =
-                form.lesson_type && norm && !(LESSON_TYPE_OPTIONS as readonly string[]).includes(norm)
-                  ? [form.lesson_type]
-                  : [];
-              return [...LESSON_TYPE_OPTIONS, ...extras];
-            })().map(lt => {
-              const active = (normalizeLessonType(form.lesson_type) ?? form.lesson_type) === lt;
-              return (
-                <button
-                  key={lt}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, lesson_type: lt }))}
-                  className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
-                    active
-                      ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
-                      : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
-                  }`}
-                >
-                  {lt}
-                </button>
-              );
-            })}
-            <input
-              type="text"
-              value={customLesson}
-              onChange={e => setCustomLesson(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const v = customLesson.trim();
-                  if (v) setForm(f => ({ ...f, lesson_type: v }));
-                  setCustomLesson("");
-                }
-              }}
-              onBlur={() => {
-                const v = customLesson.trim();
-                if (v) setForm(f => ({ ...f, lesson_type: v }));
-                setCustomLesson("");
-              }}
-              placeholder="+ Add other"
-              className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
-            />
-          </div>
+          <ChoiceChips
+            ariaLabel="Lesson type"
+            options={LESSON_TYPE_OPTIONS}
+            value={form.lesson_type ? [normalizeLessonType(form.lesson_type) ?? form.lesson_type] : []}
+            onChange={next => setForm(f => ({ ...f, lesson_type: next[0] ?? "" }))}
+          />
         </div>
 
         {showSenderFetcher && (
           <>
             <div>
               <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Sender</label>
-              <div className="flex flex-wrap items-center gap-2">
-                {[...SENT_BY_OPTIONS, ...form.sent_by.filter(s => !SENT_BY_OPTIONS.includes(s))].map(s => {
-                  const active = form.sent_by.includes(s);
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        sent_by: active ? f.sent_by.filter(x => x !== s) : [...f.sent_by, s],
-                      }))}
-                      className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
-                        active
-                          ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
-                          : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-                <input
-                  type="text"
-                  value={customSender}
-                  onChange={e => setCustomSender(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const v = customSender.trim();
-                      if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
-                      setCustomSender("");
-                    }
-                  }}
-                  onBlur={() => {
-                    const v = customSender.trim();
-                    if (v && !form.sent_by.includes(v)) setForm(f => ({ ...f, sent_by: [...f.sent_by, v] }));
-                    setCustomSender("");
-                  }}
-                  placeholder="+ Add other"
-                  className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
-                />
-              </div>
+              <ChoiceChips
+                multiple
+                ariaLabel="Sender"
+                options={SENT_BY_OPTIONS}
+                value={sentBy}
+                onChange={next => { setForm(f => ({ ...f, sent_by: next })); setTouchedPeople(t => ({ ...t, sent: true })); }}
+              />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Fetcher</label>
-              <div className="flex flex-wrap items-center gap-2">
-                {[...FETCHER_OPTIONS, ...form.fetcher.filter(s => !FETCHER_OPTIONS.includes(s))].map(s => {
-                  const active = form.fetcher.includes(s);
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        fetcher: active ? f.fetcher.filter(x => x !== s) : [...f.fetcher, s],
-                      }))}
-                      className={`h-10 px-3 text-sm font-medium border cursor-pointer relative before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${
-                        active
-                          ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]"
-                          : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-                <input
-                  type="text"
-                  value={customFetcher}
-                  onChange={e => setCustomFetcher(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const v = customFetcher.trim();
-                      if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
-                      setCustomFetcher("");
-                    }
-                  }}
-                  onBlur={() => {
-                    const v = customFetcher.trim();
-                    if (v && !form.fetcher.includes(v)) setForm(f => ({ ...f, fetcher: [...f.fetcher, v] }));
-                    setCustomFetcher("");
-                  }}
-                  placeholder="+ Add other"
-                  className="w-28 px-3 py-2 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none"
-                />
-              </div>
+              <ChoiceChips
+                multiple
+                ariaLabel="Fetcher"
+                options={FETCHER_OPTIONS}
+                value={fetcher}
+                onChange={next => { setForm(f => ({ ...f, fetcher: next })); setTouchedPeople(t => ({ ...t, fetch: true })); }}
+              />
             </div>
           </>
         )}
@@ -516,22 +419,23 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         {form.status === "absent" && (
           <div>
             <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Absence Reason</label>
-            <select value={form.absence_reason} onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))} className={inputCls}>
-              <option value="">Select reason</option>
-              {ABSENCE_REASON_OPTIONS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
-            </select>
+            <ChoiceChips
+              ariaLabel="Absence reason"
+              options={ABSENCE_REASON_OPTIONS}
+              value={form.absence_reason ? [form.absence_reason] : []}
+              onChange={next => setForm(f => ({ ...f, absence_reason: next[0] ?? "" }))}
+            />
           </div>
         )}
 
         {form.status === "cancelled_by_provider" && (
           <div>
             <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Cancellation Reason</label>
-            <input
-              type="text"
-              value={form.absence_reason}
-              onChange={e => setForm(f => ({ ...f, absence_reason: e.target.value }))}
-              placeholder="Enter cancellation reason"
-              className={inputCls}
+            <ChoiceChips
+              ariaLabel="Cancellation reason"
+              options={CANCELLATION_REASON_OPTIONS}
+              value={form.absence_reason ? [form.absence_reason] : []}
+              onChange={next => setForm(f => ({ ...f, absence_reason: next[0] ?? "" }))}
             />
           </div>
         )}

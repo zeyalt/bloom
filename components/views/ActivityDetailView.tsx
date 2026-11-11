@@ -53,7 +53,6 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
   const activity = activities.find(a => a.id === activityId);
   const child = children.find(c => c.id === activity?.child_id);
   const logs = useMemo(() => allLogs.filter(l => l.activity_id === activityId), [allLogs, activityId]);
-  const expenses = useMemo(() => expensesAll.filter(e => e.activity_id === activityId), [expensesAll, activityId]);
   // Cost per hour uses the same method as Analytics: all of this child's stints of the
   // same-named activity, so a restarted activity is priced from its latest payment.
   // Every stint of this activity for this child (a restarted activity has several records).
@@ -62,14 +61,17 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
     const label = activity.activity_name || activity.institution;
     return activities.filter(a => a.child_id === activity.child_id && (a.activity_name || a.institution) === label);
   }, [activity, activities]);
+  // Payments across every stint (P1, P2, P3… of the same class), so it doesn't matter
+  // which year's record a payment is attached to — the price and the list agree.
+  const expenses = useMemo(() => {
+    const stintIds = new Set(stints.map(a => a.id));
+    return expensesAll.filter(e => e.activity_id && stintIds.has(e.activity_id));
+  }, [stints, expensesAll]);
   const price = useMemo(() => {
     if (!activity) return null;
     const stintIds = new Set(stints.map(a => a.id));
-    return costPerHour(
-      expensesAll.filter(e => e.activity_id && stintIds.has(e.activity_id)),
-      allLogs.filter(l => stintIds.has(l.activity_id))
-    );
-  }, [activity, stints, expensesAll, allLogs]);
+    return costPerHour(expenses, allLogs.filter(l => stintIds.has(l.activity_id)));
+  }, [activity, stints, expenses, allLogs]);
   const milestones = useMemo(
     () => milestonesAll.filter(m => m.activity_id === activityId).sort((a, b) => a.date.localeCompare(b.date)),
     [milestonesAll, activityId]

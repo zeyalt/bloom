@@ -32,6 +32,9 @@ export const ATTENDANCE_STATUS_COLORS: Record<string, string> = {
 /** Lesson type pills in the attendance form (spreadsheet “Normal Lesson” → Normal). */
 export const LESSON_TYPE_OPTIONS = ["Normal", "Trial", "Replacement", "Online"] as const;
 
+/** Why a session was called off (rain/lightning/haze are all "Bad Weather"); anything else via "+ Add other". */
+export const CANCELLATION_REASON_OPTIONS = ["Bad Weather", "Public Holiday", "Coach Unavailable", "Conflict"] as const;
+
 export function normalizeLessonType(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const t = raw.trim();
