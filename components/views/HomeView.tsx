@@ -61,6 +61,30 @@ function isPastOccurrence(day: WeekDay, s: Schedule, todayIso: string, nowHHMM: 
   return !!t && t <= nowHHMM;
 }
 
+/**
+ * Pair each scheduled session with its attendance record: the record at the same start
+ * time first, else any unpaired record for the same class, child and day. The fallback
+ * matters when a schedule's time is edited after sessions were logged (a 10am class moved
+ * to 9am): the old records still count, instead of every past week showing "not logged"
+ * and inviting duplicates. Returns the pairs plus the ids of every record used.
+ */
+function pairLogs<L extends AttendanceLog>(blocks: { day: WeekDay; occ: { key: string; schedule: ScheduleWithDetails }[] }[], logs: L[]) {
+  const byKey = new Map<string, L>();
+  for (const l of logs) byKey.set(occurrenceKey(l.activity_id, l.child_id, l.date.slice(0, 10), l.start_time), l);
+  const paired = new Map<string, L>(), used = new Set<string>();
+  for (const { occ } of blocks) for (const o of occ) {
+    const l = byKey.get(o.key);
+    if (l && !used.has(l.id)) { paired.set(o.key, l); used.add(l.id); }
+  }
+  for (const { day, occ } of blocks) for (const o of occ) {
+    if (paired.has(o.key)) continue;
+    const a = o.schedule.activity!;
+    const l = logs.find(x => !used.has(x.id) && x.activity_id === a.id && x.child_id === a.child_id && x.date.slice(0, 10) === day.iso);
+    if (l) { paired.set(o.key, l); used.add(l.id); }
+  }
+  return { paired, used };
+}
+
 /** "This week", "Last week", "Next week", else a short range like "27 Sep – 3 Oct". */
 function weekName(offset: number) {
   if (offset === 0) return "This week";
@@ -200,21 +224,15 @@ export default function AgendaPage() {
   // Rebuilt only when the week, the data, or the child filter changes — opening
   // a modal or scrolling no longer re-walks every schedule.
   const { logsByKey, dayBlocks, adhocByDay } = useMemo(() => {
-    const logsByKey = new Map<string, LogWithDetails>();
-    for (const log of logs) {
-      logsByKey.set(occurrenceKey(log.activity_id, log.child_id, log.date.slice(0, 10), log.start_time), log);
-    }
-
     const inFilter = (childId: string) => selectedChildren.includes(childId);
     const dayBlocks = buildDayBlocks(schedules as ScheduleWithDetails[], week, inFilter);
-    const scheduledKeys = new Set(dayBlocks.flatMap(b => b.occ.map(o => o.key)));
+    const { paired: logsByKey, used } = pairLogs(dayBlocks, logs);
 
-    // Ad-hoc logs = logs in the week not tied to a scheduled occurrence
+    // Ad-hoc logs = logs in the week not paired with a scheduled occurrence
     const adhocByDay = new Map<string, LogWithDetails[]>();
     for (const log of logs) {
       const iso = log.date.slice(0, 10);
-      const key = occurrenceKey(log.activity_id, log.child_id, iso, log.start_time);
-      if (scheduledKeys.has(key)) continue;
+      if (used.has(log.id)) continue;
       if (!inFilter(log.child_id)) continue;
       const arr = adhocByDay.get(iso) ?? [];
       arr.push(log);
@@ -230,17 +248,18 @@ export default function AgendaPage() {
   const todayIso = format(now, "yyyy-MM-dd");
   const nowHHMM = format(now, "HH:mm");
   const unlogged = useMemo(() => {
-    const logged = new Set(windowLogs.map(l => occurrenceKey(l.activity_id, l.child_id, l.date.slice(0, 10), l.start_time)));
     const inFilter = (childId: string) => selectedChildren.includes(childId);
     const byOffset = new Map<number, { missing: number; past: number }>();
     let total = 0;
     for (let offset = 0; offset > -UNLOGGED_WEEKS; offset--) {
       let missing = 0, past = 0;
-      for (const { day, occ } of buildDayBlocks(schedules as ScheduleWithDetails[], getWeekDays(offset), inFilter)) {
+      const blocks = buildDayBlocks(schedules as ScheduleWithDetails[], getWeekDays(offset), inFilter);
+      const { paired } = pairLogs(blocks, windowLogs);
+      for (const { day, occ } of blocks) {
         for (const o of occ) {
           if (!isPastOccurrence(day, o.schedule, todayIso, nowHHMM)) continue;
           past++;
-          if (!logged.has(o.key)) missing++;
+          if (!paired.has(o.key)) missing++;
         }
       }
       byOffset.set(offset, { missing, past });

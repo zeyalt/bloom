@@ -8,7 +8,7 @@ import { Header, BackButton } from "@/components/layout/Header";
 import { Page, PageBody } from "@/components/layout/Page";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, normalizeLessonType } from "@/lib/constants";
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS, EXPENSE_TYPE_COLORS, normalizeLessonType, type ExpenseType } from "@/lib/constants";
 import { useActivities, useAttendanceLogs, useExpenses, useMilestones, useChildren } from "@/lib/api-hooks";
 import { costPerHour } from "@/lib/cost-per-hour";
 
@@ -376,16 +376,22 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
                 <tr className="border-b border-[var(--rule)] text-xs text-[var(--ink-faint)]">
                   <th className="text-left font-semibold px-4 py-2">Date</th>
                   <th className="text-left font-semibold px-3 py-2">Description</th>
+                  <th className="hidden sm:table-cell text-left font-semibold px-3 py-2">Category</th>
                   <th className="text-right font-semibold px-4 py-2">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {stats.recentExpenses.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-4 text-[var(--ink-faint)]">No expenses logged yet.</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-4 text-[var(--ink-faint)]">No expenses logged yet.</td></tr>
                 ) : stats.recentExpenses.map(e => (
                   <tr key={e.id} className="border-b border-[var(--rule)] last:border-0">
                     <td className="px-4 py-2 whitespace-nowrap">{formatDate(e.payment_date)}</td>
-                    <td className="px-3 py-2 text-[var(--ink-soft)] max-w-[220px] truncate">{e.description || "—"}</td>
+                    <td className="px-3 py-2 text-[var(--ink-soft)]">
+                      {e.description || "—"}
+                      {/* Phones: category sits under the description so the amount stays in view. */}
+                      <span className="sm:hidden mt-1 flex"><ExpenseCategory type={e.expense_type} /></span>
+                    </td>
+                    <td className="hidden sm:table-cell px-3 py-2 whitespace-nowrap"><ExpenseCategory type={e.expense_type} /></td>
                     <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{formatCurrency(e.amount)}</td>
                   </tr>
                 ))}
@@ -396,5 +402,15 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         </div>
       </PageBody>
     </Page>
+  );
+}
+
+function ExpenseCategory({ type }: { type?: string | null }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-[var(--ink-soft)]">
+      <span className="w-2 h-2 rounded-full shrink-0" aria-hidden="true"
+        style={{ backgroundColor: EXPENSE_TYPE_COLORS[type as ExpenseType] ?? "var(--ink-faint)" }} />
+      {type || "—"}
+    </span>
   );
 }
