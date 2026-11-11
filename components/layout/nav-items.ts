@@ -3,17 +3,15 @@ import {
   History,
   NotebookPen,
   BarChart3,
-  Settings,
   Target,
 } from "lucide-react";
 
-// `bottomNav: false` keeps an item in the desktop sidebar only; on phones Settings
-// is reached from the gear in the page header so the bottom bar stays at five.
+// The five tabs. Settings isn't one: it opens as a dialog, from the sidebar's
+// foot on desktop and the gear in the page header on phones.
 export const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: Home, bottomNav: true },
-  { href: "/goals", label: "Goals", icon: Target, bottomNav: true },
-  { href: "/history", label: "History", icon: History, bottomNav: true },
-  { href: "/analytics", label: "Analytics", icon: BarChart3, bottomNav: true },
-  { href: "/journal", label: "Journal", icon: NotebookPen, bottomNav: true },
-  { href: "/settings", label: "Settings", icon: Settings, bottomNav: false },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/goals", label: "Goals", icon: Target },
+  { href: "/history", label: "History", icon: History },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/journal", label: "Journal", icon: NotebookPen },
 ] as const;

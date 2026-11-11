@@ -23,9 +23,7 @@ interface HeaderProps {
  */
 export function Header({ title, subtitle, action, leading }: HeaderProps) {
   const today = format(new Date(), "EEEE d MMM");
-  const { path, navigate } = useSpaNav();
-  // Settings isn't in the phone bottom bar; this gear is how phones reach it.
-  const showSettings = path !== "/settings";
+  const { setSettingsOpen } = useSpaNav();
 
   return (
     <header>
@@ -35,14 +33,11 @@ export function Header({ title, subtitle, action, leading }: HeaderProps) {
           <h1 className="m-0 text-[28px] leading-8 font-extrabold tracking-tight text-[var(--ink)] truncate">{title}</h1>
           <p className="mt-1 text-sm leading-5 text-[var(--ink-soft)] truncate">{subtitle ?? today}</p>
         </div>
-        {(action || showSettings) && (
-          <div className="shrink-0 -mt-2 -mr-3 flex items-center">
-            {action}
-            {showSettings && (
-              <IconButton icon={Settings} label="Settings" onClick={() => navigate("/settings")} className="md:hidden" />
-            )}
-          </div>
-        )}
+        <div className="shrink-0 -mt-2 -mr-3 flex items-center">
+          {action}
+          {/* Settings isn't in the phone bottom bar; this gear is how phones reach it. */}
+          <IconButton icon={Settings} label="Settings" onClick={() => setSettingsOpen(true)} className="md:hidden" />
+        </div>
       </div>
     </header>
   );

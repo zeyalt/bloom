@@ -1,11 +1,12 @@
 "use client";
 
+import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSpaNav } from "@/components/layout/spa-nav";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 
 export function Sidebar() {
-  const { path, navigate } = useSpaNav();
+  const { path, navigate, settingsOpen, setSettingsOpen } = useSpaNav();
 
   return (
     <aside className="hidden md:flex flex-col w-52 shrink-0 border-r border-[var(--rule)] bg-[var(--sheet)] h-screen sticky top-0">
@@ -40,6 +41,21 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 py-4 border-t border-[var(--rule)]">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          aria-haspopup="dialog"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 text-sm w-full text-left cursor-pointer border-l-2 border-transparent pl-[10px]",
+            settingsOpen ? "text-[var(--stem)] font-semibold" : "text-[var(--ink-soft)] font-medium hover:text-[var(--ink)]"
+          )}
+        >
+          <Settings size={16} strokeWidth={settingsOpen ? 2.2 : 1.7} />
+          Settings
+        </button>
+      </div>
     </aside>
   );
 }

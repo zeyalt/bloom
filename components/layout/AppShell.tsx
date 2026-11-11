@@ -12,7 +12,7 @@ import HistoryView from "@/components/views/HistoryView";
 import AnalyticsView from "@/components/views/AnalyticsView";
 import JournalView from "@/components/views/JournalView";
 import GoalsView from "@/components/views/GoalsView";
-import SettingsView from "@/components/views/SettingsView";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 
 const TAB_VIEWS = {
   "/": HomeView,
@@ -20,7 +20,6 @@ const TAB_VIEWS = {
   "/history": HistoryView,
   "/analytics": AnalyticsView,
   "/journal": JournalView,
-  "/settings": SettingsView,
 } as const;
 
 function TabScreens() {
@@ -90,6 +89,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         </main>
       </div>
       <BottomNav />
+      <SettingsDialog />
     </>
   );
 }

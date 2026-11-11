@@ -225,3 +225,12 @@ html.splash .launch-splash {
   50% { transform: translateY(-3px) rotate(8deg); }
 }
 @media (prefers-reduced-motion: reduce) { .ptr-refreshing .ptr-sprout { animation: none; } }
+
+/* Settings dialog (components/settings/SettingsDialog.tsx): a sheet rising on phones, a soft pop on desktop. */
+.settings-backdrop { animation: settings-fade 0.2s ease-out; }
+.settings-panel { animation: settings-rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (min-width: 48rem) { .settings-panel { animation: settings-pop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); } }
+@keyframes settings-fade { from { opacity: 0; } }
+@keyframes settings-rise { from { transform: translateY(100%); } }
+@keyframes settings-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .settings-backdrop, .settings-panel { animation: none; } }
