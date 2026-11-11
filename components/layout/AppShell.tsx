@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { InteractionLock } from "@/components/layout/InteractionLock";
+import { PullToRefresh } from "@/components/layout/PullToRefresh";
 import { SpaNavProvider, TAB_PATHS, isTabPath, useSpaNav } from "@/components/layout/spa-nav";
 import HomeView from "@/components/views/HomeView";
 import HistoryView from "@/components/views/HistoryView";
@@ -53,14 +54,14 @@ function TabScreens() {
         const active = path === href;
         if (href === "/analytics") {
           return active ? (
-            <div key="analytics" className="absolute inset-0 overflow-y-auto overscroll-y-contain">
+            <div key="analytics" data-ptr-scroller className="absolute inset-0 overflow-y-auto overscroll-y-contain">
               <View />
             </div>
           ) : null;
         }
         if (!active && !visited.has(href)) return null;
         return (
-          <div key={href} hidden={!active} className="absolute inset-0 overflow-y-auto overscroll-y-contain">
+          <div key={href} hidden={!active} data-ptr-scroller className="absolute inset-0 overflow-y-auto overscroll-y-contain">
             <View />
           </div>
         );
@@ -72,6 +73,7 @@ function TabScreens() {
 function ShellFrame({ children }: { children: ReactNode }) {
   const { path } = useSpaNav();
   const onTab = isTabPath(path);
+  const scrollArea = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -80,9 +82,10 @@ function ShellFrame({ children }: { children: ReactNode }) {
       <div className="flex h-full min-h-0">
         <Sidebar />
         <main className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[var(--paper)]">
-          <div className="relative flex-1 min-h-0">
+          <div ref={scrollArea} className="relative flex-1 min-h-0 overflow-hidden">
+            <PullToRefresh containerRef={scrollArea} />
             <TabScreens />
-            {!onTab && <div className="h-full overflow-y-auto">{children}</div>}
+            {!onTab && <div data-ptr-scroller className="h-full overflow-y-auto overscroll-y-contain">{children}</div>}
           </div>
         </main>
       </div>

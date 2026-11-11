@@ -217,3 +217,11 @@ html.splash .launch-splash {
   .launch-splash__word { animation: none; opacity: 1; transform: translate(-50%, 0); }
   html.splash .launch-splash { animation: splash-out 0.3s ease-in 0.5s forwards; }
 }
+
+/* Pull-to-refresh badge (components/layout/PullToRefresh.tsx): the sprout bobs while refreshing. */
+.ptr-refreshing .ptr-sprout { animation: ptr-bob 0.7s ease-in-out infinite; }
+@keyframes ptr-bob {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-3px) rotate(8deg); }
+}
+@media (prefers-reduced-motion: reduce) { .ptr-refreshing .ptr-sprout { animation: none; } }
