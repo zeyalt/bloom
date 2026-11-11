@@ -1,8 +1,11 @@
-const CACHE_NAME = 'bloom-v4';
+const CACHE_NAME = 'bloom-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/offline.html',
+  // Launch animation layers — cached up front so the animation has them on first paint.
+  '/splash/base.png',
+  '/splash/sprout.png',
 ];
 
 // Install event - cache static assets

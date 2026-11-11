@@ -123,3 +123,97 @@ select,
     textarea { font-size: 0.875rem; }
   }
 }
+
+/* ── Launch animation (components/layout/LaunchSplash.tsx) ─────────────────
+ * Hidden unless the <head> script adds `html.splash` (installed app, once per
+ * launch). The logo starts exactly where the phone's own splash left it, centred
+ * at 160px tall, so the hand-off is seamless. ~2s in all; tap to skip. */
+.launch-splash { display: none; }
+html.splash .launch-splash {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  animation: splash-out 0.45s ease-in 1.55s forwards;
+}
+.launch-splash__stage { position: relative; }
+.launch-splash__logo {
+  position: relative;
+  width: 96px;
+  height: 160px;
+  animation: splash-lift 0.45s ease-in 1.55s forwards;
+}
+.launch-splash__logo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.launch-splash__base {
+  transform-origin: 50% 100%;
+  animation: splash-squash 0.55s cubic-bezier(0.3, 0, 0.3, 1) 0.3s both;
+}
+.launch-splash__sprout {
+  transform-origin: 50% 88%;
+  animation: splash-sprout 1.3s cubic-bezier(0.3, 0, 0.3, 1) 0.3s both;
+}
+.launch-splash__pollen { position: absolute; left: 50%; top: 18%; }
+.launch-splash__pollen span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: splash-pollen 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) calc(0.55s + var(--delay, 0ms)) forwards;
+}
+.launch-splash__word {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 16px;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  animation: splash-word 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) 0.8s forwards;
+}
+
+@keyframes splash-squash {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.1, 0.86); }
+  60% { transform: scale(0.96, 1.05); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes splash-sprout {
+  0% { transform: translateY(0) scale(1, 1) rotate(0); }
+  14% { transform: translateY(8px) scale(1.04, 0.88) rotate(0); }
+  34% { transform: translateY(-14px) scale(0.97, 1.12) rotate(0); }
+  50% { transform: translateY(0) scale(1, 1) rotate(-6deg); }
+  68% { transform: rotate(5deg); }
+  84% { transform: rotate(-2deg); }
+  100% { transform: rotate(0); }
+}
+@keyframes splash-pollen {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(1); }
+}
+@keyframes splash-word {
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes splash-lift {
+  to { transform: translateY(-12px) scale(1.12); }
+}
+@keyframes splash-out {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-splash__logo, .launch-splash__base, .launch-splash__sprout,
+  .launch-splash__pollen span { animation: none; }
+  .launch-splash__word { animation: none; opacity: 1; transform: translate(-50%, 0); }
+  html.splash .launch-splash { animation: splash-out 0.3s ease-in 0.5s forwards; }
+}
