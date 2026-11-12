@@ -81,7 +81,7 @@ export default function GoalsView() {
             <Button size="sm" variant="secondary" onClick={() => setCreating(true)} disabled={!child}><Plus size={16} /> Add a goal</Button>
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {active.map(g => <GoalCard key={g.id} goal={g} today={today} onOpen={() => open(g)} />)}
           </div>
         )}
@@ -123,7 +123,7 @@ function GoalCard({ goal, today, onOpen }: { goal: Goal; today: string; onOpen: 
   const target = day(goal.target_date);
   return (
     <button type="button" onClick={onOpen}
-      className="w-full text-left flex flex-col gap-3 p-4 bg-[var(--sheet)] border border-[var(--rule)] cursor-pointer hover:border-[var(--ink-faint)]">
+      className="w-full min-w-0 text-left flex flex-col gap-3 p-4 bg-[var(--sheet)] border border-[var(--rule)] cursor-pointer hover:border-[var(--ink-faint)]">
       <span className="flex items-center justify-between gap-2">
         <span className="text-xs leading-4 font-bold tracking-wide uppercase text-[var(--ink-soft)]">{goal.kind === "measured" ? "Measured" : "Milestone"}</span>
         <span className={cn("text-xs leading-4 font-bold px-2 py-1 rounded-full", TONE_CLASSES[status.tone])}>{status.label}</span>
