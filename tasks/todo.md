@@ -141,18 +141,18 @@ is done). The same words are used in Settings › Routines.
 - [x] On the tablet: "Chinese Tuition homework · from the 18 Jan lesson · due Sat 24 Jan".
   - Due **within 3 days**, or overdue: in **Do first**, so it blocks Free Play. Overdue gets a tag.
   - Due later: listed under Do first as "Not due yet". You can start early, and it doesn't block.
-- [ ] Parents only: on Home, mark a lesson's homework as "No homework this time"
+- [x] Parents only: on Home, mark a lesson's homework as "No homework this time"
       (`task_ticks.skipped`), or tick it done on the child's behalf.
-- [ ] Home › Kids today shows each child's open homework, and when each piece was finished.
+- [x] Home › Kids today shows each child's open homework, and when each piece was finished.
 - [x] Tests: due date from the next lesson (and with no next lesson); cancelled or absent lessons
       give none; the 3-day threshold; overdue; a tick closes it for good; lessons before
       `homework_from` are ignored.
 
 ## Home: the Kids today card (parent phone)
 
-- [ ] Above Today: one row per child with "x of y done", a progress bar and a hint ("2 must-dos
+- [x] Above Today: one row per child with "x of y done", a progress bar and a hint ("2 must-dos
       left before AQSA at 4:00"). Tapping a child opens their log of ticks with times.
-- [ ] Hidden on days with no routine set up, so nothing changes for you until you configure it.
+- [x] Hidden on days with no routine set up, so nothing changes for you until you configure it.
 
 ## Build order (I'll check in with you after each stage)
 
@@ -160,7 +160,7 @@ is done). The same words are used in Settings › Routines.
 2. [x] Settings: School in Edit Child, then Calendar, then Routines, prep task and goal practice.
        → *You set up Zayyan and Zara's real details from your phone.*
 3. [x] My Day on the tablet. → *You try it on the real tablet.*
-4. [ ] The Kids today card on Home.
+4. [x] The Kids today card on Home.
 5. [ ] Polish and the full verification pass.
 
 ## Verification (before calling it done)
@@ -286,6 +286,28 @@ is done). The same words are used in Settings › Routines.
 - 34 tests pass; `tsc` passes; `next build` succeeds; no new lint errors.
 - **Moved to stage 4** (it's a parent control on Home): "No homework this time", and ticking
   homework on a child's behalf.
+
+## Stage 4 review (12 Nov)
+
+- `lib/use-my-day.ts`: one shared hook (data, day rules, tick, untick, skip) used by both the
+  tablet and Home, so the two always agree. My Day was refactored onto it, with no change in
+  behaviour.
+- **Home › Kids today** (`components/my-day/KidsTodayCard.tsx`), shown on this week, for the
+  selected children:
+  - A row per child with something planned: "x of y" and a progress bar.
+  - A hint: "4 Do first left, before AQSA at 4:00 PM", "All done for today", or "No school · …",
+    plus the last tick and its time.
+  - Tap a row for the full log (time, or "not yet"), with homework tags and Free Play picks.
+  - Homework actions: **Mark done**, **No homework this time**, and **Undo**.
+  - "Open My Day" (the card) and "Open {name}'s My Day" (opens on that child, via `?child=`,
+    with a way back).
+- **Checked** on an iPhone 13 and a tablet, with taps:
+  - A tick on the tablet showed on Home ("Last: Eat lunch · 5:02 PM").
+  - Three overdue AQSA lessons each got their own row; Mark done, skip and undo all worked, and
+    the tablet reflected them.
+  - Open My Day → back.
+  - No console errors. The test data was undone (your routine kept; AQSA homework off again).
+- 34 tests pass; `tsc` passes; `next build` succeeds; no new lint errors.
 
 ---
 

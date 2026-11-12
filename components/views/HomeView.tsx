@@ -12,6 +12,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Fab } from "@/components/ui/Fab";
 import { Modal } from "@/components/ui/Modal";
 import { ChildFilter } from "@/components/ui/ChildFilter";
+import { KidsTodayCard } from "@/components/my-day/KidsTodayCard";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatTime, plural } from "@/lib/utils";
@@ -400,6 +401,7 @@ export default function AgendaPage() {
           )
         )}
 
+        {weekOffset === 0 && <KidsTodayCard childIds={selectedChildren} />}
         {weekOffset === 0 && <DueCheckpoints childIds={selectedChildren} />}
 
         {/* 4 · Primary: which week */}

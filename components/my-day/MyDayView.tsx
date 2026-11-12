@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { addDays, format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ArrowLeft, Check, Lock } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { useAllAttendanceLogs, useChildren, useGoals, useSchedules } from "@/lib/api-hooks";
-import { MY_DAY_KEYS, myDayApi, useCalendarDays, useRoutineItems, useSchoolHours, useTicks } from "@/lib/my-day-api";
-import { HOMEWORK_LOOKBACK_DAYS, buildDay, type DayTask, type TimelineBlock } from "@/lib/my-day";
+import { buildDay, type DayTask, type TimelineBlock } from "@/lib/my-day";
+import { useMyDays, useNow } from "@/lib/use-my-day";
 import { cn, formatTime } from "@/lib/utils";
-import type { TaskTick } from "@/lib/types";
 
 const CHILD_KEY = "bloom.myday.child";
 
@@ -28,16 +25,6 @@ const savedChild = {
   },
 };
 
-/** The current time, updated every 30 seconds — the screen is left open all day. */
-function useNow() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(t);
-  }, []);
-  return now;
-}
-
 const clock = (d: Date) => format(d, "h:mm a");
 const at = (timestamp: string) => clock(new Date(timestamp));
 
@@ -49,65 +36,24 @@ const at = (timestamp: string) => clock(new Date(timestamp));
  */
 export function MyDayView() {
   const now = useNow();
-  const iso = format(now, "yyyy-MM-dd");
-  const hhmm = format(now, "HH:mm");
-  const from = format(addDays(parseISO(iso), -HOMEWORK_LOOKBACK_DAYS), "yyyy-MM-dd");
-  const qc = useQueryClient();
   const router = useRouter();
+  const params = useSearchParams();
   // Opened from Bloom (not the kids' own icon): offer the way back.
-  const fromBloom = useSearchParams().get("from") === "bloom";
+  const fromBloom = params.get("from") === "bloom";
   const backToBloom = () => (window.history.length > 1 ? router.back() : router.push("/"));
 
-  const { data: children = [] } = useChildren();
-  const { data: schedules = [] } = useSchedules();
-  const { data: goals = [] } = useGoals();
-  const { data: calendarDays = [] } = useCalendarDays();
-  const { data: hours = [] } = useSchoolHours();
-  const { data: routine = [] } = useRoutineItems();
-  const { data: attendance = [] } = useAllAttendanceLogs();
-  const { data: ticks = [], isLoading } = useTicks(from, iso, { refetchInterval: 60_000 });
+  const { children, days, toggle: write, hhmm, isLoading } = useMyDays(now);
 
-  // Pick up changes a parent makes in Settings without anyone touching the tablet.
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      for (const key of [MY_DAY_KEYS.routine, MY_DAY_KEYS.calendarDays, MY_DAY_KEYS.schoolHours, ["schedules"], ["goals"], ["attendance-logs"]]) {
-        qc.invalidateQueries({ queryKey: key });
-      }
-    }, 5 * 60_000);
-    return () => window.clearInterval(t);
-  }, [qc]);
-
-  const childId = useSyncExternalStore(savedChild.subscribe, savedChild.get, () => null);
+  // ?child= (from Home's "Open My Day") wins; otherwise the child last chosen on this tablet.
+  const savedId = useSyncExternalStore(savedChild.subscribe, savedChild.get, () => null);
+  const childId = params.get("child") ?? savedId;
   const child = children.find(c => c.id === childId) ?? children[0];
-  const pickChild = savedChild.set;
-
-  const day = useMemo(() => child && buildDay({
-    child, iso, now: hhmm, calendarDays, hours, routine, goals, ticks, attendance,
-    schedules: schedules as Parameters<typeof buildDay>[0]["schedules"],
-  }), [child, iso, hhmm, calendarDays, hours, routine, goals, ticks, attendance, schedules]);
-
-  /** Tick or untick, updating the screen at once and saving behind it. */
-  const toggle = useCallback(async (task: DayTask) => {
-    if (!child) return;
-    const date = task.homework?.lesson ?? iso;
-    const ticksKey = [...MY_DAY_KEYS.ticks, from, iso];
-    const previous = qc.getQueryData<TaskTick[]>(ticksKey) ?? [];
-    const next: TaskTick[] = task.doneAt
-      ? previous.filter(t => !(t.child_id === child.id && t.item_key === task.key))
-      : [...previous, {
-          id: `pending-${task.key}`, child_id: child.id, date, item_key: task.key,
-          title: task.title, tier: task.tier, done_at: new Date().toISOString(), skipped: false,
-        }];
-    qc.setQueryData(ticksKey, next);
-    try {
-      if (task.doneAt) await myDayApi.untick(child.id, date, task.key);
-      else await myDayApi.tick({ child_id: child.id, date, item_key: task.key, title: task.title, tier: task.tier });
-    } catch {
-      qc.setQueryData(ticksKey, previous); // put it back if the save failed
-    } finally {
-      qc.invalidateQueries({ queryKey: MY_DAY_KEYS.ticks });
-    }
-  }, [child, from, iso, qc]);
+  const pickChild = (id: string) => {
+    savedChild.set(id);
+    if (params.get("child")) router.replace(fromBloom ? "/my-day?from=bloom" : "/my-day");
+  };
+  const day = child ? days.get(child.id) : undefined;
+  const toggle = useCallback((task: DayTask) => { if (child) void write(child, task); }, [child, write]);
 
   if (!child || !day) {
     return <Shell onBack={fromBloom ? backToBloom : undefined}><p className="text-lg text-[var(--ink-soft)]">{isLoading ? "Loading…" : "No children set up yet."}</p></Shell>;
