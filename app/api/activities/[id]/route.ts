@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/serialize";
 import { optionalText } from "@/lib/my-day-queries";
+import { parseDay } from "@/lib/goal-queries";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,8 @@ export async function PATCH(req: Request, { params }: Params) {
         endDate: body.end_date === null ? null : (body.end_date ? new Date(body.end_date) : undefined),
         notes: body.notes,
         prepTask: optionalText(body.prep_task),
+        homeworkFrom: body.homework_from === undefined ? undefined : parseDay(body.homework_from),
+        homeworkNote: optionalText(body.homework_note),
       },
       include: {
         category: true,

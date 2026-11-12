@@ -101,7 +101,7 @@ export const myDayApi = {
   removeRoutineItem: (id: string) => send(`/api/routine-items/${id}`, "DELETE"),
   reorderRoutine: (ids: string[]) => send("/api/routine-items/reorder", "POST", { ids }),
 
-  tick: (input: { child_id: string; date: string; item_key: string; title: string; tier: string }) =>
+  tick: (input: { child_id: string; date: string; item_key: string; title: string; tier: string; skipped?: boolean }) =>
     send("/api/ticks", "POST", input) as Promise<TaskTick>,
   untick: (childId: string, date: string, itemKey: string) =>
     send(`/api/ticks?child_id=${encodeURIComponent(childId)}&date=${date}&item_key=${encodeURIComponent(itemKey)}`, "DELETE"),

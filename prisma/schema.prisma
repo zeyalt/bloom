@@ -71,6 +71,10 @@ model Activity {
   status         String    @default("active") @db.VarChar(50)
   // A must-do that My Day adds on this class's days, e.g. "Pack swimming kit".
   prepTask       String?   @map("prep_task") @db.VarChar(255)
+  // Homework after every lesson, counted from this date (null = this class gives none),
+  // with an optional note, e.g. "Worksheet and spelling".
+  homeworkFrom   DateTime? @map("homework_from") @db.Date
+  homeworkNote   String?   @map("homework_note") @db.VarChar(255)
   startDate      DateTime? @map("start_date") @db.Date
   endDate        DateTime? @map("end_date") @db.Date
   notes          String?   @db.Text
@@ -321,7 +325,8 @@ model RoutineItem {
 }
 
 // A task a child ticked on My Day, with the moment they ticked it. itemKey names what was
-// ticked: routine:<id> | prep:<activityId> | goal:<goalId>. title and tier are copied at
+// ticked: routine:<id> | prep:<activityId> | goal:<goalId> | homework:<activityId>:<lessonDate>
+// (homework ticks are dated by the lesson, so they stay done across days). title and tier are copied at
 // tick time so the log still reads right after the routine is edited.
 model TaskTick {
   id      String   @id @default(cuid())
@@ -331,6 +336,8 @@ model TaskTick {
   title   String   @db.VarChar(255)
   tier    String   @db.VarChar(10)
   doneAt  DateTime @map("done_at") @db.Timestamptz()
+  // A parent marked this (homework) as not needed — "No homework this time".
+  skipped Boolean  @default(false)
 
   child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 

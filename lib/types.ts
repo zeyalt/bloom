@@ -59,7 +59,9 @@ export interface Activity {
   instructor_name: string | null;
   level: string | null;
   status: ActivityStatus;
-  prep_task?: string | null; // a must-do My Day adds on this class's days
+  prep_task?: string | null;     // a must-do My Day adds on this class's days
+  homework_from?: string | null; // homework after every lesson since this date; null = none
+  homework_note?: string | null; // e.g. "Worksheet and spelling"
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
@@ -255,8 +257,9 @@ export interface TaskTick {
   id: string;
   child_id: string;
   date: string;
-  item_key: string; // routine:<id> | prep:<activityId> | goal:<goalId>
+  item_key: string; // routine:<id> | prep:<activityId> | goal:<goalId> | homework:<activityId>:<lessonDate>
   title: string;
-  tier: RoutineTier;
+  tier: RoutineTier | "homework";
   done_at: string;
+  skipped: boolean; // homework a parent marked "No homework this time"
 }

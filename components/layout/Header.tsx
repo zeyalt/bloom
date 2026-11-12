@@ -1,7 +1,9 @@
 "use client";
 
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 import { Settings } from "lucide-react";
+import { MY_DAY } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 import { useSpaNav } from "@/components/layout/spa-nav";
 import { IconButton } from "@/components/ui/IconButton";
@@ -24,6 +26,7 @@ interface HeaderProps {
 export function Header({ title, subtitle, action, leading }: HeaderProps) {
   const today = format(new Date(), "EEEE d MMM");
   const { setSettingsOpen } = useSpaNav();
+  const router = useRouter();
 
   return (
     <header>
@@ -35,7 +38,8 @@ export function Header({ title, subtitle, action, leading }: HeaderProps) {
         </div>
         <div className="shrink-0 -mt-2 -mr-3 flex items-center">
           {action}
-          {/* Settings isn't in the phone bottom bar; this gear is how phones reach it. */}
+          {/* My Day and Settings aren't in the phone bottom bar; these are how phones reach them. */}
+          <IconButton icon={MY_DAY.icon} label="My Day" onClick={() => router.push(MY_DAY.href)} className="md:hidden" />
           <IconButton icon={Settings} label="Settings" onClick={() => setSettingsOpen(true)} className="md:hidden" />
         </div>
       </div>

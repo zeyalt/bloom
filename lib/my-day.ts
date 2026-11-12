@@ -8,8 +8,9 @@
  *
  * Dates are "YYYY-MM-DD" strings in the family's own time zone, like the rest of Bloom.
  */
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import type {
-  Activity, CalendarDay, Child, Goal, RoutineDayType, RoutineItem, RoutineTier,
+  Activity, AttendanceLog, CalendarDay, Child, Goal, RoutineDayType, RoutineItem, RoutineTier,
   Schedule, SchoolHours, TaskTick,
 } from "./types";
 
@@ -157,19 +158,23 @@ export interface TimelineBlock {
 export interface DayTask {
   key: string;           // what a tick is stored under
   title: string;
-  tier: Exclude<RoutineTier, "anchor">;
-  /** Where it came from, for the little tag: a weekly routine, a class's prep, a goal. */
-  source: { kind: "routine" | "prep" | "goal"; label: string | null };
+  tier: Exclude<RoutineTier, "anchor"> | "homework";
+  /** Where it came from, for the little tag: a weekly routine, a class's prep, a goal, homework. */
+  source: { kind: "routine" | "prep" | "goal" | "homework"; label: string | null };
   doneAt: string | null; // ISO timestamp of the tick
+  /** Homework only: the lesson it's from (the date its tick is stored under), when it's due. */
+  homework?: { lesson: string; due: string; overdue: boolean; note: string | null };
 }
 
 export interface BuiltDay {
   info: DayInfo;
   routineType: Exclude<RoutineDayType, "any">;
   timeline: TimelineBlock[];
-  must: DayTask[];
-  practice: DayTask[];
-  free: DayTask[];
+  must: DayTask[];        // Do first: routine, homework due within 3 days, class prep
+  practice: DayTask[];    // Hobby
+  free: DayTask[];        // Free Play
+  /** Homework due later than 3 days: shown, can be started, doesn't block Free Play. */
+  homeworkLater: DayTask[];
   /** The first class after school (or of the day, on holidays): must-dos are due before it. */
   deadline: { label: string; time: string } | null;
   now: DayTask | null;
@@ -184,32 +189,99 @@ type ScheduleWithActivity = Schedule & { activity?: Activity };
 export interface BuildDayInput {
   child: ChildForDay;
   iso: string;
+  /** The time now ("HH:MM"), when building today: lets today's finished lessons give homework. */
+  now?: string | null;
   calendarDays: CalendarDay[];
   hours: SchoolHours[];
   routine: RoutineItem[];
   schedules: ScheduleWithActivity[];
   goals: Goal[];
+  /** Ticks for today, plus homework ticks for the lessons still in range (they're dated by lesson). */
   ticks: TaskTick[];
+  /** To leave out homework from lessons logged as absent or cancelled. */
+  attendance?: Pick<AttendanceLog, "activity_id" | "child_id" | "date" | "status">[];
 }
+
+/** Homework due within this many days (or overdue) is a Do-first job. */
+export const HOMEWORK_SOON_DAYS = 3;
+/** How far back homework is looked for — older open homework is dropped, not nagged about forever. */
+export const HOMEWORK_LOOKBACK_DAYS = 42;
+const NO_HOMEWORK: AttendanceLog["status"][] = ["absent", "cancelled_by_provider"];
 
 export const activityLabel = (a: Pick<Activity, "activity_name" | "institution">) =>
   a.activity_name || a.institution || "Class";
 
-/** Does a weekly class happen for this child on this date? Same rules as Home. */
+/** Does this weekly slot happen on this date? Same rules as Home. */
+function slotOn(s: ScheduleWithActivity, iso: string): boolean {
+  const a = s.activity;
+  if (!s.is_active || !a) return false;
+  if (s.day_of_week !== weekdayOf(iso)) return false;
+  if (s.effective_from && iso < day(s.effective_from)) return false;
+  if (s.effective_until && iso > day(s.effective_until)) return false;
+  if (a.start_date && iso < day(a.start_date)) return false;
+  if (a.end_date && iso > day(a.end_date)) return false;
+  return true;
+}
+
 function classesOn(iso: string, childId: string, schedules: ScheduleWithActivity[]) {
-  const weekday = weekdayOf(iso);
   return schedules
-    .filter(s => {
-      const a = s.activity;
-      if (!s.is_active || !a || a.child_id !== childId) return false;
-      if (s.day_of_week !== weekday) return false;
-      if (s.effective_from && iso < day(s.effective_from)) return false;
-      if (s.effective_until && iso > day(s.effective_until)) return false;
-      if (a.start_date && iso < day(a.start_date)) return false;
-      if (a.end_date && iso > day(a.end_date)) return false;
-      return true;
-    })
+    .filter(s => s.activity?.child_id === childId && slotOn(s, iso))
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
+}
+
+const isoOf = (d: Date) => format(d, "yyyy-MM-dd");
+const shift = (iso: string, days: number) => isoOf(addDays(parseISO(iso), days));
+/** The family's own calendar date of a timestamp (ticks are stored as instants). */
+const localDayOf = (timestamp: string) => isoOf(new Date(timestamp));
+
+/**
+ * Open homework for a child on `iso`: one piece per lesson of each class that gives
+ * homework, from the day it was switched on (and at most HOMEWORK_LOOKBACK_DAYS back).
+ * A lesson logged absent or cancelled gives none; today's lesson counts once it's over.
+ * Due the day before the next lesson, or 6 days after when no next lesson is scheduled.
+ * A tick (done, or a parent's "no homework this time") closes it for good — except that
+ * homework finished today stays in the list, ticked, so today's progress shows it.
+ */
+function homeworkFor(input: BuildDayInput): DayTask[] {
+  const { child, iso, schedules, ticks, attendance = [], now } = input;
+  const tickFor = new Map(ticks.filter(t => t.child_id === child.id && t.tier === "homework").map(t => [t.item_key, t]));
+  const skipLesson = new Set(
+    attendance.filter(l => l.child_id === child.id && NO_HOMEWORK.includes(l.status)).map(l => `${l.activity_id}|${day(l.date)}`)
+  );
+
+  const byActivity = new Map<string, ScheduleWithActivity[]>();
+  for (const s of schedules) {
+    if (s.activity?.child_id !== child.id || !s.activity.homework_from) continue;
+    byActivity.set(s.activity_id, [...(byActivity.get(s.activity_id) ?? []), s]);
+  }
+
+  const items: DayTask[] = [];
+  for (const [activityId, slots] of byActivity) {
+    const a = slots[0].activity!;
+    const lessonOn = (d: string) => slots.some(s => slotOn(s, d));
+    const lessonOver = (d: string) =>
+      d < iso || (d === iso && !!now && slots.some(s => slotOn(s, d) && (s.end_time ?? s.start_time) <= now));
+    const from = [day(a.homework_from!), shift(iso, -HOMEWORK_LOOKBACK_DAYS)].sort()[1];
+
+    for (let d = from; d <= iso; d = shift(d, 1)) {
+      if (!lessonOn(d) || !lessonOver(d) || skipLesson.has(`${activityId}|${d}`)) continue;
+      const key = `homework:${activityId}:${d}`;
+      const tick = tickFor.get(key);
+      if (tick && (tick.skipped || localDayOf(tick.done_at) !== iso)) continue; // closed earlier
+      let next: string | null = null;
+      for (let n = shift(d, 1), i = 0; i < 60 && !next; n = shift(n, 1), i++) if (lessonOn(n)) next = n;
+      const due = next ? shift(next, -1) : shift(d, 6);
+      items.push({
+        key,
+        title: `${activityLabel(a)} homework`,
+        tier: "homework",
+        source: { kind: "homework", label: `from the ${format(parseISO(d), "d MMM")} lesson · due ${format(parseISO(due), "EEE d MMM")}` },
+        doneAt: tick ? tick.done_at : null,
+        homework: { lesson: d, due, overdue: due < iso && !tick, note: a.homework_note ?? null },
+      });
+    }
+  }
+  return items.sort((x, y) => x.homework!.due.localeCompare(y.homework!.due));
 }
 
 export function buildDay(input: BuildDayInput): BuiltDay {
@@ -243,7 +315,10 @@ export function buildDay(input: BuildDayInput): BuiltDay {
     .filter(g => !g.practice_days || g.practice_days === "any" || g.practice_days === routineType)
     .map(g => task(`goal:${g.id}`, g.practice_task!, "practice", { kind: "goal", label: `Goal: ${g.title}` }));
 
-  const must = [...fromRoutine("must"), ...prep];
+  const homework = homeworkFor(input);
+  const soon = homework.filter(h => differenceInCalendarDays(parseISO(h.homework!.due), parseISO(iso)) <= HOMEWORK_SOON_DAYS);
+  const homeworkLater = homework.filter(h => !soon.includes(h));
+  const must = [...fromRoutine("must"), ...soon, ...prep];
   const practice = [...fromRoutine("practice"), ...practiceFromGoals];
   const free = fromRoutine("free");
 
@@ -264,14 +339,17 @@ export function buildDay(input: BuildDayInput): BuiltDay {
   }
   timeline.sort((a, b) => a.time.localeCompare(b.time));
 
+  // Due before the first class after they're home — and once that class has started,
+  // before the next one (or no deadline at all).
   const home = s?.homeAt ?? s?.end;
-  const due = classes.find(c => toMinutes(c.start_time) >= (home ? toMinutes(home) : 0));
+  const after = Math.max(home ? toMinutes(home) : 0, input.now ? toMinutes(input.now) : 0);
+  const due = classes.find(c => toMinutes(c.start_time) >= after);
   const deadline = due ? { label: activityLabel(due.activity!), time: due.start_time } : null;
 
   const open = [...must, ...practice].filter(t => !t.doneAt);
   const total = must.length + practice.length;
   return {
-    info, routineType, timeline, must, practice, free, deadline,
+    info, routineType, timeline, must, practice, free, homeworkLater, deadline,
     now: open[0] ?? null,
     next: open[1] ?? null,
     done: total - open.length,

@@ -104,19 +104,19 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
 
 ## My Day: the kid's tablet screen (`/my-day`)
 
-- [ ] Full screen, outside the app's normal frame: no sidebar, tab bar or Settings.
+- [x] Full screen, outside the app's normal frame: no sidebar, tab bar or Settings.
   - Child pills; the last child chosen is remembered on that tablet.
   - Layout: the timetable on the left; on the right, the Now card with the "I'm done" button, a
     progress bar, the Must do and Then practise lists, and the Free choice panel (locked until
     the must-dos are done).
   - An all-done state when everything is ticked.
-- [ ] Ticking saves at once, with a time stamp, and the screen updates before the server replies.
+- [x] Ticking saves at once, with a time stamp, and the screen updates before the server replies.
       Tapping a ticked task unticks it, and the parent log updates too.
-- [ ] Left open all day: the clock updates every minute, and the data refetches every 60 seconds,
+- [x] Left open all day: the clock updates every minute, and the data refetches every 60 seconds,
       on focus and at midnight.
-- [ ] Its own home-screen install: a separate manifest whose start URL is `/my-day`, so the
+- [x] Its own home-screen install: a separate manifest whose start URL is `/my-day`, so the
       tablet's icon opens straight to it. The phone's Bloom icon is unchanged.
-- [ ] Tablet sizes: designed for landscape, with a stacked layout when the tablet is in portrait.
+- [x] Tablet sizes: designed for landscape, with a stacked layout when the tablet is in portrait.
       Tap targets at least 56px.
 - [ ] Known limit: Bloom has no login, so a curious kid could type another address. That's
       acceptable for a family tablet; a PIN for parent screens can come later if needed.
@@ -128,23 +128,23 @@ is done). The same words are used in Settings › Routines.
 
 ## Homework that carries over (decided 12 Nov, built in stage 3)
 
-- [ ] Switched on **per activity** (only parents): "Gives homework after each lesson", with an
+- [x] Switched on **per activity** (only parents): "Gives homework after each lesson", with an
       optional note (e.g. "Worksheet and spelling").
   - Stored as `activities.homework_from` (the date it was switched on, so past lessons don't
     flood in) and `activities.homework_note`.
-- [ ] Each lesson since then creates one homework item. It's worked out, not stored: lessons
+- [x] Each lesson since then creates one homework item. It's worked out, not stored: lessons
       come from Schedules, and a lesson logged as **cancelled or absent** gives no homework.
-- [ ] Due **the day before the next lesson** (from the schedule). When no next lesson is
+- [x] Due **the day before the next lesson** (from the schedule). When no next lesson is
       scheduled (end of term), it's due 6 days after the lesson.
-- [ ] Shows every day until ticked; it doesn't reset at midnight. A tick is stored as
+- [x] Shows every day until ticked; it doesn't reset at midnight. A tick is stored as
       `homework:<activityId>:<lessonDate>` and closes it for good, with the time.
-- [ ] On the tablet: "Chinese Tuition homework · from the 18 Jan lesson · due Sat 24 Jan".
+- [x] On the tablet: "Chinese Tuition homework · from the 18 Jan lesson · due Sat 24 Jan".
   - Due **within 3 days**, or overdue: in **Do first**, so it blocks Free Play. Overdue gets a tag.
   - Due later: listed under Do first as "Not due yet". You can start early, and it doesn't block.
 - [ ] Parents only: on Home, mark a lesson's homework as "No homework this time"
       (`task_ticks.skipped`), or tick it done on the child's behalf.
 - [ ] Home › Kids today shows each child's open homework, and when each piece was finished.
-- [ ] Tests: due date from the next lesson (and with no next lesson); cancelled or absent lessons
+- [x] Tests: due date from the next lesson (and with no next lesson); cancelled or absent lessons
       give none; the 3-day threshold; overdue; a tick closes it for good; lessons before
       `homework_from` are ignored.
 
@@ -159,7 +159,7 @@ is done). The same words are used in Settings › Routines.
 1. [x] Migration, seed and API routes, plus `lib/my-day.ts` with its tests.
 2. [x] Settings: School in Edit Child, then Calendar, then Routines, prep task and goal practice.
        → *You set up Zayyan and Zara's real details from your phone.*
-3. [ ] My Day on the tablet. → *You try it on the real tablet.*
+3. [x] My Day on the tablet. → *You try it on the real tablet.*
 4. [ ] The Kids today card on Home.
 5. [ ] Polish and the full verification pass.
 
@@ -253,6 +253,39 @@ is done). The same words are used in Settings › Routines.
   - The test data was removed afterwards. The copy keeps the imported holidays only.
 - `tsc` passes; 23 tests pass; no new lint errors (the 3 in `SettingsDialog` were already there,
   from the `children` prop pattern; the new tabs use `childList`).
+
+## Stage 3 review (12 Nov)
+
+- **Migration** `20261112140000_homework` (copy only): `activities.homework_from` and
+  `homework_note`, plus `task_ticks.skipped`. Purely additive.
+- **Homework rules** in `lib/my-day.ts`:
+  - One piece per lesson since homework was switched on (looking back at most 42 days).
+  - None for lessons logged absent or cancelled; today's lesson counts once it has ended.
+  - Due the day before the next lesson, or the lesson plus 6 days when there's no next lesson.
+  - Due within 3 days or overdue goes in Do first and blocks Free Play; later shows as
+    "Not due yet". A tick closes it for good.
+- **Deadline:** must-dos are due before the first class after they're home, moving to the next
+  class once that one has started.
+- **Activities form:** "Gives homework after each lesson" plus a note. It's counted from the day
+  it's switched on.
+- **My Day** (`/my-day`, `components/my-day/MyDayView.tsx`):
+  - Full screen, with no app navigation or Settings. Child switch, remembered per tablet.
+  - Header shows the day, the time, and why there's no school today.
+  - Now card with "I'm done"; a progress bar; Do first (with homework and its tags), Hobby, and
+    Free Play (locked, then "Playing … started …"); the Today timetable with now highlighted.
+  - Ticks show at once, and are put back if saving fails. The clock updates every 30 seconds,
+    ticks refresh every minute, and settings data every 5 minutes.
+  - Its own manifest (`/my-day.webmanifest`, start `/my-day`), so it gets its own home-screen
+    icon.
+- **Checked** on a 1180×820 touch tablet with taps, using your real routine and hours, and on
+  820×1180 portrait:
+  - AQSA homework switched on from 1 Nov showed "Overdue · from the 5 Nov lesson · due Wed 11 Nov".
+  - "I'm done" stamped 4:28 PM, and it survived a reload.
+  - Free Play unlocked, then locked again on untick.
+  - No console errors. The test data was undone afterwards (your 3 routine items are kept).
+- 34 tests pass; `tsc` passes; `next build` succeeds; no new lint errors.
+- **Moved to stage 4** (it's a parent control on Home): "No homework this time", and ticking
+  homework on a child's behalf.
 
 ---
 

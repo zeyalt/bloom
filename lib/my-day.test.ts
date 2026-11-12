@@ -173,7 +173,7 @@ const goal = (id: string, over: Partial<Goal> = {}): Goal => ({
 const goals = [goal("cube"), goal("done", { achieved_date: "2026-10-01", practice_task: "Already achieved" })];
 
 const tick = (key: string, date: string, at = "2026-11-12T06:05:00.000Z"): TaskTick =>
-  ({ id: key, child_id: "z", date, item_key: key, title: "", tier: "must", done_at: at });
+  ({ id: key, child_id: "z", date, item_key: key, title: "", tier: "must", done_at: at, skipped: false });
 
 const build = (iso: string, ticks: TaskTick[] = []) =>
   buildDay({ child: child(), iso, calendarDays, hours, routine, schedules, goals, ticks });
@@ -205,6 +205,11 @@ describe("buildDay on a school day (Thu 12 Nov 2026)", () => {
 
   it("must-dos are due before the first class after school", () => {
     expect(d.deadline).toEqual({ label: "AQSA", time: "16:00" });
+  });
+
+  it("once that class has started, there's no deadline left (or it moves to the next class)", () => {
+    const late = buildDay({ child: child(), iso: "2026-11-12", now: "16:27", calendarDays, hours, routine, schedules, goals, ticks: [] });
+    expect(late.deadline).toBeNull();
   });
 
   it("Now is the first open must-do; Free choice stays locked", () => {
@@ -246,3 +251,80 @@ describe("buildDay on a holiday (Mon 23 Nov 2026)", () => {
     expect(d.deadline).toEqual({ label: "Soccer", time: "18:00" });
   });
 });
+
+// ─── Homework that carries over ─────────────────────────────────────────────
+
+describe("homework", () => {
+  // Chinese tuition every Saturday 10:00–11:30, homework switched on from 1 Nov.
+  const chinese = activity("cn", "Chinese Tuition", { homework_from: "2026-11-01", homework_note: "Worksheet" });
+  const sat = schedule("cn-sat", chinese, 6, "10:00", "11:30");
+  const hwTick = (lesson: string, doneAt: string, skipped = false): TaskTick =>
+    ({ id: lesson, child_id: "z", date: lesson, item_key: `homework:cn:${lesson}`, title: "", tier: "homework", done_at: doneAt, skipped });
+  const day = (iso: string, opts: { ticks?: TaskTick[]; now?: string; attendance?: BuildDayInputAttendance; slots?: ReturnType<typeof schedule>[] } = {}) =>
+    buildDay({
+      child: child(), iso, now: opts.now ?? null, calendarDays, hours, routine, goals,
+      schedules: opts.slots ?? [sat], ticks: opts.ticks ?? [], attendance: opts.attendance ?? [],
+    });
+  const hw = (d: ReturnType<typeof day>) => [...d.must, ...d.homeworkLater].filter(t => t.tier === "homework");
+
+  it("gives one piece per lesson since it was switched on, due the day before the next lesson", () => {
+    const d = day("2026-11-12"); // Thu; lessons since 1 Nov: Sat 7 Nov
+    expect(hw(d).map(t => t.key)).toEqual(["homework:cn:2026-11-07"]);
+    expect(hw(d)[0].homework).toEqual({ lesson: "2026-11-07", due: "2026-11-13", overdue: false, note: "Worksheet" });
+    expect(hw(d)[0].title).toBe("Chinese Tuition homework");
+    expect(hw(d)[0].source.label).toBe("from the 7 Nov lesson · due Fri 13 Nov");
+  });
+
+  it("due within 3 days is a Do-first job that blocks Free Play; later is listed but doesn't block", () => {
+    const thu = day("2026-11-12"); // due tomorrow
+    expect(thu.must.some(t => t.tier === "homework")).toBe(true);
+    const sun = day("2026-11-08"); // due in 5 days
+    expect(sun.must.some(t => t.tier === "homework")).toBe(false);
+    expect(sun.homeworkLater.map(t => t.key)).toEqual(["homework:cn:2026-11-07"]);
+  });
+
+  it("overdue homework stays in Do first, marked overdue", () => {
+    const d = day("2026-11-14", { now: "09:00" }); // Sat morning, due yesterday, today's lesson not yet
+    expect(hw(d).map(t => [t.key, t.homework!.overdue])).toEqual([["homework:cn:2026-11-07", true]]);
+    expect(d.must.some(t => t.homework?.overdue)).toBe(true);
+  });
+
+  it("today's lesson gives homework once it's over", () => {
+    expect(hw(day("2026-11-14", { now: "11:00" })).length).toBe(1);
+    expect(hw(day("2026-11-14", { now: "11:30" })).map(t => t.homework!.lesson)).toEqual(["2026-11-07", "2026-11-14"]);
+  });
+
+  it("a lesson logged absent or cancelled gives none", () => {
+    const absent = day("2026-11-12", { attendance: [{ activity_id: "cn", child_id: "z", date: "2026-11-07", status: "absent" }] });
+    expect(hw(absent)).toEqual([]);
+    const cancelled = day("2026-11-12", { attendance: [{ activity_id: "cn", child_id: "z", date: "2026-11-07", status: "cancelled_by_provider" }] });
+    expect(hw(cancelled)).toEqual([]);
+  });
+
+  it("a tick closes it for good; finished today it stays, ticked", () => {
+    expect(hw(day("2026-11-12", { ticks: [hwTick("2026-11-07", "2026-11-10T09:00:00.000Z")] }))).toEqual([]);
+    const today = hw(day("2026-11-12", { ticks: [hwTick("2026-11-07", "2026-11-12T07:00:00.000Z")] }));
+    expect(today.map(t => !!t.doneAt)).toEqual([true]);
+    expect(hw(day("2026-11-12", { ticks: [hwTick("2026-11-07", "2026-11-12T07:00:00.000Z", true)] }))).toEqual([]);
+  });
+
+  it("with no next lesson scheduled, it's due 6 days after the lesson", () => {
+    // Twice a week, Mon and Thu, ending after Mon 9 Nov.
+    const tues = activity("cn", "Chinese Tuition", { homework_from: "2026-11-09" });
+    const mon = schedule("m", tues, 1, "16:00", "17:00");
+    const thu = schedule("t", tues, 4, "16:00", "17:00");
+    const withNext = hw(day("2026-11-10", { slots: [mon, thu] }));
+    expect(withNext.map(t => t.homework!.due)).toEqual(["2026-11-11"]); // day before Thu 12 Nov
+    const ended = [mon, thu].map(s => ({ ...s, effective_until: "2026-11-09" }));
+    expect(hw(day("2026-11-10", { slots: ended })).map(t => t.homework!.due)).toEqual(["2026-11-15"]);
+  });
+
+  it("ignores lessons before homework was switched on, and classes without it", () => {
+    const off = activity("cn", "Chinese Tuition", { homework_from: null });
+    expect(hw(day("2026-11-12", { slots: [schedule("x", off, 6, "10:00", "11:30")] }))).toEqual([]);
+    const late = activity("cn", "Chinese Tuition", { homework_from: "2026-11-10" });
+    expect(hw(day("2026-11-12", { slots: [schedule("x", late, 6, "10:00", "11:30")] }))).toEqual([]);
+  });
+});
+
+type BuildDayInputAttendance = NonNullable<Parameters<typeof buildDay>[0]["attendance"]>;

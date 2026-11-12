@@ -74,6 +74,17 @@ function ShellFrame({ children }: { children: ReactNode }) {
   const onTab = isTabPath(path);
   const scrollArea = useRef<HTMLDivElement>(null);
 
+  // My Day is the kids' screen: full screen, without the app's navigation or Settings.
+  if (path === "/my-day" || path.startsWith("/my-day/")) {
+    return (
+      <>
+        <ServiceWorkerRegister />
+        <InteractionLock />
+        {children}
+      </>
+    );
+  }
+
   return (
     <>
       <ServiceWorkerRegister />

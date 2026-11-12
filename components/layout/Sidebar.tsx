@@ -1,12 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSpaNav } from "@/components/layout/spa-nav";
-import { NAV_ITEMS } from "@/components/layout/nav-items";
+import { MY_DAY, NAV_ITEMS } from "@/components/layout/nav-items";
 
 export function Sidebar() {
   const { path, navigate, settingsOpen, setSettingsOpen } = useSpaNav();
+  const router = useRouter();
 
   return (
     <aside className="hidden md:flex flex-col w-52 shrink-0 border-r border-[var(--rule)] bg-[var(--sheet)] h-screen sticky top-0">
@@ -40,6 +42,14 @@ export function Sidebar() {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => router.push(MY_DAY.href)}
+          className="flex items-center gap-3 px-3 py-2 text-sm w-full text-left cursor-pointer text-[var(--ink-soft)] font-medium border-l-2 border-transparent pl-[10px] hover:text-[var(--ink)]"
+        >
+          <MY_DAY.icon size={16} strokeWidth={1.7} />
+          {MY_DAY.label}
+        </button>
       </nav>
 
       <div className="px-3 py-4 border-t border-[var(--rule)]">
