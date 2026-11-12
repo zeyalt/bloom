@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/serialize";
+import { optionalText } from "@/lib/my-day-queries";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export async function PATCH(req: Request, { params }: Params) {
         startDate: body.start_date ? new Date(body.start_date) : undefined,
         endDate: body.end_date === null ? null : (body.end_date ? new Date(body.end_date) : undefined),
         notes: body.notes,
+        prepTask: optionalText(body.prep_task),
       },
       include: {
         category: true,

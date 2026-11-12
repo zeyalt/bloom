@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/serialize";
 import { GOAL_INCLUDE, GOAL_KINDS, badRequest, parseDay, parseNumber } from "@/lib/goal-queries";
+import { DAY_TYPES, optionalText } from "@/lib/my-day-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,8 @@ export async function POST(req: Request) {
         targetDate,
         unit: measured?.unit ?? null,
         targetValue: measured?.targetValue ?? null,
+        practiceTask: optionalText(body.practice_task) ?? null,
+        practiceDays: DAY_TYPES.includes(body.practice_days) ? body.practice_days : null,
         entries: measured ? { create: { date: measured.startDate, value: measured.startValue } } : undefined,
       },
       include: GOAL_INCLUDE,

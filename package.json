@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "DATABASE_URL=$(grep DATABASE_URL .env.local | cut -d= -f2-) node -r ts-node/register prisma/seed.ts",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -33,6 +34,7 @@
     "eslint-config-next": "16.2.6",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

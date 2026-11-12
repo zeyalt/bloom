@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/serialize";
 import { GOAL_INCLUDE, badRequest, parseDay, parseNumber } from "@/lib/goal-queries";
+import { DAY_TYPES, optionalText } from "@/lib/my-day-queries";
 
 /** Body (all optional): { title, target_date, target_value, unit, achieved_date (YYYY-MM-DD | null) } */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +34,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (!d) return badRequest("achieved_date must be YYYY-MM-DD or null");
         data.achievedDate = d;
       }
+    }
+    if (body.practice_task !== undefined) data.practiceTask = optionalText(body.practice_task) ?? null;
+    if (body.practice_days !== undefined) {
+      if (body.practice_days !== null && !DAY_TYPES.includes(body.practice_days)) return badRequest("practice_days must be school, holiday or any");
+      data.practiceDays = body.practice_days;
     }
 
     const goal = await prisma.goal.update({ where: { id }, data, include: GOAL_INCLUDE });

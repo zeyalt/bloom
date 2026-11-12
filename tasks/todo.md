@@ -1,3 +1,193 @@
+# My Day — phase 1 build plan
+
+Branch `feature/my-day` · database: Neon branch `my-day` (a copy of production; `.env.local` points
+at it, original saved as `.env.local.production-backup`). Prototype:
+https://claude.ai/artifact/E4kQKDkti6xRrSMTsXxe7o
+
+**Goal:** the kids open My Day on the tablet and can see, without being told, what to do now, what
+comes next and when they're done. Parents set it up once in Settings and see progress on Home.
+
+**Out of scope (later phases):** Google Calendar, the family snapshot (phase 3); ticks feeding
+Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decided: no).
+
+## Decisions already made
+
+- Kids use a **tablet**; Zara reads on her own; **ticks only**, no points; **kids tick** their own
+  tasks and every tick records the **time**.
+- School info is **entered in Settings**, never hard-coded: per child, with **per-weekday times**.
+- Two routines per child: **School day** (with optional per-weekday tweaks) and **Holiday**.
+- Fixed times such as dinner and bedtime are **set in Settings › Routines**, as timed rows that show
+  on the timetable but aren't ticked. Nothing is hard-coded.
+- Kids **can untick**, any time on the same day; the parent log updates to match.
+- Test tool: **Vitest**, development only (approved).
+- At merge, a script **copies the setup** from the `my-day` copy to production (approved).
+- Where calendar dates come from (not Google):
+  - MOE term and holiday dates, checked against MOE's published page and seeded for 2026–2027.
+  - Singapore public holidays from data.gov.sg, with an "Import <year>" button for later years.
+  - Your own days, added in Settings › Calendar.
+
+## Data model (one Prisma migration)
+
+- [x] `Child`: add `schoolLevel` (e.g. "Primary 2"), `autoPromote` (moves up each January) and
+      `calendarId` (which school calendar they follow). `school` already exists.
+- [x] `SchoolHours`: one row per child per weekday: `isSchoolDay`, `startTime`, `endTime`,
+      `afterSchool` (free text, e.g. "CCA till 3:30 PM"). Unique on (child, weekday).
+- [x] `SchoolCalendar`: `name`, `kind` (`moe_primary` | `custom`).
+- [x] `CalendarDay`: `calendarId` (null = applies to everyone, e.g. public holidays),
+      `startDate`, `endDate`, `kind` (`term` | `school_holiday` | `public_holiday` | `half_day` |
+      `no_school`), `title`, `endsAt` (half days), `source` (`moe` | `data.gov.sg` | `you`).
+- [x] `RoutineItem`: `childId`, `dayType` (`school` | `holiday` | `any`), `weekdays` (empty = every
+      day of that type; otherwise only those days), `tier` (`must` | `practice` | `free` |
+      `anchor`), `title`, `atTime` (anchors such as Dinner 6:30, which show only on the
+      timetable), `sortOrder`.
+- [x] `TaskTick`: `childId`, `date`, `itemKey` (`routine:<id>` | `prep:<activityId>` |
+      `goal:<goalId>`), `title` and `tier` copied at tick time (so history survives edits),
+      `doneAt` (a full timestamp). Unique on (child, date, item). A free-choice pick is a tick too
+      ("started at").
+- [x] Automatic items, with no table of their own:
+  - `Activity.prepTask` (e.g. "Pack swimming kit") turns into a must-do on that class's days.
+  - `Goal.practiceTask` and `Goal.practiceDays` (e.g. "Cube practice · 15 min", school days)
+    turn into a practice item.
+  - To hide one, clear the field; Routines links to where it's edited.
+- [x] Seed: the MOE primary calendar for 2026 and 2027 (terms and school holidays) and Singapore
+      public holidays. **Verify every date against MOE and data.gov.sg at build time**; nothing
+      from memory.
+- [x] "Import <year>" (the API; the button comes in stage 2) fetches that year's public holidays from data.gov.sg.
+      Future MOE terms (published each year) are seeded or typed in: 4 terms, 8 dates.
+
+## Core logic: `lib/my-day.ts` (pure functions, no database access)
+
+- [x] `dayInfo(child, date, calendarDays, schoolHours)` returns `school` | `half_day` |
+      `holiday`. The rules apply in order:
+  1. A public holiday → holiday.
+  2. A school holiday or no-school day in the child's calendar → holiday.
+  3. A non-school weekday (weekends by default) → holiday.
+  4. A half day → school, with that day's `endsAt`.
+  5. Otherwise → school.
+- [x] `buildDay(…)` returns the timetable blocks and the task list:
+  - **Timetable:** school (start to end), "Home from school", classes from Schedules (respecting
+    `isActive`, `effectiveFrom` and `effectiveUntil`), and anchors.
+  - **Tasks:** routine items for the day type and weekday, plus class prep, plus goal practice,
+    grouped as must / practice / free.
+  - **Must-do deadline:** "before <first class after school>", or none.
+  - **Now:** the first must-do not yet done, otherwise the first practice item not yet done.
+- [ ] Dates in Singapore time throughout. "Today" rolls over at midnight on a tablet that's left
+      open.
+- [x] Tests for these rules with fixed dates: a school day, a half day, a public holiday, a school
+      holiday, a weekend, a class with an end date, and a class prep that only shows on its day.
+      Uses Vitest (approved).
+
+## API routes (same patterns as the goals routes)
+
+- [x] `/api/school-hours`: GET all; PUT a child's whole week in one call.
+- [x] `/api/calendars`, `/api/calendar-days`: GET, plus create, update and delete for your own
+      days. Seeded MOE and public-holiday rows are read-only.
+- [x] `/api/routine-items`: GET, create, update, delete, and reorder.
+- [x] `/api/ticks?date=&childId=`: GET; POST ticks an item (idempotent); DELETE unticks it.
+- [x] Extend the activity and goal routes for `prepTask`, `practiceTask` and `practiceDays`.
+
+## Settings (the Settings dialog)
+
+- [ ] **Children › Edit Child**: a School part with name, level, calendar, "moves up a level each
+      January", a 7-row weekday table (school yes/no, start, end, after school) and "copy
+      Monday's times to all school days".
+- [ ] **Calendar** (new section): a list of calendars, with "add a calendar" (custom), a Coming up
+      list showing where each day came from, and "add a day off or half day".
+- [ ] **Routines** (new section):
+  - Child pills, a School day / Holiday switch, and weekday chips.
+  - Four groups: Fixed times (dinner, bedtime: a name and a time, for the timetable only), Must
+    do, Then practise and Free choice.
+  - Automatic rows are tagged ("Auto · from AQSA schedule", "Auto · from goal …") and link to
+    their source.
+  - Add with the + button, edit, delete, and drag to reorder (or up and down buttons on phones).
+- [ ] **Activities › edit**: a "Prep task" field. **Goal form**: "Daily practice" fields.
+
+## My Day: the kid's tablet screen (`/my-day`)
+
+- [ ] Full screen, outside the app's normal frame: no sidebar, tab bar or Settings.
+  - Child pills; the last child chosen is remembered on that tablet.
+  - Layout: the timetable on the left; on the right, the Now card with the "I'm done" button, a
+    progress bar, the Must do and Then practise lists, and the Free choice panel (locked until
+    the must-dos are done).
+  - An all-done state when everything is ticked.
+- [ ] Ticking saves at once, with a time stamp, and the screen updates before the server replies.
+      Tapping a ticked task unticks it, and the parent log updates too.
+- [ ] Left open all day: the clock updates every minute, and the data refetches every 60 seconds,
+      on focus and at midnight.
+- [ ] Its own home-screen install: a separate manifest whose start URL is `/my-day`, so the
+      tablet's icon opens straight to it. The phone's Bloom icon is unchanged.
+- [ ] Tablet sizes: designed for landscape, with a stacked layout when the tablet is in portrait.
+      Tap targets at least 56px.
+- [ ] Known limit: Bloom has no login, so a curious kid could type another address. That's
+      acceptable for a family tablet; a PIN for parent screens can come later if needed.
+
+## Home: the Kids today card (parent phone)
+
+- [ ] Above Today: one row per child with "x of y done", a progress bar and a hint ("2 must-dos
+      left before AQSA at 4:00"). Tapping a child opens their log of ticks with times.
+- [ ] Hidden on days with no routine set up, so nothing changes for you until you configure it.
+
+## Build order (I'll check in with you after each stage)
+
+1. [x] Migration, seed and API routes, plus `lib/my-day.ts` with its tests.
+2. [ ] Settings: School in Edit Child, then Calendar, then Routines, prep task and goal practice.
+       → *You set up Zayyan and Zara's real details from your phone.*
+3. [ ] My Day on the tablet. → *You try it on the real tablet.*
+4. [ ] The Kids today card on Home.
+5. [ ] Polish and the full verification pass.
+
+## Verification (before calling it done)
+
+- [ ] `tsc` passes, there are no new lint errors, and `next build` succeeds.
+- [ ] The rule tests pass for all the fixed dates above.
+- [ ] Playwright on iPhone 13 (parent screens) and a 1180×820 touch tablet (My Day), using taps
+      rather than clicks:
+  - Set up a child's school hours.
+  - Add a half day.
+  - Build a routine.
+  - Tick tasks on My Day and see the times stamped, with Free choice unlocking.
+  - See the same ticks on Home.
+- [ ] Check on a real device over the hotspot (`http://<laptop IP>:3000`).
+- [ ] Existing screens are unchanged: Home, Goals, Journal, Analytics and Settings load with no
+      console errors.
+
+## When the feature is done: merging
+
+- [ ] Ask you before committing or pushing anything.
+- [ ] Merge `feature/my-day` into `main`, and run the migration on production
+      (`prisma migrate deploy`).
+- [ ] Re-enter the setup on production (school hours, routines), or copy those rows across from
+      the `my-day` branch with a script.
+- [ ] Switch `.env.local` back to production and delete the Neon `my-day` branch.
+
+## Stage 1 review (12 Nov)
+
+- **Migration** `20261112120000_my_day`, purely additive (5 new tables plus optional columns),
+  applied to the `my-day` copy only. Generated with `migrate diff` + `migrate deploy`, because
+  `migrate dev` can't replay an old migration on a shadow database. Production gets the same
+  migration with `migrate deploy` at merge.
+- **Calendar data** in `lib/calendar-sources.ts`, every date from a named source:
+  - MOE 2026 (moe.gov.sg/calendar) and MOE 2027 (press release, 14 Jul 2026), including the
+    days off-in-lieu and "P2–P6 start 5 Jan 2027".
+  - Public holidays come live from data.gov.sg (MOM's yearly datasets), with a copy for 2026–27
+    as a fallback.
+  - Imported to the copy: 28 MOE rows and 26 public holidays. A second import made no duplicates.
+- **Rules** in `lib/my-day.ts`: 23 Vitest tests pass, using the real data. They cover a school
+  day, the Wednesday CCA and the Friday early finish, a half day, an observed public holiday, a
+  day off-in-lieu, school holidays, weekends, 2027's P1-only first day, no hours entered, no
+  calendar, a custom calendar with gaps, ticks from the wrong date, ended classes, weekday-only
+  lines, and Free choice unlocking.
+- **API** checked against the dev server:
+  - Validation rejects bad times, a fixed time with no time, and a half day with no end.
+  - Ticking twice keeps the first time; unticking twice is fine.
+  - Imported days can't be edited.
+  - Old edit forms leave the new fields alone.
+  - Test rows were removed afterwards.
+- `tsc` passes; no new lint errors (the one error in `app/api/activities/route.ts:14` was
+  already there).
+
+---
+
 # Attendance data-layer optimisation (items 1, 2, 4)
 
 Baseline: `/api/attendance-logs?limit=all` = 513 KB for 363 rows, fetched under

@@ -16,6 +16,12 @@ model Child {
   colorCode   String    @map("color_code") @db.VarChar(7)
   avatarEmoji String    @map("avatar_emoji") @db.Char(2)
   avatarKey   String?   @map("avatar_key") @db.VarChar(50)
+  // School level as a code (K1, P2, S1…), the year it was true for, and whether it moves
+  // up each January — so P2 in 2026 reads as P3 in 2027 without editing.
+  schoolLevel     String?  @map("school_level") @db.VarChar(20)
+  schoolLevelYear Int?     @map("school_level_year")
+  autoPromote     Boolean  @default(true) @map("auto_promote")
+  calendarId      String?  @map("calendar_id")
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
@@ -24,6 +30,10 @@ model Child {
   expenses       Expense[]
   milestones     Milestone[]
   goals          Goal[]
+  calendar       SchoolCalendar? @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  schoolHours    SchoolHours[]
+  routineItems   RoutineItem[]
+  taskTicks      TaskTick[]
 
   @@map("children")
 }
@@ -59,6 +69,8 @@ model Activity {
   instructorName String?   @map("instructor_name") @db.VarChar(255)
   level          String?   @db.VarChar(50)
   status         String    @default("active") @db.VarChar(50)
+  // A must-do that My Day adds on this class's days, e.g. "Pack swimming kit".
+  prepTask       String?   @map("prep_task") @db.VarChar(255)
   startDate      DateTime? @map("start_date") @db.Date
   endDate        DateTime? @map("end_date") @db.Date
   notes          String?   @db.Text
@@ -185,6 +197,10 @@ model Goal {
   achievedDate DateTime? @map("achieved_date") @db.Date
   unit         String?   @db.VarChar(20)
   targetValue  Float?    @map("target_value")
+  // Practice My Day adds while the goal is open, e.g. "Cube practice · 15 min",
+  // on "school" days, "holiday" days or "any" day.
+  practiceTask String?   @map("practice_task") @db.VarChar(255)
+  practiceDays String?   @map("practice_days") @db.VarChar(10)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
@@ -224,4 +240,98 @@ model GoalEntry {
 
   @@index([goalId])
   @@map("goal_entries")
+}
+
+// ─── My Day ──────────────────────────────────────────────────────────────────
+
+// A child's school hours for one weekday (0 = Sunday … 6 = Saturday).
+model SchoolHours {
+  id          String  @id @default(cuid())
+  childId     String  @map("child_id")
+  dayOfWeek   Int     @map("day_of_week")
+  isSchoolDay Boolean @default(false) @map("is_school_day")
+  startTime   String? @map("start_time") @db.VarChar(5)
+  endTime     String? @map("end_time") @db.VarChar(5)
+  afterSchool String? @map("after_school") @db.VarChar(255)
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, dayOfWeek])
+  @@map("school_hours")
+}
+
+// A set of term dates and school holidays that children follow.
+// kind = "moe_primary" (imported from MOE) or "custom" (typed in).
+model SchoolCalendar {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(255)
+  kind      String   @db.VarChar(30)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  children Child[]
+  days     CalendarDay[]
+
+  @@map("school_calendars")
+}
+
+// A dated span on a calendar. calendarId = null means it applies to everyone
+// (public holidays). kind: term | school_holiday | public_holiday | half_day | no_school.
+// levels: comma-separated level codes it applies to ("P2,P3"); null = every level.
+// source: moe | data.gov.sg | you. Imported rows have stable ids so re-importing updates them.
+model CalendarDay {
+  id         String   @id @default(cuid())
+  calendarId String?  @map("calendar_id")
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  kind       String   @db.VarChar(30)
+  title      String   @db.VarChar(255)
+  endsAt     String?  @map("ends_at") @db.VarChar(5)
+  levels     String?  @db.VarChar(100)
+  source     String   @default("you") @db.VarChar(30)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  calendar SchoolCalendar? @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([startDate])
+  @@map("calendar_days")
+}
+
+// One line of a child's routine. dayType: school | holiday | any. weekdays: empty = every
+// day of that type, else only those weekdays (0–6). tier: anchor (a fixed time on the
+// timetable, e.g. Dinner 18:30 — not ticked) | must | practice | free.
+model RoutineItem {
+  id        String   @id @default(cuid())
+  childId   String   @map("child_id")
+  dayType   String   @map("day_type") @db.VarChar(10)
+  weekdays  Int[]    @default([])
+  tier      String   @db.VarChar(10)
+  title     String   @db.VarChar(255)
+  atTime    String?  @map("at_time") @db.VarChar(5)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp()
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId])
+  @@map("routine_items")
+}
+
+// A task a child ticked on My Day, with the moment they ticked it. itemKey names what was
+// ticked: routine:<id> | prep:<activityId> | goal:<goalId>. title and tier are copied at
+// tick time so the log still reads right after the routine is edited.
+model TaskTick {
+  id      String   @id @default(cuid())
+  childId String   @map("child_id")
+  date    DateTime @db.Date
+  itemKey String   @map("item_key") @db.VarChar(100)
+  title   String   @db.VarChar(255)
+  tier    String   @db.VarChar(10)
+  doneAt  DateTime @map("done_at") @db.Timestamptz()
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, date, itemKey])
+  @@index([date])
+  @@map("task_ticks")
 }

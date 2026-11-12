@@ -34,6 +34,10 @@ export interface Child {
   color_code: string;
   avatar_emoji: string;
   avatar_key: string | null;
+  school_level: string | null;      // level code: K1, P2, S1…
+  school_level_year: number | null; // the year school_level was true for
+  auto_promote: boolean;            // moves up a level each January
+  calendar_id: string | null;       // the school calendar they follow
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +59,7 @@ export interface Activity {
   instructor_name: string | null;
   level: string | null;
   status: ActivityStatus;
+  prep_task?: string | null; // a must-do My Day adds on this class's days
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
@@ -181,6 +186,8 @@ export interface Goal {
   achieved_date: string | null;
   unit: string | null;
   target_value: number | null;
+  practice_task?: string | null;            // practice My Day adds while the goal is open
+  practice_days?: RoutineDayType | null;    // on which kind of day
   created_at: string;
   updated_at: string;
   checkpoints: GoalCheckpoint[];
@@ -192,4 +199,63 @@ export interface Sender {
   name: string;
   relationship: string | null;
   created_at: string;
+}
+
+// ─── My Day ──────────────────────────────────────────────────────────────────
+
+export type RoutineDayType = "school" | "holiday" | "any";
+export type RoutineTier = "anchor" | "must" | "practice" | "free";
+export type CalendarDayKind = "term" | "school_holiday" | "public_holiday" | "half_day" | "no_school";
+
+export interface SchoolHours {
+  id: string;
+  child_id: string;
+  day_of_week: number; // 0=Sunday … 6=Saturday
+  is_school_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
+  after_school: string | null;
+}
+
+export interface SchoolCalendar {
+  id: string;
+  name: string;
+  kind: "moe_primary" | "custom";
+  created_at: string;
+}
+
+export interface CalendarDay {
+  id: string;
+  calendar_id: string | null; // null = applies to everyone (public holidays)
+  start_date: string;
+  end_date: string;
+  kind: CalendarDayKind;
+  title: string;
+  ends_at: string | null;     // half days: when school ends
+  levels: string | null;      // "P2,P3" — null = every level
+  source: "moe" | "data.gov.sg" | "you";
+  created_at: string;
+}
+
+export interface RoutineItem {
+  id: string;
+  child_id: string;
+  day_type: RoutineDayType;
+  weekdays: number[]; // empty = every day of that type
+  tier: RoutineTier;
+  title: string;
+  at_time: string | null; // anchors only, "HH:MM"
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskTick {
+  id: string;
+  child_id: string;
+  date: string;
+  item_key: string; // routine:<id> | prep:<activityId> | goal:<goalId>
+  title: string;
+  tier: RoutineTier;
+  done_at: string;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/serialize";
+import { schoolFields } from "@/lib/my-day-queries";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         colorCode: body.color_code || body.colorCode,
         avatarEmoji: body.avatar_emoji || body.avatarEmoji,
         avatarKey: body.avatar_key ?? body.avatarKey,
+        ...schoolFields(body),
       },
     });
     return NextResponse.json(serialize(child));
