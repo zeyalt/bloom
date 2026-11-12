@@ -27,14 +27,15 @@ const child = (over: Partial<Child> = {}): Child => ({
   calendar_id: MOE, created_at: "", updated_at: "", ...over,
 });
 
-const hoursRow = (dow: number, start: string | null, end: string | null, afterSchool: string | null = null): SchoolHours => ({
-  id: `h${dow}`, child_id: "z", day_of_week: dow, is_school_day: !!start, start_time: start, end_time: end, after_school: afterSchool,
+const hoursRow = (dow: number, start: string | null, end: string | null, after: string | null = null, until: string | null = null): SchoolHours => ({
+  id: `h${dow}`, child_id: "z", day_of_week: dow, is_school_day: !!start, start_time: start, end_time: end,
+  after_school: after, after_school_until: until,
 });
 const hours: SchoolHours[] = [
   hoursRow(0, null, null),
   hoursRow(1, "07:30", "13:30"),
   hoursRow(2, "07:30", "13:30"),
-  hoursRow(3, "07:30", "13:30", "CCA till 3:30 PM"),
+  hoursRow(3, "07:30", "13:30", "CCA – Badminton", "15:30"),
   hoursRow(4, "07:30", "13:30"),
   hoursRow(5, "07:30", "12:45"),
   hoursRow(6, null, null),
@@ -68,12 +69,17 @@ describe("dayInfo", () => {
   it("a normal school day uses that weekday's hours", () => {
     const d = kind("2026-11-12"); // Thu
     expect(d.kind).toBe("school");
-    expect(d.school).toEqual({ start: "07:30", end: "13:30", afterSchool: null });
+    expect(d.school).toEqual({ start: "07:30", end: "13:30", after: null, homeAt: "13:30" });
   });
 
-  it("per-weekday hours: Wednesday CCA, Friday's earlier finish", () => {
-    expect(kind("2026-11-11").school?.afterSchool).toBe("CCA till 3:30 PM");
+  it("per-weekday hours: Wednesday CCA (home later), Friday's earlier finish", () => {
+    expect(kind("2026-11-11").school).toMatchObject({ end: "13:30", after: { label: "CCA – Badminton", until: "15:30" }, homeAt: "15:30" });
     expect(kind("2026-11-13").school?.end).toBe("12:45");
+  });
+
+  it("an after-school activity without an end time leaves home time unknown", () => {
+    const h = hours.map(r => r.day_of_week === 3 ? { ...r, after_school_until: null } : r);
+    expect(kind("2026-11-11", child(), h).school?.homeAt).toBeNull();
   });
 
   it("a half day finishes at its own time", () => {
@@ -106,7 +112,7 @@ describe("dayInfo", () => {
 
   it("with no hours entered, assumes school Monday to Friday", () => {
     expect(kind("2026-11-12", child(), []).kind).toBe("school");
-    expect(kind("2026-11-12", child(), []).school).toEqual({ start: null, end: null, afterSchool: null });
+    expect(kind("2026-11-12", child(), []).school).toEqual({ start: null, end: null, after: null, homeAt: null });
     expect(kind("2026-11-14", child(), []).reason).toBe("Weekend");
   });
 
@@ -212,6 +218,13 @@ describe("buildDay on a school day (Thu 12 Nov 2026)", () => {
     const all = build("2026-11-12", ["routine:lunch", "routine:hw", "prep:aqsa"].map(k => tick(k, "2026-11-12")));
     expect(all.freeUnlocked).toBe(true);
     expect(all.now?.title).toBe("Read a book · 20 min");
+  });
+
+  it("puts the CCA on the timetable and counts home time from its end", () => {
+    const wed = build("2026-11-11");
+    expect(wed.timeline.map(b => `${b.time} ${b.label}`)).toEqual([
+      "07:30 School", "13:30 CCA – Badminton", "15:30 Home from school", "18:30 Dinner",
+    ]);
   });
 
   it("weekday-only lines show only on their weekday", () => {

@@ -68,8 +68,16 @@ export interface DayInfo {
   kind: DayKind;
   /** Short reason, for the parent and the tablet: "Christmas Day", "Weekend", "School day". */
   reason: string;
-  /** Today's school hours; null on holidays or when no times were entered. */
-  school: { start: string | null; end: string | null; afterSchool: string | null } | null;
+  /**
+   * Today's school hours; null on holidays. `after` is an after-school activity (e.g. CCA)
+   * and `homeAt` when they're actually home: the activity's end, else school's end.
+   */
+  school: {
+    start: string | null;
+    end: string | null;
+    after: { label: string; until: string | null } | null;
+    homeAt: string | null;
+  } | null;
   /** The level the child is at on this date (after any January promotion). */
   level: string | null;
 }
@@ -81,9 +89,9 @@ function hoursFor(childId: string, weekday: number, hours: SchoolHours[]) {
   const mine = hours.filter(h => h.child_id === childId);
   if (mine.length === 0) {
     const weekdayOn = weekday >= 1 && weekday <= 5;
-    return { is_school_day: weekdayOn, start_time: null, end_time: null, after_school: null };
+    return { is_school_day: weekdayOn, start_time: null, end_time: null, after_school: null, after_school_until: null };
   }
-  return mine.find(h => h.day_of_week === weekday) ?? { is_school_day: false, start_time: null, end_time: null, after_school: null };
+  return mine.find(h => h.day_of_week === weekday) ?? { is_school_day: false, start_time: null, end_time: null, after_school: null, after_school_until: null };
 }
 
 /**
@@ -122,9 +130,16 @@ export function dayInfo(child: ChildForDay, iso: string, calendarDays: CalendarD
   const termsThisYear = terms.filter(d => day(d.start_date).startsWith(year));
   if (termsThisYear.length > 0 && !today.some(d => d.kind === "term")) return holiday("Between terms");
 
-  const school = { start: h.start_time, end: h.end_time, afterSchool: h.after_school };
+  const after = h.after_school ? { label: h.after_school, until: h.after_school_until } : null;
+  // With an activity but no end time, when they get home isn't known.
+  const homeAt = (end: string | null) => (after ? after.until : end);
+  const school = { start: h.start_time, end: h.end_time, after, homeAt: homeAt(h.end_time) };
   const halfDay = today.find(d => d.kind === "half_day");
-  if (halfDay) return { kind: "half_day", reason: halfDay.title, school: { ...school, end: halfDay.ends_at ?? school.end }, level };
+  if (halfDay) {
+    // A half day sends everyone home early; after-school activities don't run.
+    const end = halfDay.ends_at ?? school.end;
+    return { kind: "half_day", reason: halfDay.title, school: { start: school.start, end, after: null, homeAt: end }, level };
+  }
 
   return { kind: "school", reason: "School day", school, level };
 }
@@ -236,7 +251,8 @@ export function buildDay(input: BuildDayInput): BuiltDay {
   const timeline: TimelineBlock[] = [];
   const s = info.school;
   if (s?.start) timeline.push({ time: s.start, end: s.end, label: "School", sub: info.kind === "half_day" ? info.reason : null, kind: "school" });
-  if (s?.end) timeline.push({ time: s.end, label: "Home from school", sub: s.afterSchool, kind: "home" });
+  if (s?.end && s.after) timeline.push({ time: s.end, end: s.after.until, label: s.after.label, sub: "After school", kind: "school" });
+  if (s?.homeAt) timeline.push({ time: s.homeAt, label: "Home from school", kind: "home" });
   for (const c of classes) {
     timeline.push({
       time: c.start_time, end: c.end_time, label: activityLabel(c.activity!),
@@ -248,8 +264,8 @@ export function buildDay(input: BuildDayInput): BuiltDay {
   }
   timeline.sort((a, b) => a.time.localeCompare(b.time));
 
-  const afterSchool = s?.end ? toMinutes(s.end) : 0;
-  const due = classes.find(c => toMinutes(c.start_time) >= afterSchool);
+  const home = s?.homeAt ?? s?.end;
+  const due = classes.find(c => toMinutes(c.start_time) >= (home ? toMinutes(home) : 0));
   const deadline = due ? { label: activityLabel(due.activity!), time: due.start_time } : null;
 
   const open = [...must, ...practice].filter(t => !t.doneAt);

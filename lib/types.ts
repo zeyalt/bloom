@@ -214,7 +214,8 @@ export interface SchoolHours {
   is_school_day: boolean;
   start_time: string | null;
   end_time: string | null;
-  after_school: string | null;
+  after_school: string | null;       // an after-school activity, e.g. "CCA – Badminton"
+  after_school_until: string | null; // when it ends ("HH:MM")
 }
 
 export interface SchoolCalendar {

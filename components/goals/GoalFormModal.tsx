@@ -39,6 +39,8 @@ export function GoalFormModal({
   const [startValue, setStartValue] = useState("");
   const [targetValue, setTargetValue] = useState(goal?.target_value != null ? String(goal.target_value) : "");
   const [targetDate, setTargetDate] = useState(goal ? day(goal.target_date) : "");
+  const [practiceTask, setPracticeTask] = useState(goal?.practice_task ?? "");
+  const [practiceDays, setPracticeDays] = useState<"school" | "holiday" | "any">(goal?.practice_days ?? "any");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,18 +57,19 @@ export function GoalFormModal({
   async function save() {
     if (!valid || !child) return;
     setSaving(true); setError(null);
+    const practice = { practice_task: practiceTask.trim() || null, practice_days: practiceTask.trim() ? practiceDays : null };
     try {
       if (editing && goal) {
         await goalApi.update(goal.id, kind === "milestone"
-          ? { title: title.trim(), target_date: targetDate }
-          : { title: measuredName, unit, target_value: Number(targetValue), target_date: targetDate });
+          ? { title: title.trim(), target_date: targetDate, ...practice }
+          : { title: measuredName, unit, target_value: Number(targetValue), target_date: targetDate, ...practice });
         await refresh();
         onClose();
       } else {
         const created = await goalApi.create(kind === "milestone"
-          ? { child_id: child.id, kind, title: title.trim(), target_date: targetDate }
+          ? { child_id: child.id, kind, title: title.trim(), target_date: targetDate, ...practice }
           : { child_id: child.id, kind, title: measuredName, unit, target_value: Number(targetValue),
-              start_value: Number(startValue), start_date: todayISO(), target_date: targetDate });
+              start_value: Number(startValue), start_date: todayISO(), target_date: targetDate, ...practice });
         await refresh();
         onClose();
         onCreated?.(created.id);
@@ -175,6 +178,24 @@ export function GoalFormModal({
         <div>
           <label htmlFor="goal-date" className={labelCls}>By when</label>
           <input id="goal-date" type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} className={inputCls} />
+        </div>
+
+        <div>
+          <label htmlFor="goal-practice" className={labelCls}>Daily practice on My Day (optional)</label>
+          <input id="goal-practice" value={practiceTask} onChange={e => setPracticeTask(e.target.value)} className={inputCls}
+            placeholder="e.g. Cube practice · 15 min" />
+          {practiceTask.trim() && (
+            <div role="group" aria-label="Practice on" className="mt-2 grid grid-cols-3 gap-2">
+              {([["school", "School"], ["holiday", "Holidays"], ["any", "Every day"]] as const).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={practiceDays === v} onClick={() => setPracticeDays(v)}
+                  className={cn("h-10 px-2 text-sm font-medium rounded-[var(--radius-md)] border cursor-pointer",
+                    practiceDays === v ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]")}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="mt-1 text-xs text-[var(--ink-faint)]">Shows under “Hobby” on My Day until the goal is achieved.</p>
         </div>
 
         <div className="flex items-center gap-2 pt-1">

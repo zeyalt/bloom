@@ -29,7 +29,7 @@ const STATUS_VARIANTS: Record<string, "success" | "warning" | "muted" | "danger"
 
 const EMPTY_FORM = {
   child_id: "", category_id: "", activity_name: "", institution: "", instructor_name: "",
-  level: "", status: "active" as ActivityStatus, start_date: "", end_date: "", notes: "",
+  level: "", status: "active" as ActivityStatus, start_date: "", end_date: "", notes: "", prep_task: "",
 };
 
 export function ActivitiesTab({ activities, categories, children, onRefresh }: Props) {
@@ -68,6 +68,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
       start_date: a.start_date ? a.start_date.slice(0, 10) : "",
       end_date: a.end_date ? a.end_date.slice(0, 10) : "",
       notes: a.notes ?? "",
+      prep_task: a.prep_task ?? "",
     });
     setEditing(a);
     setError("");
@@ -91,6 +92,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         start_date: form.start_date,
         end_date: form.end_date || null,
         notes: form.notes || null,
+        prep_task: form.prep_task.trim() || null,
       };
       const url = editing ? `/api/activities/${editing.id}` : "/api/activities";
       const method = editing ? "PATCH" : "POST";
@@ -249,6 +251,19 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               placeholder="e.g. P2 (Distinction), Kids 4T, Red Belt"
               className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
+          </div>
+
+          <div>
+            <label htmlFor="activity-prep" className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Prep task for My Day</label>
+            <input
+              id="activity-prep"
+              type="text"
+              value={form.prep_task}
+              onChange={e => setForm(f => ({ ...f, prep_task: e.target.value }))}
+              placeholder="e.g. Pack swimming kit"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+            />
+            <p className="mt-1 text-xs leading-4 text-[var(--ink-faint)]">Optional. Shows as a must-do on this class’s days.</p>
           </div>
 
           <div>

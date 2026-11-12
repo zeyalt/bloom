@@ -88,19 +88,19 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
 
 ## Settings (the Settings dialog)
 
-- [ ] **Children › Edit Child**: a School part with name, level, calendar, "moves up a level each
+- [x] **Children › Edit Child**: a School part with name, level, calendar, "moves up a level each
       January", a 7-row weekday table (school yes/no, start, end, after school) and "copy
       Monday's times to all school days".
-- [ ] **Calendar** (new section): a list of calendars, with "add a calendar" (custom), a Coming up
+- [x] **Calendar** (new section): a list of calendars, with "add a calendar" (custom), a Coming up
       list showing where each day came from, and "add a day off or half day".
-- [ ] **Routines** (new section):
+- [x] **Routines** (new section):
   - Child pills, a School day / Holiday switch, and weekday chips.
   - Four groups: Fixed times (dinner, bedtime: a name and a time, for the timetable only), Must
     do, Then practise and Free choice.
   - Automatic rows are tagged ("Auto · from AQSA schedule", "Auto · from goal …") and link to
     their source.
   - Add with the + button, edit, delete, and drag to reorder (or up and down buttons on phones).
-- [ ] **Activities › edit**: a "Prep task" field. **Goal form**: "Daily practice" fields.
+- [x] **Activities › edit**: a "Prep task" field. **Goal form**: "Daily practice" fields.
 
 ## My Day: the kid's tablet screen (`/my-day`)
 
@@ -121,6 +121,33 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
 - [ ] Known limit: Bloom has no login, so a curious kid could type another address. That's
       acceptable for a family tablet; a PIN for parent screens can come later if needed.
 
+## Names the kids see (decided 12 Nov)
+
+**Today** (timetable, set times) · **Do first** · **Hobby** · **Free Play** (locked until Do first
+is done). The same words are used in Settings › Routines.
+
+## Homework that carries over (decided 12 Nov, built in stage 3)
+
+- [ ] Switched on **per activity** (only parents): "Gives homework after each lesson", with an
+      optional note (e.g. "Worksheet and spelling").
+  - Stored as `activities.homework_from` (the date it was switched on, so past lessons don't
+    flood in) and `activities.homework_note`.
+- [ ] Each lesson since then creates one homework item. It's worked out, not stored: lessons
+      come from Schedules, and a lesson logged as **cancelled or absent** gives no homework.
+- [ ] Due **the day before the next lesson** (from the schedule). When no next lesson is
+      scheduled (end of term), it's due 6 days after the lesson.
+- [ ] Shows every day until ticked; it doesn't reset at midnight. A tick is stored as
+      `homework:<activityId>:<lessonDate>` and closes it for good, with the time.
+- [ ] On the tablet: "Chinese Tuition homework · from the 18 Jan lesson · due Sat 24 Jan".
+  - Due **within 3 days**, or overdue: in **Do first**, so it blocks Free Play. Overdue gets a tag.
+  - Due later: listed under Do first as "Not due yet". You can start early, and it doesn't block.
+- [ ] Parents only: on Home, mark a lesson's homework as "No homework this time"
+      (`task_ticks.skipped`), or tick it done on the child's behalf.
+- [ ] Home › Kids today shows each child's open homework, and when each piece was finished.
+- [ ] Tests: due date from the next lesson (and with no next lesson); cancelled or absent lessons
+      give none; the 3-day threshold; overdue; a tick closes it for good; lessons before
+      `homework_from` are ignored.
+
 ## Home: the Kids today card (parent phone)
 
 - [ ] Above Today: one row per child with "x of y done", a progress bar and a hint ("2 must-dos
@@ -130,7 +157,7 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
 ## Build order (I'll check in with you after each stage)
 
 1. [x] Migration, seed and API routes, plus `lib/my-day.ts` with its tests.
-2. [ ] Settings: School in Edit Child, then Calendar, then Routines, prep task and goal practice.
+2. [x] Settings: School in Edit Child, then Calendar, then Routines, prep task and goal practice.
        → *You set up Zayyan and Zara's real details from your phone.*
 3. [ ] My Day on the tablet. → *You try it on the real tablet.*
 4. [ ] The Kids today card on Home.
@@ -185,6 +212,47 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
   - Test rows were removed afterwards.
 - `tsc` passes; no new lint errors (the one error in `app/api/activities/route.ts:14` was
   already there).
+
+## Stage 2 review (12 Nov)
+
+- **Edit Child › School:**
+  - Level (stored with its year, so it moves up each January), "follows calendar" (choosing
+    MOE when it isn't imported yet imports it first), and a 7-day hours editor (on/off, start,
+    end, after-school note, and "copy Monday's times").
+  - On phones, the times sit on their own line. The child row shows level and an hours summary.
+- **Calendar section:**
+  - Calendars, with who follows each. "Update holidays" re-imports this year and next, and says
+    which years have no MOE dates in Bloom or no published public holidays.
+  - Add or delete a custom calendar.
+  - Coming up: holidays and days off, with each day's source. Days you added can be edited and
+    removed.
+  - The + button adds a day off, half day (with the end time), school holiday or term.
+- **Routines section:**
+  - Child pills, a School days / Holidays switch, and weekday chips that show that day's real
+    list.
+  - Four groups: Fixed times, Must do, Then practise, Free choice.
+  - Up and down arrows to reorder; edit (Remove is inside the form, to give names room on
+    phones); the + button adds.
+  - Automatic rows (class prep, goal practice) are tagged, with where to change them.
+- **Follow-up from your review:**
+  - Weekly hours: "School starts / School ends" column captions and a one-line explanation.
+  - "Copy to other school days" is a real button, right under Monday.
+  - After-school is now an **activity with an end time** (new column `after_school_until`,
+    migration `20261112130000`). My Day shows it on the timetable and moves "Home from school"
+    and the must-do deadline to that time. A half day cancels it. 25 tests pass.
+- **Activities:** a "Prep task for My Day" field. **Goals:** "Daily practice" plus School /
+  Holidays / Every day.
+- **Settings on phones:** a 3×2 section switch, so all six labels fit (it fixes "Categori…" too).
+- **Checked** with Playwright on iPhone 13 using taps, and on desktop at 1280px:
+  - Set up the school.
+  - Add a half day.
+  - Add 6 routine lines, reorder one, filter by weekday and remove one.
+  - A prep task shows only on its class's day.
+  - A goal's practice saves.
+  - No console errors; the other tabs still load.
+  - The test data was removed afterwards. The copy keeps the imported holidays only.
+- `tsc` passes; 23 tests pass; no new lint errors (the 3 in `SettingsDialog` were already there,
+  from the `children` prop pattern; the new tabs use `childList`).
 
 ---
 

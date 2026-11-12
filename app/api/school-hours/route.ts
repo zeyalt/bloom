@@ -18,7 +18,7 @@ export async function GET() {
 
 /**
  * Saves a child's whole week in one go.
- * Body: { child_id, days: [{ day_of_week, is_school_day, start_time, end_time, after_school }] }
+ * Body: { child_id, days: [{ day_of_week, is_school_day, start_time, end_time, after_school, after_school_until }] }
  */
 export async function PUT(req: Request) {
   try {
@@ -33,14 +33,18 @@ export async function PUT(req: Request) {
       const on = !!d.is_school_day;
       const start = parseTime(d.start_time);
       const end = parseTime(d.end_time);
-      if (start === undefined || end === undefined) return badRequest("times must be HH:MM");
+      const until = parseTime(d.after_school_until ?? null);
+      if (start === undefined || end === undefined || until === undefined) return badRequest("times must be HH:MM");
       if (on && start && end && end <= start) return badRequest("school must end after it starts");
+      if (on && end && until && until <= end) return badRequest("an after-school activity must end after school does");
+      const activity = on ? optionalText(d.after_school) ?? null : null;
       days.push({
         dayOfWeek: dow,
         isSchoolDay: on,
         startTime: on ? start : null,
         endTime: on ? end : null,
-        afterSchool: on ? optionalText(d.after_school) ?? null : null,
+        afterSchool: activity,
+        afterSchoolUntil: activity ? until : null,
       });
     }
 

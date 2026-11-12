@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Shapes, Tags, Users, X, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarDays, ListChecks, Shapes, Tags, Users, X, type LucideIcon } from "lucide-react";
 import { useSpaNav } from "@/components/layout/spa-nav";
 import { ChildrenTab } from "@/components/settings/ChildrenTab";
 import { ActivitiesTab } from "@/components/settings/ActivitiesTab";
 import { SchedulesTab } from "@/components/settings/SchedulesTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
+import { RoutinesTab } from "@/components/settings/RoutinesTab";
+import { CalendarTab } from "@/components/settings/CalendarTab";
 import { FabSlot } from "@/components/ui/Fab";
 import { IconButton } from "@/components/ui/IconButton";
-import { Segmented } from "@/components/ui/Segmented";
-import { useChildren, useActivities, useSchedules, useCategories } from "@/lib/api-hooks";
+import { useChildren, useActivities, useSchedules, useCategories, useGoals } from "@/lib/api-hooks";
+import { MY_DAY_KEYS, useCalendarDays, useCalendars, useRoutineItems, useSchoolHours } from "@/lib/my-day-api";
 import { cn, plural } from "@/lib/utils";
 
 const SECTIONS: { key: Section; label: string; icon: LucideIcon }[] = [
@@ -19,8 +21,10 @@ const SECTIONS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "activities", label: "Activities", icon: Shapes },
   { key: "schedules",  label: "Schedules",  icon: CalendarClock },
   { key: "categories", label: "Categories", icon: Tags },
+  { key: "routines",   label: "Routines",   icon: ListChecks },
+  { key: "calendar",   label: "Calendar",   icon: CalendarDays },
 ];
-type Section = "children" | "activities" | "schedules" | "categories";
+type Section = "children" | "activities" | "schedules" | "categories" | "routines" | "calendar";
 
 /**
  * Settings, as a dialog over whichever tab is open. Desktop: a centred panel with
@@ -46,12 +50,17 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
   const { data: activities = [], isLoading: la } = useActivities();
   const { data: schedules = [], isLoading: ls } = useSchedules();
   const { data: categories = [], isLoading: lcat } = useCategories();
-  const loading = lc || la || ls || lcat;
+  const { data: goals = [], isLoading: lg } = useGoals();
+  const { data: schoolHours = [], isLoading: lh } = useSchoolHours();
+  const { data: calendars = [], isLoading: lcal } = useCalendars();
+  const { data: calendarDays = [], isLoading: ld } = useCalendarDays();
+  const { data: routine = [], isLoading: lr } = useRoutineItems();
+  const loading = lc || la || ls || lcat || lg || lh || lcal || ld || lr;
 
   // Refresh after edits without unmounting the open section (keeps its filters).
   const refresh = useCallback(() => {
-    for (const key of ["children", "activities", "schedules", "categories"]) {
-      queryClient.invalidateQueries({ queryKey: [key] });
+    for (const key of [["children"], ["activities"], ["schedules"], ["categories"], ["goals"], ...Object.values(MY_DAY_KEYS)]) {
+      queryClient.invalidateQueries({ queryKey: key });
     }
   }, [queryClient]);
 
@@ -77,6 +86,8 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
     activities: `${plural(activeCount, "active class", "active classes")} · ${activities.length - activeCount} past`,
     schedules: `${plural(schedules.length, "weekly slot")} across every class`,
     categories: `${plural(categories.length, "group")} that colour-code classes`,
+    routines: "Each child’s checklist on My Day, for school days and holidays",
+    calendar: "Terms and holidays decide which routine each child gets",
   }[section];
   const current = SECTIONS.find(s => s.key === section)!;
 
@@ -105,9 +116,24 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
           <IconButton icon={X} label="Close settings" onClick={onClose} className="-mr-3" />
         </div>
 
+        {/* Phone: six sections as a 3×2 switch, so every label fits without cutting off. */}
         <div className="md:hidden px-4 pb-3 shrink-0 border-b border-[var(--rule)]">
-          <Segmented ariaLabel="Settings section" value={section} onChange={setSection}
-            options={SECTIONS.map(s => ({ value: s.key, label: s.label }))} />
+          <div role="tablist" aria-label="Settings section" className="grid grid-cols-3 border border-[var(--rule)] rounded-[var(--radius-md)] overflow-hidden bg-[var(--sheet)]">
+            {SECTIONS.map(({ key, label }, i) => {
+              const on = key === section;
+              return (
+                <button key={key} type="button" role="tab" aria-selected={on} onClick={() => setSection(key)}
+                  className={cn(
+                    "h-10 px-1 text-sm font-medium cursor-pointer truncate",
+                    i % 3 !== 0 && "border-l border-[var(--rule)]",
+                    i >= 3 && "border-t border-[var(--rule)]",
+                    on ? "bg-[var(--ink)] text-[var(--sheet)]" : "text-[var(--ink-soft)]"
+                  )}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-1 min-h-0">
@@ -146,7 +172,7 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
                   </div>
                 ) : (
                   <>
-                    {section === "children" && <ChildrenTab children={children} onRefresh={refresh} />}
+                    {section === "children" && <ChildrenTab children={children} schoolHours={schoolHours} calendars={calendars} onRefresh={refresh} />}
                     {section === "activities" && (
                       <ActivitiesTab activities={activities} categories={categories} children={children} onRefresh={refresh} />
                     )}
@@ -154,6 +180,13 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
                       <SchedulesTab schedules={schedules} activities={activities} children={children} onRefresh={refresh} />
                     )}
                     {section === "categories" && <CategoriesTab categories={categories} onRefresh={refresh} />}
+                    {section === "routines" && (
+                      <RoutinesTab childList={children} routine={routine} activities={activities} schedules={schedules}
+                        goals={goals} schoolHours={schoolHours} onRefresh={refresh} />
+                    )}
+                    {section === "calendar" && (
+                      <CalendarTab calendars={calendars} calendarDays={calendarDays} childList={children} onRefresh={refresh} />
+                    )}
                   </>
                 )}
               </FabSlot.Provider>

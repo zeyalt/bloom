@@ -22,6 +22,8 @@ export interface NewGoalInput {
   target_value?: number;
   start_value?: number;
   start_date?: string;
+  practice_task?: string | null;
+  practice_days?: "school" | "holiday" | "any" | null;
 }
 
 export interface PlanCheckpointInput { due_date: string; text: string; hit_date?: string | null }

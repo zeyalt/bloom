@@ -252,7 +252,10 @@ model SchoolHours {
   isSchoolDay Boolean @default(false) @map("is_school_day")
   startTime   String? @map("start_time") @db.VarChar(5)
   endTime     String? @map("end_time") @db.VarChar(5)
-  afterSchool String? @map("after_school") @db.VarChar(255)
+  // An after-school activity on this weekday (e.g. "CCA – Badminton") and when it ends:
+  // My Day shows it on the timetable and counts "home from school" from that time.
+  afterSchool      String? @map("after_school") @db.VarChar(255)
+  afterSchoolUntil String? @map("after_school_until") @db.VarChar(5)
 
   child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 
