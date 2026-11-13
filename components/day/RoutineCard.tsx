@@ -53,8 +53,8 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
           : "bg-[var(--bg-secondary)] border-b border-[var(--rule)]")}>
         <div className="flex items-center gap-3">
           <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={32} />
-          <span className="flex-1 min-w-0 text-base font-semibold">{child.name}</span>
-          {day.total > 0 && <span className="text-sm font-semibold tabular-nums">{day.done} of {day.total}</span>}
+          <h4 className="flex-1 min-w-0 text-base font-semibold text-inherit">{child.name}</h4>
+          {day.total > 0 && tense !== "future" && <span className="text-sm font-semibold tabular-nums">{day.done} of {day.total}</span>}
         </div>
         <p className={cn("mt-3 text-xs leading-4 font-bold uppercase tracking-wider", filled ? "opacity-85" : "text-[var(--stem)]")}>
           {c.kicker}
@@ -65,7 +65,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
             {[c.detail, noSchool].filter(Boolean).join(" · ")}
           </p>
         )}
-        {day.total > 0 && (
+        {day.total > 0 && tense !== "future" && (
           <div aria-hidden="true" className="mt-3 flex gap-[3px] h-1.5">
             {bar.map(t => (
               <span key={t.key} className={cn("flex-1 rounded-sm",
@@ -78,7 +78,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
       <div className="px-4 pb-3">
       {groups.map(g => (
         <div key={g.title} className="mt-3">
-          <h4 className="text-xs leading-4 font-semibold uppercase tracking-wide text-[var(--ink-faint)]">{g.title}</h4>
+          <h5 className="text-xs leading-4 font-semibold uppercase tracking-wide text-[var(--ink-soft)]">{g.title}</h5>
           <ul className="divide-y divide-[var(--rule)]/60">
             {g.tasks.map(t => <TaskLine key={t.key} task={t} date={date} tense={tense} onTick={onTick} onSkip={onSkip} onRemove={onRemove} />)}
           </ul>
@@ -115,6 +115,7 @@ function TaskLine({ task, date, tense, onTick, onSkip, onRemove }: {
           onClick={() => onTick(task)}
           className={cn(
             "relative shrink-0 w-7 h-7 rounded-full border-2 inline-flex items-center justify-center cursor-pointer disabled:cursor-default",
+            "transition-[background-color,border-color,transform] duration-150 active:scale-90 disabled:active:scale-100",
             "before:absolute before:-inset-2.5 before:content-['']",
             done ? "bg-[var(--stem)] border-[var(--stem)] text-[var(--sheet)]" : "border-[var(--ink-faint)] bg-[var(--sheet)]",
             !canTick && "border-dashed opacity-60"
@@ -124,13 +125,13 @@ function TaskLine({ task, date, tense, onTick, onSkip, onRemove }: {
         <span className="flex-1 min-w-0 py-1">
           <span className={cn("block text-sm leading-5", done ? "text-[var(--ink)]" : "text-[var(--ink-soft)]")}>{task.title}</span>
           {meta.length > 0 && (
-            <span className="block text-xs leading-4 text-[var(--ink-faint)]">
+            <span className="block text-xs leading-4 text-[var(--ink-soft)]">
               {hw?.overdue && !done && <span className="font-semibold text-[#8f1d14]">Overdue · </span>}
               {meta.filter(m => m !== "Overdue").join(" · ")}
             </span>
           )}
         </span>
-        <span className={cn("shrink-0 text-xs tabular-nums", done ? "font-semibold text-[var(--stem)]" : "text-[var(--ink-faint)]")}>
+        <span className={cn("shrink-0 text-xs tabular-nums", done ? "font-semibold text-[var(--stem)]" : "text-[var(--ink-soft)]")}>
           {done ? (late ? "late" : at(task.doneAt!)) : tense === "today" ? "not yet" : tense === "past" ? "not done" : ""}
         </span>
         {oneOff && (
@@ -167,7 +168,7 @@ export function EmptyRoutineCard({ child, setUp, tense, onSetUp, onAdd }: {
       <div className="flex items-center gap-3">
         <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={32} />
         <span className="flex-1 min-w-0">
-          <span className="block text-base font-semibold text-[var(--ink)]">{child.name}</span>
+          <h4 className="text-base font-semibold text-[var(--ink)]">{child.name}</h4>
           <span className="block text-sm leading-5 text-[var(--ink-soft)]">
             {setUp
               ? tense === "today" ? "Nothing on the list today" : "Nothing on the list this day"
@@ -177,11 +178,25 @@ export function EmptyRoutineCard({ child, setUp, tense, onSetUp, onAdd }: {
       </div>
       {!setUp && (
         <button type="button" onClick={onSetUp}
-          className="self-start h-10 px-4 rounded-[var(--radius-md)] border border-[var(--stem)] text-[var(--stem)] bg-[var(--sheet)] text-sm font-semibold cursor-pointer hover:bg-[#e8f2eb]">
+          className="self-start h-11 px-4 rounded-[var(--radius-md)] border border-[var(--stem)] text-[var(--stem)] bg-[var(--sheet)] text-sm font-semibold cursor-pointer hover:bg-[#e8f2eb] active:scale-[0.98] transition-transform duration-150">
           Set up {child.name}’s routine
         </button>
       )}
       <AddTaskForm childName={child.name} onAdd={onAdd} />
+    </li>
+  );
+}
+
+/** Stands in for a child's card while the day loads, so nobody briefly reads "No routine yet". */
+export function RoutineCardSkeleton() {
+  return (
+    <li aria-hidden="true" className="border border-[var(--rule)] bg-[var(--sheet)] p-4 flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <span className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+        <span className="h-4 w-24 rounded bg-[var(--bg-secondary)] animate-pulse" />
+      </div>
+      <span className="h-6 w-3/4 rounded bg-[var(--bg-secondary)] animate-pulse" />
+      <span className="h-4 w-1/2 rounded bg-[var(--bg-secondary)] animate-pulse" />
     </li>
   );
 }

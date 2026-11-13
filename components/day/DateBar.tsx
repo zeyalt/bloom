@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { addDays, format, parseISO, startOfWeek } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -25,18 +25,19 @@ export function weekOf(iso: string): string[] {
   return Array.from({ length: 7 }, (_, i) => isoOf(addDays(sunday, i)));
 }
 
-/** "November 2026", or "Nov – Dec 2026" for a week across two months. */
+/** "Nov 2026", or "Nov – Dec 2026" for a week across two months (short, so it fits beside Today). */
 function monthLabel(week: string[]) {
   const a = parseISO(week[0]), b = parseISO(week[6]);
-  if (format(a, "yyyy-MM") === format(b, "yyyy-MM")) return format(a, "MMMM yyyy");
+  if (format(a, "yyyy-MM") === format(b, "yyyy-MM")) return format(a, "MMM yyyy");
   if (format(a, "yyyy") === format(b, "yyyy")) return `${format(a, "MMM")} – ${format(b, "MMM yyyy")}`;
   return `${format(a, "MMM yyyy")} – ${format(b, "MMM yyyy")}`;
 }
 
 /**
  * Which day Home shows: the week as seven days (‹ › move a week), the month to open a
- * calendar for any date, and "Today" to come back. Each day's dot: red = a session not
- * logged yet, green = everything so far logged, grey = planned (still to come).
+ * calendar for any date, and "Today" to come back. Under each day: a red dot = a session not
+ * logged yet, a green tick = everything so far logged, a hollow ring = planned (still to come).
+ * Shapes as well as colours, so the marks read without telling red from green.
  */
 export function DateBar({ date, today, markers, onChange }: {
   date: string;
@@ -79,6 +80,7 @@ export function DateBar({ date, today, markers, onChange }: {
               aria-label={`${format(d, "EEEE d MMMM")}${isToday ? ", today" : ""}${m?.unlogged ? `, ${m.unlogged} not logged` : m?.logged ? ", all logged" : ""}`}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 h-16 rounded-[var(--radius-md)] border cursor-pointer",
+                "transition-[background-color,border-color,transform] duration-150 active:scale-95",
                 chosen ? "bg-[var(--ink)] border-[var(--ink)] text-[var(--sheet)]"
                   : isToday ? "border-2 border-[var(--stem)] bg-[var(--sheet)] text-[var(--ink)]"
                   : "border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] hover:border-[var(--ink-faint)]"
@@ -88,12 +90,13 @@ export function DateBar({ date, today, markers, onChange }: {
               </span>
               <span className="text-base leading-5 font-bold tabular-nums">{format(d, "d")}</span>
               <span aria-hidden="true" className="h-4 flex items-center">
-                {m && (m.unlogged > 0 || m.logged > 0 || m.planned) && (
-                  <span className={cn("w-2 h-2 rounded-full",
-                    m.unlogged > 0 ? "bg-[#d64545]"
-                      : m.logged > 0 ? "bg-[#3fa66b]"
-                      : chosen ? "bg-[var(--sheet)]/70" : "bg-[var(--ink-faint)]")} />
-                )}
+                {m && m.unlogged > 0 ? (
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#d64545]" />
+                ) : m && m.logged > 0 ? (
+                  <Check size={14} strokeWidth={3.5} className={chosen ? "text-[#7fd1a0]" : "text-[var(--stem)]"} />
+                ) : m?.planned ? (
+                  <span className={cn("w-2 h-2 rounded-full border-[1.5px]", chosen ? "border-[var(--sheet)]/80" : "border-[var(--ink-soft)]")} />
+                ) : null}
               </span>
             </button>
           );

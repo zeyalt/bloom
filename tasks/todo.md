@@ -71,8 +71,8 @@ Goals evidence, Journal and Analytics streaks (phase 2); stars or rewards (decid
     grouped as must / practice / free.
   - **Must-do deadline:** "before <first class after school>", or none.
   - **Now:** the first must-do not yet done, otherwise the first practice item not yet done.
-- [ ] Dates in Singapore time throughout. "Today" rolls over at midnight on a tablet that's left
-      open.
+- [x] Dates in Singapore time throughout. "Today" rolls over at midnight on a tablet that's left
+      open (and on Home: a picked day lasts only the day it was picked, fixed in stage 6).
 - [x] Tests for these rules with fixed dates: a school day, a half day, a public holiday, a school
       holiday, a weekend, a class with an end date, and a class prep that only shows on its day.
       Uses Vitest (approved).
@@ -236,13 +236,13 @@ homework. A date bar moves to any past or future day. The kids' tablet (`/my-day
 3. [x] My Day on the tablet. → *You try it on the real tablet.*
 4. [x] The Kids today card on Home.
 5. [x] Home becomes a day view (plan above). → *You try it on your phone.*
-6. [ ] Polish and the full verification pass.
+6. [x] Polish and the full verification pass (your real-device check still to do).
 
 ## Verification (before calling it done)
 
-- [ ] `tsc` passes, there are no new lint errors, and `next build` succeeds.
-- [ ] The rule tests pass for all the fixed dates above.
-- [ ] Playwright on iPhone 13 (parent screens) and a 1180×820 touch tablet (My Day), using taps
+- [x] `tsc` passes, there are no new lint errors, and `next build` succeeds.
+- [x] The rule tests pass for all the fixed dates above.
+- [x] Playwright on iPhone 13 (parent screens) and a 1180×820 touch tablet (My Day), using taps
       rather than clicks:
   - Set up a child's school hours.
   - Add a half day.
@@ -250,7 +250,7 @@ homework. A date bar moves to any past or future day. The kids' tablet (`/my-day
   - Tick tasks on My Day and see the times stamped, with Free choice unlocking.
   - See the same ticks on Home.
 - [ ] Check on a real device over the hotspot (`http://<laptop IP>:3000`).
-- [ ] Existing screens are unchanged: Home, Goals, Journal, Analytics and Settings load with no
+- [x] Existing screens are unchanged: Home, Goals, Journal, Analytics and Settings load with no
       console errors.
 
 ## When the feature is done: merging
@@ -361,6 +361,56 @@ homework. A date bar moves to any past or future day. The kids' tablet (`/my-day
 - 34 tests pass; `tsc` passes; `next build` succeeds; no new lint errors.
 - **Moved to stage 4** (it's a parent control on Home): "No homework this time", and ticking
   homework on a child's behalf.
+
+## Goals: both children, compact cards (13 Nov)
+
+- Goals shows every child by default, each in their own section (avatar, name, "2 in progress ·
+  1 achieved"), with multi-select child pills like Home (remembered per device; at least one stays on).
+- Cards are more compact: the status pill sits beside the title, the "Milestone" / "Measured"
+  label row is gone, tighter spacing. Nothing truncates: titles and "Next: …" wrap.
+- **New goal** asks "New goal for… Zayyan / Zara" when more than one child is showing; each child
+  with nothing in progress has its own **Add a goal**.
+- Checked on iPhone SE and iPhone 13: no clipped text, no sideways scroll, no console errors.
+
+## UI/UX review (13 Nov, with the ui-ux-pro-max checklist)
+
+Checked Home's day view, the routine cards, the date bar, the add-task form and the tablet, on a
+375px phone, an iPhone 13 and a tablet in both orientations. Fixed:
+- **Loading:** grey placeholder cards while the day loads; before, every child flashed "No
+  routine yet · Set up routine" for a moment.
+- **Contrast:** small grey text (group names, "not yet", task notes) was 3.4:1; now 6.8:1.
+- **Date bar marks:** red dot = not logged, green tick = logged, hollow ring = planned. Shapes as
+  well as colours (red and green look alike to colour-blind people; the old green was 2.9:1).
+- **Month button:** "Nov 2026" instead of "November…" cut off beside Today on small phones.
+- **Future days:** no "0 of 3" or empty progress bar.
+- **Failed saves:** if a tick (or removing a one-off) can't save, a message says so, on Home and on
+  the tablet (in kids' words); before, the tick just quietly undid itself.
+- **Touch and feedback:** buttons that were 40px are now 44px; tick circles and day buttons
+  respond when pressed; the Do first / Hobby / Free Play choice works with a keyboard.
+- **Headings** in order (Routines → child → Do first) for screen readers.
+- Not changed: removing a one-off has no "are you sure" (it's quick to add again); the app has no
+  dark mode, so none to check.
+
+## Stage 6 review (13 Nov)
+
+- **Midnight fix on Home:** a day you tap now lasts only the day you tapped it, so Home left open
+  overnight moves to the new today (it used to stay on yesterday). The unlogged-sessions window
+  also moves with the date.
+- **Full walk-through** with a temporary child "Testy" and a "TEST cal" calendar (both deleted
+  afterwards, with everything attached; your children and calendars untouched):
+  - Set up through the same APIs the Settings forms use: Mon–Fri school hours, a half day today
+    ending 11:00, and a routine (2 Do first, 1 Hobby, 1 Free Play).
+  - Phone (iPhone 13, taps): Settings › Routines listed the items; Settings › Calendar listed the
+    half day; Home showed Testy's card "0 of 3" and the half day in the timetable.
+  - Tablet (1180×820, touch): Free Play "Locked"; two taps on **I'm done** stamped "Done at 9:47 AM"
+    on both and unlocked Free Play.
+  - Back on the phone: Home showed "2 of 3", "Do first done", both times, and no "by parent".
+  - Goals, History, Analytics, Journal, Home and every Settings section opened. No console errors.
+- **Zayyan on Fridays:** his three routine items are set to Mon, Tue and Thu, so Fridays are empty
+  by design; change the weekdays in Settings › Routines if that's not intended.
+- `tsc` passes, 47 tests pass, `next build` succeeds. Lint: the 7 errors in files this branch
+  touched all exist on `main` too (none new).
+- **Left for you:** try it on your real phone and the tablet over the hotspot.
 
 ## Stage 5 review (12 Nov)
 

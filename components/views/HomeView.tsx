@@ -12,7 +12,7 @@ import { Fab } from "@/components/ui/Fab";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { DateBar, type DayMarker } from "@/components/day/DateBar";
 import { ClassRow } from "@/components/day/ClassRow";
-import { EmptyRoutineCard, RoutineCard, hasRoutine } from "@/components/day/RoutineCard";
+import { EmptyRoutineCard, RoutineCard, RoutineCardSkeleton, hasRoutine } from "@/components/day/RoutineCard";
 import { useSpaNav } from "@/components/layout/spa-nav";
 import { useRoutineItems } from "@/lib/my-day-api";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
@@ -118,10 +118,15 @@ export default function AgendaPage() {
   const todayIso = format(now, "yyyy-MM-dd");
   const nowHHMM = format(now, "HH:mm");
 
-  const [picked, setPicked] = useState<string | null>(null);
+  // A picked day lasts only the day it was picked on: left open past midnight, Home moves to the new today.
+  const [picked, setPicked] = useState<{ date: string; on: string } | null>(null);
   const restored = useSyncExternalStore(noSubscribe, readStoredDay, () => null);
-  const date = picked ?? restored ?? todayIso;
-  const chooseDay = (iso: string) => { setPicked(iso); storeDay(iso, format(new Date(), "yyyy-MM-dd")); };
+  const date = (picked && picked.on === todayIso ? picked.date : null) ?? restored ?? todayIso;
+  const chooseDay = (iso: string) => {
+    const on = format(new Date(), "yyyy-MM-dd");
+    setPicked({ date: iso, on });
+    storeDay(iso, on);
+  };
 
   const [selected, setSelected] = useState<string[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -137,7 +142,8 @@ export default function AgendaPage() {
   const { data: activities = [] } = useActivities();
   const { data: allLogs = [] } = useAllAttendanceLogs();
   const { data: logs = [], isLoading: loading } = useAttendanceLogs({ from: week[0].iso, to: week[6].iso, limit: 500 });
-  const summaryFrom = useMemo(() => getWeekDays(-(UNLOGGED_WEEKS - 1))[0].iso, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputed when the date rolls over
+  const summaryFrom = useMemo(() => getWeekDays(-(UNLOGGED_WEEKS - 1))[0].iso, [todayIso]);
   const { data: windowLogs = [] } = useAttendanceLogs({ from: summaryFrom, to: getWeekDays(0)[6].iso, limit: "all" });
   const schedules = schedulesData as ScheduleWithDetails[];
   const { data: routineItems = [] } = useRoutineItems();
@@ -295,8 +301,6 @@ export default function AgendaPage() {
     goals.some(g => g.child_id === id && !g.achieved_date && !!g.practice_task) ||
     activities.some(a => a.child_id === id && a.status === "active" && (!!a.prep_task || !!a.homework_from));
 
-  // Header line: the day, its classes and what's left to log — or why there's no school.
-
   const reminderDays = [...unlogged.byDay.entries()].sort(([a], [b]) => a.localeCompare(b));
 
   return (
@@ -350,8 +354,15 @@ export default function AgendaPage() {
             <h3 id="routines-heading" className="font-semibold text-[var(--ink)]">
               Routines{my.tense === "future" ? " · planned" : ""}
             </h3>
-            <ul className="flex flex-col gap-3">
-              {kids.map(kid => routineKids.includes(kid) ? (
+            {my.saveError && (
+              <p role="alert" className="flex items-start gap-2 p-3 text-sm leading-5 border border-[var(--margin)] bg-[var(--sheet)] text-[var(--margin)]">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <span className="flex-1">{my.saveError}</span>
+                <button type="button" onClick={my.clearSaveError} className="relative font-semibold underline cursor-pointer before:absolute before:-inset-3 before:content-['']">OK</button>
+              </p>
+            )}
+            <ul className="flex flex-col gap-3" aria-busy={!my.ready}>
+              {!my.ready ? kids.map(kid => <RoutineCardSkeleton key={kid.id} />) : kids.map(kid => routineKids.includes(kid) ? (
                 <RoutineCard key={kid.id} child={kid} day={my.days.get(kid.id)!} date={date} tense={my.tense}
                   onTick={t => my.toggle(kid, t)} onSkip={t => my.skip(kid, t)}
                   onAdd={(title, tier) => my.addOneOff(kid, title, tier)} onRemove={my.removeOneOff} />

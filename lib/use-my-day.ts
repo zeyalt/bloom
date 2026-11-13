@@ -107,6 +107,9 @@ export function useMyDays(now: Date, opts: { date?: string; by?: TickedBy } = {}
     }
   }, [tense, allLoaded, children, days, plans, iso, qc]);
 
+  // A failed save puts the tick back; say so, rather than leave it to look like a mis-tap.
+  const [saveError, setSaveError] = useState("");
+
   /**
    * Tick, untick, or (homework, parents only) mark "no homework this time". The screen
    * changes at once; if saving fails it's put back. Future days can't be ticked.
@@ -123,6 +126,7 @@ export function useMyDays(now: Date, opts: { date?: string; by?: TickedBy } = {}
       tier: task.tier, done_at: new Date().toISOString(), skipped: action === "skip", by,
     }];
     qc.setQueryData(key, next);
+    setSaveError("");
     try {
       if (removing) await myDayApi.untick(child.id, date, task.key);
       else await myDayApi.tick({
@@ -131,6 +135,7 @@ export function useMyDays(now: Date, opts: { date?: string; by?: TickedBy } = {}
       });
     } catch {
       qc.setQueryData(key, previous);
+      setSaveError(`Couldn’t save “${task.title}”. Check the connection and tap it again.`);
     } finally {
       qc.invalidateQueries({ queryKey: MY_DAY_KEYS.ticks });
     }
@@ -154,6 +159,7 @@ export function useMyDays(now: Date, opts: { date?: string; by?: TickedBy } = {}
       await myDayApi.removeOneOff(id);
     } catch {
       qc.setQueryData(key, previous);
+      setSaveError(`Couldn’t remove “${task.title}”. Check the connection and try again.`);
     } finally {
       qc.invalidateQueries({ queryKey: MY_DAY_KEYS.oneOffs });
       qc.invalidateQueries({ queryKey: MY_DAY_KEYS.ticks });
@@ -165,5 +171,8 @@ export function useMyDays(now: Date, opts: { date?: string; by?: TickedBy } = {}
     iso, today, tense, hhmm, children, days, ticks, toggle, skip, addOneOff, removeOneOff,
     canTick: tense !== "future",
     isLoading: childrenQ.isLoading || ticksQ.isLoading,
+    /** Everything the day is built from has loaded (until then, show placeholders, not "nothing"). */
+    ready: allLoaded && ticksQ.isSuccess,
+    saveError, clearSaveError: () => setSaveError(""),
   };
 }

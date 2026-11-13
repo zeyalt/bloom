@@ -42,7 +42,7 @@ export function MyDayView() {
   const fromBloom = params.get("from") === "bloom";
   const backToBloom = () => (window.history.length > 1 ? router.back() : router.push("/"));
 
-  const { children, days, toggle: write, hhmm, isLoading } = useMyDays(now);
+  const { children, days, toggle: write, hhmm, isLoading, saveError, clearSaveError } = useMyDays(now);
 
   // ?child= (from Home's "Open My Day") wins; otherwise the child last chosen on this tablet.
   const savedId = useSyncExternalStore(savedChild.subscribe, savedChild.get, () => null);
@@ -101,6 +101,12 @@ export function MyDayView() {
         <Timeline blocks={day.timeline} hhmm={hhmm} className="order-2 lg:order-1" />
 
         <div className="order-1 lg:order-2 min-w-0 flex flex-col gap-5">
+          {saveError && (
+            <p role="alert" className="m-0 flex items-center gap-3 p-4 text-base border-2 border-[var(--margin)] bg-[var(--sheet)] text-[var(--margin)] font-semibold">
+              <span className="flex-1">That didn’t save. Tap it again, or ask a grown-up.</span>
+              <button type="button" onClick={clearSaveError} className="h-12 px-5 rounded-full border-2 border-[var(--margin)] cursor-pointer">OK</button>
+            </p>
+          )}
           <NowCard day={day} doFirstDue={doFirstDue} onDone={toggle} nothingPlanned={nothingPlanned} />
 
           {day.total > 0 && (
