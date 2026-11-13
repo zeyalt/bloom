@@ -36,7 +36,7 @@ export function DueCheckpoints({ childIds }: { childIds: string[] }) {
       <h2 id="due-checkpoints" className="flex items-center gap-2 font-semibold text-[var(--ink)] mb-2">
         <Target size={16} className="text-[var(--stem)]" /> Goal checkpoints due
       </h2>
-      <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
+      <ul className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden divide-y divide-[var(--rule)]">
         {items.slice(0, 5).map(({ goal, checkpoint, due }) => {
           const overdue = due < today;
           return (

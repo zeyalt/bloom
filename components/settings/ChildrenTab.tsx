@@ -30,7 +30,7 @@ const EMPTY_FORM = {
   school_level: "", auto_promote: true, calendar_id: "",
 };
 
-const fieldCls = "w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20";
+const fieldCls = "w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20";
 
 /** "School Mon–Fri · 07:30 AM–01:30 PM", or "times vary" when they differ. */
 function hoursSummary(childId: string, rows: SchoolHours[]): string | null {
@@ -125,7 +125,7 @@ export function ChildrenTab({ children, schoolHours, calendars, onRefresh }: Pro
       {/* Edit modal */}
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Child" size="lg">
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -134,7 +134,7 @@ export function ChildrenTab({ children, schoolHours, calendars, onRefresh }: Pro
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
@@ -150,7 +150,7 @@ export function ChildrenTab({ children, schoolHours, calendars, onRefresh }: Pro
                   type="text"
                   value={form.color_code}
                   onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
                   placeholder="#000000"
                 />
               </div>
@@ -164,7 +164,7 @@ export function ChildrenTab({ children, schoolHours, calendars, onRefresh }: Pro
                 type="text"
                 value={form.school}
                 onChange={e => setForm(f => ({ ...f, school: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
@@ -173,7 +173,7 @@ export function ChildrenTab({ children, schoolHours, calendars, onRefresh }: Pro
                 type="date"
                 value={form.date_of_birth}
                 onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>

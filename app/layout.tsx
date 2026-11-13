@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/layout/QueryProvider";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { AppShell } from "@/components/layout/AppShell";
 import { LaunchSplash, LAUNCH_SPLASH_SCRIPT } from "@/components/layout/LaunchSplash";
 
@@ -59,7 +60,9 @@ export default function RootLayout({
       <body className={`${bricolage.className} h-full overflow-hidden antialiased`}>
         <LaunchSplash />
         <QueryProvider>
-          <AppShell>{children}</AppShell>
+          <SnackbarProvider>
+            <AppShell>{children}</AppShell>
+          </SnackbarProvider>
         </QueryProvider>
       </body>
     </html>

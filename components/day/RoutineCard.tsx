@@ -45,7 +45,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
   const filled = c.tone === "done";
 
   return (
-    <li className="border border-[var(--rule)] bg-[var(--sheet)]">
+    <li className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
       {/* The banner: who, how far along, and a short encouraging line. */}
       <div className={cn("p-4",
         filled ? "bg-[var(--stem)] text-[var(--sheet)]"
@@ -56,7 +56,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
           <h4 className="flex-1 min-w-0 text-base font-semibold text-inherit">{child.name}</h4>
           {day.total > 0 && tense !== "future" && <span className="text-sm font-semibold tabular-nums">{day.done} of {day.total}</span>}
         </div>
-        <p className={cn("mt-3 text-xs leading-4 font-bold uppercase tracking-wider", filled ? "opacity-85" : "text-[var(--stem)]")}>
+        <p className={cn("mt-3 text-sm leading-5 font-semibold", filled ? "opacity-85" : "text-[var(--stem)]")}>
           {c.kicker}
         </p>
         <p className="mt-1 text-2xl leading-8 font-extrabold tracking-tight break-words">{c.headline}</p>
@@ -78,7 +78,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
       <div className="px-4 pb-3">
       {groups.map(g => (
         <div key={g.title} className="mt-3">
-          <h5 className="text-xs leading-4 font-semibold uppercase tracking-wide text-[var(--ink-soft)]">{g.title}</h5>
+          <h5 className="text-sm leading-5 font-semibold text-[var(--ink-soft)]">{g.title}</h5>
           <ul className="divide-y divide-[var(--rule)]/60">
             {g.tasks.map(t => <TaskLine key={t.key} task={t} date={date} tense={tense} onTick={onTick} onSkip={onSkip} onRemove={onRemove} />)}
           </ul>
@@ -124,6 +124,8 @@ function TaskLine({ task, date, tense, onTick, onSkip, onRemove }: {
         </button>
         <span className="flex-1 min-w-0 py-1">
           <span className={cn("block text-sm leading-5", done ? "text-[var(--ink)]" : "text-[var(--ink-soft)]")}>{task.title}</span>
+          {/* The homework itself, as set in Activities (e.g. "Worksheet & 习字"). */}
+          {hw?.note && <span className="block text-sm leading-5 font-medium text-[var(--ink)] break-words">{hw.note}</span>}
           {meta.length > 0 && (
             <span className="block text-xs leading-4 text-[var(--ink-soft)]">
               {hw?.overdue && !done && <span className="font-semibold text-[#8f1d14]">Overdue · </span>}
@@ -164,7 +166,7 @@ export function EmptyRoutineCard({ child, setUp, tense, onSetUp, onAdd }: {
   onAdd: (title: string, tier: OneOffTask["tier"]) => Promise<void>;
 }) {
   return (
-    <li className="border border-[var(--rule)] bg-[var(--sheet)] p-4 flex flex-col gap-3">
+    <li className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={32} />
         <span className="flex-1 min-w-0">
@@ -190,7 +192,7 @@ export function EmptyRoutineCard({ child, setUp, tense, onSetUp, onAdd }: {
 /** Stands in for a child's card while the day loads, so nobody briefly reads "No routine yet". */
 export function RoutineCardSkeleton() {
   return (
-    <li aria-hidden="true" className="border border-[var(--rule)] bg-[var(--sheet)] p-4 flex flex-col gap-3">
+    <li aria-hidden="true" className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <span className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
         <span className="h-4 w-24 rounded bg-[var(--bg-secondary)] animate-pulse" />

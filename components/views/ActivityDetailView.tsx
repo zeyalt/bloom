@@ -173,7 +173,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
       <PageBody clear="nav">
         {/* Label beside value, one line per field; two columns of fields from sm up. */}
-        <dl className="border border-[var(--rule)] bg-[var(--sheet)] px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+        <dl className="bg-[var(--sheet)] rounded-[var(--radius-lg)] px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
           {details.map(d => (
             <div key={d.label} className="flex items-baseline gap-3 min-w-0">
               <dt className="w-28 shrink-0 text-xs text-[var(--ink-faint)]">{d.label}</dt>
@@ -187,15 +187,15 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
         {/* 1–3: stat row */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 text-center">
+          <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
             <div className="text-2xl font-bold text-[var(--ink)]">{stats.sessionsAttended}</div>
             <div className="text-xs text-[var(--ink-faint)] mt-1">sessions attended</div>
           </div>
-          <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 text-center">
+          <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
             <div className="text-2xl font-bold text-[var(--ink)]">{Math.round(stats.attendanceRate)}%</div>
             <div className="text-xs text-[var(--ink-faint)] mt-1">attendance rate</div>
           </div>
-          <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 text-center">
+          <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
             <div className="text-2xl font-bold text-[var(--ink)]">
               {price ? formatCurrency(price.perHour) : "—"}
             </div>
@@ -212,7 +212,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
 
         {/* 4: sender / fetcher distribution — one 100% bar each */}
         {(stats.senders.length > 0 || stats.fetchers.length > 0) && (
-          <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4">
+          <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4">
             <h3 className="font-semibold text-[var(--ink)] mb-4">Who sends &amp; fetches</h3>
             <div className="space-y-4">
               {([["Sender", stats.senders], ["Fetcher", stats.fetchers]] as const).map(([role, rows]) => (
@@ -252,7 +252,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         )}
 
         {/* Milestones timeline */}
-        <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4">
+        <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4">
           <h3 className="font-semibold text-[var(--ink)] mb-1">Milestones</h3>
           <p className="text-xs text-[var(--ink-faint)] mb-4">Gradings, achievements, and other key moments</p>
           {milestones.length === 0 ? (
@@ -280,12 +280,12 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         </div>
 
         {/* 5: recent attendance */}
-        <div className="border border-[var(--rule)] bg-[var(--sheet)]">
+        <div className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
           <div className="px-4 pt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <h3 className="font-semibold text-[var(--ink)]">Recent attendance</h3>
             {stats.recentLogs.length > 0 && (
               <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]" aria-label="All-time attendance">
-                <li className="basis-full sm:basis-auto whitespace-nowrap text-xs sm:text-xs uppercase sm:normal-case tracking-wide sm:tracking-normal text-[var(--ink-faint)]">All time</li>
+                <li className="basis-full sm:basis-auto whitespace-nowrap text-xs text-[var(--ink-soft)]">All time</li>
                 {(Object.entries(MARKS) as [Mark, (typeof MARKS)[Mark]][]).map(([key, { color, Icon }]) => (
                   <li key={key} className="inline-flex items-center gap-1 whitespace-nowrap">
                     <span className="flex items-center justify-center w-4 h-4 rounded-full text-white" style={{ backgroundColor: color }}>
@@ -368,7 +368,7 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         </div>
 
         {/* 6: recent expenses */}
-        <div className="border border-[var(--rule)] bg-[var(--sheet)]">
+        <div className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
           <h3 className="font-semibold text-[var(--ink)] px-4 pt-6">Recent expenses</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm mt-3">

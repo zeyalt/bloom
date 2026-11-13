@@ -73,7 +73,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Category" : "Add Category"} size="sm">
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
           <div>
             <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Name *</label>
@@ -82,7 +82,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Taekwondo"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -93,7 +93,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
               value={form.icon}
               onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
               placeholder="e.g. 🥋"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -110,7 +110,7 @@ export function CategoriesTab({ categories, onRefresh }: Props) {
                 type="text"
                 value={form.color_code}
                 onChange={e => setForm(f => ({ ...f, color_code: e.target.value }))}
-                className="flex-1 px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
+                className="flex-1 px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20 font-mono"
                 placeholder="#EF4444"
               />
             </div>

@@ -10,7 +10,7 @@ import {
   max as maxDate,
   min as minDate,
 } from "date-fns";
-import { formatDate } from "@/lib/utils";
+import { formatDate, harmonize } from "@/lib/utils";
 import type { Activity, Child } from "@/lib/types";
 
 const DISPLAY_FONT = "var(--font-display)";
@@ -36,7 +36,7 @@ export function EngagementTimeline({ activities, children }: Props) {
   const today = new Date();
   const dated = activities.filter(a => a.start_date);
 
-  const card = "border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6";
+  const card = "bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 md:p-6";
 
   if (dated.length === 0) {
     return (
@@ -102,7 +102,7 @@ export function EngagementTimeline({ activities, children }: Props) {
         {groups.map(({ child, rows }) => (
           <div key={child.id}>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: child.color_code }} />
+              <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: harmonize(child.color_code) }} />
               <span className="text-sm font-semibold text-[var(--ink)]">{child.name}</span>
             </div>
 
@@ -113,7 +113,7 @@ export function EngagementTimeline({ activities, children }: Props) {
             <div className="space-y-2 sm:space-y-1">
               {rows.map(({ label, stints }) => (
                 <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1 sm:h-7">
-                  <span className="sm:w-36 shrink-0 text-xs text-[var(--ink-soft)] whitespace-nowrap truncate" title={label}>{label}</span>
+                  <span className="sm:w-44 shrink-0 text-xs leading-4 text-[var(--ink-soft)] break-words" title={label}>{label}</span>
                   <div className="relative w-full sm:flex-1 h-5 bg-[var(--bg-secondary)] rounded-sm overflow-hidden">
                     {stints.map(a => {
                       const start = parseISO(a.start_date!.slice(0, 10));
@@ -131,7 +131,7 @@ export function EngagementTimeline({ activities, children }: Props) {
                           onClick={() => router.push(`/activity/${a.id}`)}
                           title={tip}
                           className="absolute inset-y-0 rounded-sm cursor-pointer"
-                          style={{ left: `${left}%`, width: `${width}%`, backgroundColor: child.color_code, opacity: ongoing ? 1 : 0.3 }}
+                          style={{ left: `${left}%`, width: `${width}%`, backgroundColor: harmonize(child.color_code), opacity: ongoing ? 1 : 0.3 }}
                         />
                       );
                     })}

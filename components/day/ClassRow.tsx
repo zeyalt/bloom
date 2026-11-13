@@ -37,12 +37,12 @@ async function send(url: string, method: string, body: unknown) {
 }
 
 /**
- * One class on Home's day view. Not logged yet: Attended / Absent / Cancelled save in one
- * tap (sender and fetcher filled with whoever usually does it). Logged: the outcome, and a
- * pencil that opens the full form for sender, fetcher, reflection and the rest.
+ * One class on Home's day view. Not logged yet: Attended opens the full form (sender and
+ * fetcher pre-filled with whoever usually does it); Absent / Cancelled save in one tap.
+ * Logged: the outcome, and a pencil that opens the form to edit it.
  */
 export function ClassRow({
-  time, title, child, sub, log, session, badge, highlight, guessPeople, onOpenActivity, onOpenForm, onChanged,
+  time, title, child, sub, log, session, badge, highlight, guessPeople, onOpenActivity, onOpenForm, onLogAttended, onChanged,
 }: {
   time: string | null;
   title: string;
@@ -56,6 +56,8 @@ export function ClassRow({
   guessPeople: () => { sentBy: string[]; fetcher: string[] };
   onOpenActivity?: () => void;
   onOpenForm: () => void;
+  /** Attended on a session not yet logged: open the form to fill in and save. */
+  onLogAttended?: () => void;
   onChanged: () => Promise<unknown>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -124,7 +126,8 @@ export function ClassRow({
       {!log && session && (
         <div role="group" aria-label={`Log ${title}`} className="md:ml-[5.25rem] md:max-w-md grid grid-cols-3 gap-2 mt-2">
           {QUICK_LOG.map(q => (
-            <button key={q.status} type="button" disabled={busy} onClick={() => quickLog(q.status)}
+            <button key={q.status} type="button" disabled={busy}
+              onClick={() => q.status === "attended" && onLogAttended ? onLogAttended() : quickLog(q.status)}
               className={cn(
                 "relative inline-flex items-center justify-center gap-1 h-9 px-2 text-sm font-medium border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] active:scale-95 cursor-pointer disabled:opacity-50",
                 "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",

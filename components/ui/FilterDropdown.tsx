@@ -125,7 +125,7 @@ function DropdownShell({
 }
 
 const optionRow =
-  "flex items-center gap-2 w-full px-3 min-h-12 rounded-lg text-sm text-left text-[var(--ink)] cursor-pointer hover:bg-[var(--bg-secondary)]";
+  "flex items-center gap-2 w-full px-3 min-h-12 rounded-[var(--radius-md)] text-sm text-left text-[var(--ink)] cursor-pointer hover:bg-[var(--bg-secondary)]";
 
 /** Single-value filter dropdown. Picking an option closes the panel. */
 export function SingleSelect({

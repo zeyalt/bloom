@@ -48,7 +48,7 @@ export default function AnalyticsPage() {
   );
   return (
     <Page>
-      <Header title="Analytics" subtitle={segment === "attendance" ? "Hours in class and how often they show up" : "Fees by class, and what an hour costs"} />
+      <Header title="Analytics" subtitle={null} />
       <AnalyticsDashboard segment={segment} tabs={tabs} />
     </Page>
   );

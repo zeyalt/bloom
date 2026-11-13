@@ -17,7 +17,7 @@ export interface DayHours {
 }
 export type WeekHours = Record<number, DayHours>;
 
-const fieldCls = "w-full min-w-0 px-2 py-2 text-base md:text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:border-[var(--stem)] disabled:bg-[var(--bg-secondary)] disabled:text-[var(--ink-faint)]";
+const fieldCls = "w-full min-w-0 px-2 py-2 text-base md:text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:border-[var(--stem)] disabled:bg-[var(--bg-secondary)] disabled:text-[var(--ink-faint)]";
 const captionCls = "text-xs leading-4 font-medium text-[var(--ink-soft)]";
 
 const noAfter = { shown: false, label: "", until: "" };
@@ -111,7 +111,7 @@ export function SchoolHoursEditor({ value, onChange }: { value: WeekHours; onCha
                   aria-label={`${fullLabel}: ${h.on ? "school day" : "no school"}`}
                   onClick={() => set(d, { on: !h.on })}
                   className={cn(
-                    "justify-self-start sm:justify-self-stretch h-10 px-3 text-sm font-medium rounded-lg border cursor-pointer",
+                    "justify-self-start sm:justify-self-stretch h-10 px-3 text-sm font-medium rounded-[var(--radius-md)] border cursor-pointer",
                     h.on ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
                   )}
                 >

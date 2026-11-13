@@ -15,6 +15,8 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useChildren, useActivities, useSchedules, useCategories, useGoals } from "@/lib/api-hooks";
 import { MY_DAY_KEYS, useCalendarDays, useCalendars, useRoutineItems, useSchoolHours } from "@/lib/my-day-api";
 import { cn, plural } from "@/lib/utils";
+import { useBackToClose } from "@/lib/use-back-to-close";
+import { useSheetDrag } from "@/lib/use-sheet-drag";
 
 const SECTIONS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "children",   label: "Children",   icon: Users },
@@ -43,6 +45,9 @@ export function SettingsDialog() {
 function SettingsBody({ section, setSection, onClose }: { section: Section; setSection: (s: Section) => void; onClose: () => void }) {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
+  // Android's Back closes Settings (not the app); on phones it also drags down to close.
+  useBackToClose(true, onClose);
+  const drag = useSheetDrag(onClose);
   const [fabSlot, setFabSlot] = useState<HTMLElement | null>(null);
   const queryClient = useQueryClient();
 
@@ -86,7 +91,7 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
     activities: `${plural(activeCount, "active class", "active classes")} · ${activities.length - activeCount} past`,
     schedules: `${plural(schedules.length, "weekly slot")} across every class`,
     categories: `${plural(categories.length, "group")} that colour-code classes`,
-    routines: "Each child’s checklist on My Day, for school days and holidays",
+    routines: "Each child’s checklist on My Day, by day of the week",
     calendar: "Terms and holidays decide which routine each child gets",
   }[section];
   const current = SECTIONS.find(s => s.key === section)!;
@@ -100,20 +105,22 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
+        style={drag.style}
         className={cn(
           "settings-panel relative flex flex-col w-full bg-[var(--sheet)] border border-[var(--rule)] outline-none overflow-hidden",
           "h-[calc(100dvh-48px)] rounded-t-[16px] border-b-0",
           "md:h-[min(760px,100%)] md:max-w-[960px] md:rounded-[var(--radius-lg)] md:border-b md:shadow-[0_16px_48px_rgba(26,44,34,0.2)]"
         )}
       >
-        {/* Grab handle: tells phone users this is a sheet over the page. */}
-        <div className="md:hidden flex justify-center pt-2" aria-hidden="true">
-          <span className="w-10 h-1 rounded-full bg-[var(--rule)]" />
-        </div>
-
-        <div className="flex items-center justify-between h-14 md:h-16 px-4 md:px-6 md:border-b border-[var(--rule)] shrink-0">
-          <h2 id={titleId} className="m-0 text-lg md:text-base font-semibold text-[var(--ink)]">Settings</h2>
-          <IconButton icon={X} label="Close settings" onClick={onClose} className="-mr-3" />
+        {/* Grab handle and title bar: drag down to close on phones. */}
+        <div {...drag.handlers} className="shrink-0 touch-none md:touch-auto">
+          <div className="md:hidden flex justify-center pt-2" aria-hidden="true">
+            <span className="w-10 h-1 rounded-full bg-[var(--rule)]" />
+          </div>
+          <div className="flex items-center justify-between h-14 md:h-16 px-4 md:px-6 md:border-b border-[var(--rule)]">
+            <h2 id={titleId} className="m-0 text-lg md:text-base font-semibold text-[var(--ink)]">Settings</h2>
+            <IconButton icon={X} label="Close settings" onClick={onClose} className="-mr-3" />
+          </div>
         </div>
 
         {/* Phone: six sections as a 3×2 switch, so every label fits without cutting off. */}
@@ -182,7 +189,7 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
                     {section === "categories" && <CategoriesTab categories={categories} onRefresh={refresh} />}
                     {section === "routines" && (
                       <RoutinesTab childList={children} routine={routine} activities={activities} schedules={schedules}
-                        goals={goals} schoolHours={schoolHours} onRefresh={refresh} />
+                        goals={goals} onRefresh={refresh} />
                     )}
                     {section === "calendar" && (
                       <CalendarTab calendars={calendars} calendarDays={calendarDays} childList={children} onRefresh={refresh} />

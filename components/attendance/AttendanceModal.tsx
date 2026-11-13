@@ -270,9 +270,9 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
     "w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] focus:outline-none focus:border-[var(--stem)]";
 
   return (
-    <Modal open={open} onClose={onClose} title={title ?? (prefill?.id ? "Edit Attendance" : "Confirm Attendance")}>
+    <Modal open={open} onClose={onClose} fullScreenOnPhone title={title ?? (prefill?.id ? "Edit Attendance" : "Confirm Attendance")}>
       <div className="space-y-4">
-        {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
         {/* Tabs */}
         <div className="flex border border-[var(--rule)]">
@@ -457,7 +457,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
         )}
 
         {confirmDelete ? (
-          <div className="space-y-2 p-3 bg-red-50 rounded-lg border border-red-200">
+          <div className="space-y-2 p-3 bg-red-50 rounded-[var(--radius-md)] border border-red-200">
             <p className="text-sm font-medium text-red-900">Delete this attendance record?</p>
             <p className="text-xs text-red-700">This action cannot be undone.</p>
             <div className="flex gap-2">

@@ -5,6 +5,8 @@ import { format, parseISO } from "date-fns";
 import { Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useSnackbar } from "@/components/ui/Snackbar";
 import { Fab } from "@/components/ui/Fab";
 import { IconButton } from "@/components/ui/IconButton";
 import { GroupHeading, MoreToggle, SettingsList, SettingsRow, Tag } from "@/components/settings/SettingsList";
@@ -36,7 +38,7 @@ const KIND_COLOR: Record<CalendarDay["kind"], string> = {
 const SOURCE_LABEL: Record<CalendarDay["source"], string> = { moe: "MOE", "data.gov.sg": "data.gov.sg", you: "Added by you" };
 const ADDABLE: CalendarDayInput["kind"][] = ["no_school", "half_day", "school_holiday", "term"];
 
-const fieldCls = "w-full px-3 py-2 text-base md:text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:border-[var(--stem)]";
+const fieldCls = "w-full px-3 py-2 text-base md:text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:border-[var(--stem)]";
 const labelCls = "block text-xs font-medium text-[var(--ink-soft)] mb-1";
 
 const todayIso = () => format(new Date(), "yyyy-MM-dd");
@@ -67,6 +69,8 @@ export function CalendarTab({ calendars, calendarDays, childList: children, onRe
   const [newCalendar, setNewCalendar] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState<SchoolCalendar | null>(null);
+  const snack = useSnackbar();
 
   const moe = calendars.find(c => c.kind === "moe_primary");
   const calendarName = (id: string | null) => (id === null ? "Everyone" : calendars.find(c => c.id === id)?.name ?? "");
@@ -116,9 +120,15 @@ export function CalendarTab({ calendars, calendarDays, childList: children, onRe
   }
 
   async function removeDay(day: CalendarDay) {
-    if (!window.confirm(`Remove “${day.title}”?`)) return;
-    await myDayApi.removeDay(day.id).catch(() => {});
+    try { await myDayApi.removeDay(day.id); } catch (e) { setError((e as Error).message); return; }
     onRefresh();
+    snack({ message: `Removed “${day.title}”`, action: { label: "Undo", onClick: async () => {
+      await myDayApi.addDay({
+        calendar_id: day.calendar_id, start_date: day.start_date.slice(0, 10), end_date: day.end_date.slice(0, 10),
+        kind: day.kind as CalendarDayInput["kind"], title: day.title, ends_at: day.ends_at,
+      });
+      onRefresh();
+    } } });
   }
 
   async function addCalendar() {
@@ -130,17 +140,21 @@ export function CalendarTab({ calendars, calendarDays, childList: children, onRe
   }
 
   async function removeCalendar(c: SchoolCalendar) {
-    const who = users(c.id);
-    const msg = who.length ? `${who.join(" and ")} follow${who.length === 1 ? "s" : ""} “${c.name}”. Delete it and its days anyway?` : `Delete “${c.name}” and its days?`;
-    if (!window.confirm(msg)) return;
+    setDeleting(null);
     await myDayApi.removeCalendar(c.id).catch(() => {});
     onRefresh();
+    snack({ message: `Deleted “${c.name}”` });
   }
 
   const set = (patch: Partial<CalendarDayInput>) => setEditing(e => e && { ...e, form: { ...e.form, ...patch } });
 
   return (
     <div className="flex flex-col gap-6">
+      <ConfirmDialog open={!!deleting} title="Delete calendar?"
+        message={deleting ? (users(deleting.id).length
+          ? `${users(deleting.id).join(" and ")} follow${users(deleting.id).length === 1 ? "s" : ""} “${deleting.name}”. Deleting it removes its days too, and can’t be undone.`
+          : `Deleting “${deleting.name}” removes its days too, and can’t be undone.`) : ""}
+        onConfirm={() => deleting && removeCalendar(deleting)} onCancel={() => setDeleting(null)} />
       <Fab label="Add a day off or half day" onClick={() => { setError(""); setEditing({ id: null, form: blankDay(moe?.id ?? calendars[0]?.id ?? null) }); }} />
 
       {/* Calendars */}
@@ -157,7 +171,7 @@ export function CalendarTab({ calendars, calendarDays, childList: children, onRe
                   tags={who.map(n => <Tag key={n}>{n}</Tag>)}
                   meta={c.kind === "moe_primary" ? "Terms, school holidays and days off from MOE" : "Your own term dates and holidays"}
                   actions={c.kind === "custom" ? (
-                    <IconButton icon={Trash2} label={`Delete ${c.name}`} tone="danger" onClick={() => removeCalendar(c)} />
+                    <IconButton icon={Trash2} label={`Delete ${c.name}`} tone="danger" onClick={() => setDeleting(c)} />
                   ) : undefined}
                 />
               );
@@ -227,7 +241,7 @@ export function CalendarTab({ calendars, calendarDays, childList: children, onRe
               <div role="group" aria-label="Kind of day" className="grid grid-cols-2 gap-2">
                 {ADDABLE.map(k => (
                   <button key={k} type="button" aria-pressed={editing.form.kind === k} onClick={() => set({ kind: k })}
-                    className={`h-10 px-3 text-sm font-medium rounded-lg border cursor-pointer ${editing.form.kind === k ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"}`}>
+                    className={`h-10 px-3 text-sm font-medium rounded-[var(--radius-md)] border cursor-pointer ${editing.form.kind === k ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"}`}>
                     {KIND_LABEL[k]}
                   </button>
                 ))}

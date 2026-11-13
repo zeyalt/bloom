@@ -27,7 +27,7 @@ export default function HistoryView() {
 
   return (
     <Page>
-      <Header title="History" subtitle={segment === "sessions" ? "Every class attended, missed or cancelled" : "Every fee paid, by child and class"} />
+      <Header title="History" subtitle={null} />
       {segment === "sessions" ? <AttendanceView embedded tabs={tabs} /> : <ExpensesView embedded tabs={tabs} />}
     </Page>
   );

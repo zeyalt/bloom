@@ -380,7 +380,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="p-4 border border-[var(--rule)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -412,7 +412,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />
+              <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-[var(--radius-md)] animate-pulse" />
             ))}
           </div>
         ) : expenses.length === 0 ? (
@@ -420,7 +420,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             <p className="text-sm">No expenses</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+          <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--rule)]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
@@ -488,14 +488,14 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => openEdit(exp)}
-                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
                             title="Edit expense"
                           >
                             <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => { setDeleteError(""); setConfirmDelete(exp); }}
-                            className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                            className="w-12 h-12 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                             title="Delete expense"
                           >
                             <Trash2 size={16} />
@@ -538,7 +538,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
         {/* Add expense modal */}
         <Modal open={showForm} onClose={() => setShowForm(false)} title={editingId ? "Edit Expense" : "Add Expense"}>
           <div className="space-y-6">
-            {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+            {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
             {/* Child & Activity */}
             <div className="grid grid-cols-2 gap-4">
@@ -549,7 +549,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 <select
                   value={form.child_id}
                   onChange={e => onChildChange(e.target.value)}
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 >
                   <option value="">Select child</option>
                   {children.map(c => (
@@ -565,7 +565,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   value={form.activity_name}
                   onChange={e => onActivityChange(e.target.value)}
                   disabled={!form.child_id}
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors disabled:opacity-60"
                 >
                   <option value="">Select activity</option>
                   {activityNames.map(n => (
@@ -584,7 +584,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 value={form.institution}
                 onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
                 disabled={!form.activity_name}
-                className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all disabled:opacity-60"
+                className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors disabled:opacity-60"
               >
                 <option value="">Select institution</option>
                 {institutionsForName.map(inst => (
@@ -602,7 +602,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 <select
                   value={form.expense_type}
                   onChange={e => setForm(f => ({ ...f, expense_type: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 >
                   {EXPENSE_TYPES.map(t => (
                     <option key={t} value={t}>{t}</option>
@@ -625,7 +625,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                     }));
                   }}
                   placeholder="e.g. Term 2 fees, Registration"
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 />
               </div>
             </div>
@@ -642,7 +642,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 />
               </div>
               <div>
@@ -653,7 +653,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   type="date"
                   value={form.payment_date}
                   onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 />
               </div>
             </div>
@@ -670,7 +670,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                   value={form.num_lessons}
                   onChange={e => setForm(f => ({ ...f, num_lessons: e.target.value }))}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 />
               </div>
               <div>
@@ -680,7 +680,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
                 <select
                   value={form.paid_by}
                   onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
-                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-all"
+                  className="w-full px-3 py-3 text-sm border border-[var(--rule)] rounded-[var(--radius-lg)] bg-white focus:outline-none focus:ring-2 focus:ring-[#D4895C]/30 focus:border-[#D4895C] transition-colors"
                 >
                   {PAYERS.map(p => (
                     <option key={p} value={p}>{p}</option>
@@ -701,7 +701,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
         </Modal>
 
         <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete expense?" size="sm">
-          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
+          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)] mb-3">{deleteError}</p>}
           <p className="text-sm text-[var(--ink-soft)] mb-4">
             Delete the {confirmDelete ? formatCurrency(confirmDelete.amount) : ""}{" "}
             {confirmDelete ? activityLabel(confirmDelete) : ""} record

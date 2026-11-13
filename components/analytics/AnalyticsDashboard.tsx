@@ -28,7 +28,7 @@ import {
 import { FilterBar, FilterField } from "@/components/ui/FilterBar";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { Utilities, PageBody } from "@/components/layout/Page";
-import { formatCurrency, getCurrentYear } from "@/lib/utils";
+import { formatCurrency, getCurrentYear, harmonize } from "@/lib/utils";
 import { EXPENSE_TYPE_COLORS } from "@/lib/constants";
 import { costPerHour } from "@/lib/cost-per-hour";
 import { MultiSelect } from "@/components/ui/FilterDropdown";
@@ -117,7 +117,7 @@ function CardTitle({ children }: { children: React.ReactNode }) {
 
 function ChartCard({ title, subtitle, action, children, className = "" }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6 ${className}`}>
+    <div className={`bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 md:p-6 ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
@@ -133,7 +133,7 @@ function ChartCard({ title, subtitle, action, children, className = "" }: { titl
 function ChartTooltip({ active, payload, label, formatter }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] px-3 py-2">
       {label != null && <p className="text-xs font-semibold text-[var(--ink)] mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 text-xs">
@@ -155,7 +155,7 @@ function DonutTooltip({ active, payload, formatter, total }: any) {
   const p = payload[0];
   const pct = total > 0 ? (p.value / total) * 100 : 0;
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] px-3 py-2">
       <div className="flex items-center gap-2 text-xs">
         <span className="w-2 h-2 shrink-0" style={{ backgroundColor: p.payload?.fill || p.color }} />
         <span className="text-[var(--ink-soft)]">{p.name}</span>
@@ -193,7 +193,7 @@ interface DonutDatum { name: string; value: number; color: string }
 function MiniDonutKpi({ label, data, center, formatter, animate }: { label: string; data: DonutDatum[]; center: string; formatter: (v: number) => string; animate: boolean }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 md:p-6">
       <CardTitle>{label}</CardTitle>
       <div className="mt-3 flex items-center justify-center gap-3">
         <div className="relative w-24 h-24 shrink-0">
@@ -213,7 +213,7 @@ function MiniDonutKpi({ label, data, center, formatter, animate }: { label: stri
           {data.map((d, i) => (
             <div key={i} className="flex items-center gap-2 text-xs min-w-0">
               <span className="w-2 h-2 shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="truncate text-[var(--ink-soft)]">{d.name}</span>
+              <span className="break-words text-[var(--ink-soft)]">{d.name}</span>
             </div>
           ))}
         </div>
@@ -250,13 +250,13 @@ function ActivityBarGroups({ groups, format, onSelect }: { groups: ActivityBarGr
                   key={r.name}
                   onClick={() => onSelect(r.id)}
                   title={`${r.name} · ${format(r.value)}${r.detail ? ` (${r.detail})` : ""}`}
-                  className="relative flex items-center w-full h-10 rounded-[4px] bg-[var(--bg-secondary)] cursor-pointer text-left after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
+                  className="relative flex items-center w-full h-10 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] cursor-pointer text-left after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
                 >
                   <span
-                    className="absolute inset-y-0 left-0 rounded-[4px]"
+                    className="absolute inset-y-0 left-0 rounded-[var(--radius-sm)]"
                     style={{ width: `${(r.value / max) * 100}%`, backgroundColor: `color-mix(in srgb, ${g.color} 35%, transparent)` }}
                   />
-                  <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--ink)] truncate">{r.name}</span>
+                  <span className="relative flex-1 min-w-0 px-2 py-0.5 text-xs leading-4 text-[var(--ink)] break-words">{r.name}</span>
                   <span className="relative shrink-0 pr-2 text-xs font-semibold tabular-nums text-[var(--ink)]">{format(r.value)}</span>
                 </button>
               ))}
@@ -341,11 +341,11 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
 
     // Category color map gathered from joined data, fallback to palette.
     const catColor = new Map<string, string>();
-    for (const e of expensesData as Expense[]) if (e.category) catColor.set(e.category.name, e.category.color_code);
-    for (const a2 of activitiesData as Activity[]) if (a2.category) catColor.set(a2.category.name, a2.category.color_code);
+    for (const e of expensesData as Expense[]) if (e.category) catColor.set(e.category.name, harmonize(e.category.color_code));
+    for (const a2 of activitiesData as Activity[]) if (a2.category) catColor.set(a2.category.name, harmonize(a2.category.color_code));
     const colorForCat = (name: string, i: number) => catColor.get(name) || PALETTE[i % PALETTE.length];
 
-    const childColor = (name: string) => (childrenData as Child[]).find(c => c.name === name)?.color_code || PALETTE[0];
+    const childColor = (name: string) => (childrenData as Child[]).find(c => c.name === name)?.color_code ? harmonize((childrenData as Child[]).find(c => c.name === name)!.color_code) : PALETTE[0];
 
     // ── KPIs ──
     const sum = (arr: Expense[]) => arr.reduce((s, e) => s + e.amount, 0);
@@ -400,7 +400,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
           byAct.set(n, cur);
         }
         const rows = [...byAct.entries()].sort((x, y) => y[1].value - x[1].value).map(([name, v]) => ({ name, value: v.value, id: v.id }));
-        return { id: c.id, name: c.name, color: c.color_code, rows };
+        return { id: c.id, name: c.name, color: harmonize(c.color_code), rows };
       })
       .filter(g => g.rows.length > 0);
 
@@ -408,12 +408,12 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
     for (const e of expIn) { const n = e.paid_by || "—"; byPayer.set(n, (byPayer.get(n) || 0) + e.amount); }
     const payerSplit: DonutDatum[] = [...byPayer.entries()]
       .sort((x, y) => y[1] - x[1])
-      .map(([name, value], i) => ({ name, value, color: PAYER_PALETTE[i % PAYER_PALETTE.length] }));
+      .map(([name, value], i) => ({ name, value, color: harmonize(PAYER_PALETTE[i % PAYER_PALETTE.length]) }));
 
     // Payer × child: how much each payer spent on each child.
     const payerChildCols = (childrenData as Child[]).filter(c => selectedChildren.includes(c.id));
     const payerByChild = {
-      children: payerChildCols.map(c => ({ id: c.id, name: c.name, color: c.color_code })),
+      children: payerChildCols.map(c => ({ id: c.id, name: c.name, color: harmonize(c.color_code) })),
       rows: payerSplit.map(p => ({
         payer: p.name,
         amounts: payerChildCols.map(c => expIn.filter(e => (e.paid_by || "—") === p.name && e.child_id === c.id).reduce((s, e) => s + e.amount, 0)),
@@ -459,7 +459,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
           byAct.set(n, cur);
         }
         const rows = [...byAct.entries()].map(([name, v]) => ({ name, ...v }));
-        return { id: c.id, name: c.name, color: c.color_code, rows };
+        return { id: c.id, name: c.name, color: harmonize(c.color_code), rows };
       })
       .filter(g => g.rows.length > 0);
 
@@ -496,7 +496,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
             ? [{ name, id: cph.payment.activity_id ?? null, value: cph.perHour, detail: `${formatCurrency(cph.perLesson)} per ${Math.round(cph.sessionMinutes)}-min lesson` }]
             : [];
         });
-        return { id: c.id, name: c.name, color: c.color_code, rows };
+        return { id: c.id, name: c.name, color: harmonize(c.color_code), rows };
       })
       .filter(g => g.rows.length > 0);
 
@@ -594,7 +594,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
       (!s.effective_from || s.effective_from.slice(0, 10) <= todayStr) &&
       (!s.effective_until || s.effective_until.slice(0, 10) >= todayStr);
 
-    const childColor = (name: string) => (childrenData as Child[]).find(c => c.name === name)?.color_code || PALETTE[0];
+    const childColor = (name: string) => (childrenData as Child[]).find(c => c.name === name)?.color_code ? harmonize((childrenData as Child[]).find(c => c.name === name)!.color_code) : PALETTE[0];
     const heatByChild = new Map<string, number[]>();
     const seenSlots = new Set<string>();
     for (const s of schedulesData as Schedule[]) {
@@ -900,7 +900,7 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                             <div
                               key={c.id}
                               title={`${row.payer} → ${c.name}: ${formatCurrency(amt)}`}
-                              className="h-9 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
+                              className="h-9 rounded-[var(--radius-sm)] flex items-center justify-center text-xs tabular-nums"
                               style={{
                                 backgroundColor: bg ?? "var(--bg-secondary)",
                                 color: bg ? readableText(bg) : "var(--ink)",
@@ -923,12 +923,12 @@ export function AnalyticsDashboard({ segment, tabs }: { segment: AnalyticsSegmen
                     {(() => {
                       const max = Math.max(...data.spendByChild.map(d => d.value));
                       return data.spendByChild.map(d => (
-                        <div key={d.name} title={`${d.name} · ${formatCurrency(d.value)}`} className="relative flex items-center h-9 rounded-[4px] bg-[var(--bg-secondary)] overflow-hidden">
+                        <div key={d.name} title={`${d.name} · ${formatCurrency(d.value)}`} className="relative flex items-center h-9 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] overflow-hidden">
                           <span
-                            className="absolute inset-y-0 left-0 rounded-[4px]"
+                            className="absolute inset-y-0 left-0 rounded-[var(--radius-sm)]"
                             style={{ width: `${max > 0 ? (d.value / max) * 100 : 0}%`, backgroundColor: `color-mix(in srgb, ${d.color} 35%, transparent)` }}
                           />
-                          <span className="relative flex-1 min-w-0 px-3 text-sm text-[var(--ink)] truncate">{d.name}</span>
+                          <span className="relative flex-1 min-w-0 px-3 py-1 text-sm text-[var(--ink)] break-words">{d.name}</span>
                           <span className="relative shrink-0 pr-3 text-sm font-semibold tabular-nums text-[var(--ink)]">{formatCurrency(d.value)}</span>
                         </div>
                       ));

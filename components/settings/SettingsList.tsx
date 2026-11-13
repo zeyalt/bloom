@@ -78,7 +78,7 @@ export function Tag({ children, color }: { children: React.ReactNode; color?: st
 /** Heading above a group of rows (e.g. a category in Schedules). */
 export function GroupHeading({ children, count }: { children: React.ReactNode; count?: number }) {
   return (
-    <h3 className="flex items-center gap-2 pb-2 text-xs leading-4 font-bold uppercase tracking-wide text-[var(--ink-soft)]">
+    <h3 className="flex items-center gap-2 pb-2 text-sm leading-5 font-semibold text-[var(--ink-soft)]">
       {children}
       {count !== undefined && <span className="font-medium text-[var(--ink-faint)]">{count}</span>}
     </h3>

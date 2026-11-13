@@ -368,7 +368,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
       {/* Add/Edit modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Schedule" : "Add Schedule"}>
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
           {/* Child + Activity */}
           <div className="grid grid-cols-2 gap-3">
@@ -378,7 +378,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 value={childId}
                 onChange={e => onChildChange(e.target.value)}
                 disabled={editing}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select child</option>
                 {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -390,7 +390,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 value={activityName}
                 onChange={e => onActivityNameChange(e.target.value)}
                 disabled={editing}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
               >
                 <option value="">Select activity</option>
                 {activityNames.map(n => <option key={n} value={n}>{n}</option>)}
@@ -405,7 +405,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
               value={institution}
               onChange={e => setInstitution(e.target.value)}
               disabled={editing || !activityName}
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 disabled:opacity-60"
             >
               <option value="">Select institution</option>
               {institutionsForName.map(inst => <option key={inst} value={inst}>{inst}</option>)}
@@ -421,7 +421,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 value={level}
                 onChange={e => setLevel(e.target.value)}
                 placeholder="e.g. U10"
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
@@ -431,7 +431,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 value={term}
                 onChange={e => setTerm(e.target.value)}
                 placeholder="e.g. 2 2026"
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
@@ -444,7 +444,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 type="date"
                 value={effectiveFrom}
                 onChange={e => setEffectiveFrom(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
@@ -453,7 +453,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                 type="date"
                 value={effectiveUntil}
                 onChange={e => setEffectiveUntil(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>
@@ -461,7 +461,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
           {/* Slot rows */}
           <div className="space-y-3">
             {slots.map((slot, i) => (
-              <div key={i} className="border border-[var(--rule)] rounded-lg p-3 space-y-2 relative">
+              <div key={i} className="border border-[var(--rule)] rounded-[var(--radius-md)] p-3 space-y-2 relative">
                 {slots.length > 1 && (
                   <button
                     onClick={() => setSlots(prev => prev.filter((_, idx) => idx !== i))}
@@ -475,7 +475,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                     <select
                       value={slot.day_of_week}
                       onChange={e => updateSlot(i, { day_of_week: Number(e.target.value) })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     >
                       {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.fullLabel}</option>)}
                     </select>
@@ -487,7 +487,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                       value={slot.location}
                       onChange={e => updateSlot(i, { location: e.target.value })}
                       placeholder="e.g. Compass One"
-                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                 </div>
@@ -498,7 +498,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                       type="time"
                       value={slot.start_time}
                       onChange={e => updateSlot(i, { start_time: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                   <div>
@@ -507,7 +507,7 @@ export function SchedulesTab({ schedules, activities, children, onRefresh }: Pro
                       type="time"
                       value={slot.end_time}
                       onChange={e => updateSlot(i, { end_time: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                      className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
                     />
                   </div>
                 </div>

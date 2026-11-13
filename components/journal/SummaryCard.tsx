@@ -251,7 +251,7 @@ export function SummaryCard({ title, kind, activityId, childId }: Props) {
     : "Generate an AI overview and key highlights from these reflections.";
 
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-6">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 md:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="font-semibold text-[var(--ink)] truncate">{title}</h3>

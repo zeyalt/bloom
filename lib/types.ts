@@ -243,8 +243,9 @@ export interface CalendarDay {
 export interface RoutineItem {
   id: string;
   child_id: string;
-  day_type: RoutineDayType;
-  weekdays: number[]; // empty = every day of that type
+  weekdays: number[]; // empty = every day
+  start_date: string; // first day it applies
+  end_date: string | null; // last day it applies; null = goes on
   tier: RoutineTier;
   title: string;
   at_time: string | null; // anchors only, "HH:MM"

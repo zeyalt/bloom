@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, NotebookPen, ChevronDown, Sparkles, ExternalLink } from "lucide-react";
+import { Pencil, NotebookPen, Sparkles, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -153,7 +153,7 @@ export default function JournalPage() {
 
   return (
     <Page>
-      <Header title="Journal" subtitle={JOURNAL_LINES[subTab]} />
+      <Header title="Journal" subtitle={null} />
 
       <Utilities>
         {/* Chat ignores the child filter, but keeps its row so the switch below never moves. */}
@@ -180,7 +180,7 @@ export default function JournalPage() {
         {/* ── Reflections ── */}
         {subTab === "reflections" && (
           isLoading ? (
-            <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-[var(--bg-secondary)] rounded-xl animate-pulse" />)}</div>
+            <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] animate-pulse" />)}</div>
           ) : entries.length === 0 ? (
             <div className="text-center py-16 text-[var(--ink-faint)]">
               <NotebookPen size={32} className="mx-auto mb-3 opacity-60" />
@@ -200,16 +200,20 @@ export default function JournalPage() {
                       const snippet = getReflectionText(log.learned, log.diary_notes);
                       return (
                         <div key={log.id} className="border-b border-[var(--rule)] overflow-hidden">
-                          <button onClick={() => toggle(log.id)} className="w-full text-left px-4 py-3 min-h-12 flex items-center gap-2 cursor-pointer">
-                            <span className="text-xs font-semibold text-[var(--ink-soft)] tabular-nums shrink-0 w-12">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
-                            {child && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />}
-                            <span className="text-sm font-medium text-[var(--ink)] shrink-0 max-w-[38%] truncate">{title}</span>
-                            {!isOpen && <span className="text-sm text-[var(--ink-faint)] truncate flex-1 min-w-0">{snippet}</span>}
-                            <ChevronDown size={16} className={cn("shrink-0 ml-auto text-[var(--ink-faint)] transition-transform", isOpen && "rotate-180")} />
+                          {/* The date and class on one line, then the reflection itself: two lines, faded,
+                              and the whole row opens to read it all. No chevron to find. */}
+                          <button onClick={() => toggle(log.id)} aria-expanded={isOpen}
+                            className="w-full text-left px-1 py-3 min-h-12 flex flex-col gap-1 cursor-pointer active:bg-[var(--bg-secondary)]">
+                            <span className="flex items-center gap-2">
+                              {child && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />}
+                              <span className="text-sm font-semibold text-[var(--ink)] break-words">{title}</span>
+                              <span className="text-xs text-[var(--ink-soft)] tabular-nums shrink-0 ml-auto">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
+                            </span>
+                            {!isOpen && <span className="text-sm leading-5 text-[var(--ink-soft)] line-clamp-2 break-words">{snippet}</span>}
                           </button>
                           {isOpen && (
-                            <div className="px-4 pb-3 pt-1 border-t border-[var(--rule)]/60">
-                              <p className="text-sm text-[var(--ink)] whitespace-pre-wrap mt-2">{snippet}</p>
+                            <div className="px-1 pb-3">
+                              <p className="text-sm leading-6 text-[var(--ink)] whitespace-pre-wrap break-words">{snippet}</p>
                               <div className="mt-3 flex items-center gap-4">
                                 <button onClick={() => openEdit(log)} className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--stem)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
                                   <Pencil size={16} /> Edit

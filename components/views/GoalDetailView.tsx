@@ -13,6 +13,7 @@ import { GoalChart } from "@/components/goals/GoalChart";
 import { useChildren, useGoals } from "@/lib/api-hooks";
 import { goalApi, useRefreshGoals } from "@/lib/goal-api";
 import { cn, formatDate } from "@/lib/utils";
+import { useSnackbar } from "@/components/ui/Snackbar";
 import {
   TONE_CLASSES, achievedDate, day, earlyLateLabel, fmtValue, goalStatus, measuredProgress, milestoneProgress, round1,
   timeLeftLabel, todayISO,
@@ -85,6 +86,7 @@ function MilestoneBody({ goal, today }: { goal: Goal; today: string }) {
   const refresh = useRefreshGoals();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const snack = useSnackbar();
   const [error, setError] = useState<string | null>(null);
   const achieved = goal.achieved_date ? day(goal.achieved_date) : null;
   const notes = goal.entries.filter(e => e.note).slice().reverse();
@@ -130,7 +132,10 @@ function MilestoneBody({ goal, today }: { goal: Goal; today: string }) {
           )}
           {notes.map(n => (
             <TimelineItem key={n.id} date={day(n.date)} dot="bg-[#9aa9a0] border-[#9aa9a0]"
-              onDelete={() => { if (window.confirm("Delete this update?")) run(() => goalApi.removeEntry(n.id)); }}>
+              onDelete={() => run(async () => {
+                await goalApi.removeEntry(n.id);
+                snack({ message: "Update deleted", action: { label: "Undo", onClick: () => run(() => goalApi.addEntry(n.goal_id, { date: day(n.date), note: n.note ?? undefined })) } });
+              })}>
               {n.note}
             </TimelineItem>
           ))}
@@ -176,6 +181,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
   const [editValue, setEditValue] = useState("");
   const [editDate, setEditDate] = useState("");
   const [busy, setBusy] = useState(false);
+  const snack = useSnackbar();
   const [error, setError] = useState<string | null>(null);
 
   async function run(fn: () => Promise<unknown>) {
@@ -198,7 +204,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
         <Tile big={m.remaining === null ? "—" : m.remaining <= 0 ? "Done" : fmtValue(m.remaining, unit)} small="to go" />
       </div>
 
-      <section className="border border-[var(--rule)] bg-[var(--sheet)] p-4 space-y-3">
+      <section className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 space-y-3">
         <h2 className="font-semibold text-[var(--ink)]">Progress over time</h2>
         {m.readings.length < 2 ? (
           <p className="text-sm text-[var(--ink-soft)]">Log one more reading to see the chart.</p>
@@ -241,7 +247,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
 
       <section className="space-y-2">
         <h2 className="font-semibold text-[var(--ink)]">Readings</h2>
-        <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
+        <ul className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden divide-y divide-[var(--rule)]">
           {rows.map((r, i) => {
             const prev = rows[i + 1];
             const change = prev ? round1(r.value - prev.value) : null;
@@ -264,7 +270,10 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
                 <button type="button" aria-label={`Edit reading on ${formatDate(r.date)}`} onClick={() => { setEditId(r.id); setEditValue(String(r.value)); setEditDate(r.date); }}
                   className="w-12 h-12 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"><Pencil size={16} /></button>
                 <button type="button" aria-label={`Delete reading on ${formatDate(r.date)}`} disabled={rows.length === 1}
-                  onClick={() => { if (window.confirm("Delete this reading?")) run(() => goalApi.removeEntry(r.id)); }}
+                  onClick={() => run(async () => {
+                    await goalApi.removeEntry(r.id);
+                    snack({ message: `Reading of ${fmtValue(r.value, unit)} deleted`, action: { label: "Undo", onClick: () => run(() => goalApi.addEntry(goal.id, { date: day(r.date), value: r.value })) } });
+                  })}
                   className="w-12 h-12 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--margin)] cursor-pointer disabled:opacity-30 disabled:cursor-default"><Trash2 size={16} /></button>
               </li>
             );
@@ -277,7 +286,7 @@ function MeasuredBody({ goal, today }: { goal: Goal; today: string }) {
 
 function Tile({ big, small }: { big: string; small: string }) {
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-3">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-3">
       <div className="text-lg font-bold text-[var(--ink)] leading-tight">{big}</div>
       <div className="text-xs text-[var(--ink-soft)] mt-1">{small}</div>
     </div>

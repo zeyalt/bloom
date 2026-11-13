@@ -13,6 +13,8 @@ import { IconButton } from "@/components/ui/IconButton";
 import { ChildFilter } from "@/components/ui/ChildFilter";
 import { SettingsList, SettingsRow, Tag, MoreToggle } from "@/components/settings/SettingsList";
 import { formatDate } from "@/lib/utils";
+import { useSchedules } from "@/lib/api-hooks";
+import { latestLesson } from "@/lib/my-day";
 import type { Activity, ActivityCategory, Child, ActivityStatus } from "@/lib/types";
 
 interface Props {
@@ -40,6 +42,12 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Activity | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { data: schedules = [] } = useSchedules();
+  /** Where homework starts when it's switched on: the class's latest lesson, else today. */
+  const homeworkStart = (activityId?: string) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return (activityId && latestLesson(activityId, schedules as Parameters<typeof latestLesson>[1], today)) || today;
+  };
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedChildId, setSelectedChildId] = useState<string>("");
@@ -98,8 +106,9 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         end_date: form.end_date || null,
         notes: form.notes || null,
         prep_task: form.prep_task.trim() || null,
-        // Counted from the day it's switched on, so earlier lessons don't show up as overdue.
-        homework_from: form.homework ? (editing?.homework_from?.slice(0, 10) ?? format(new Date(), "yyyy-MM-dd")) : null,
+        // Counted from the latest lesson when switched on (so that lesson's homework shows now),
+        // not from older ones, which would show up as overdue.
+        homework_from: form.homework ? (editing?.homework_from?.slice(0, 10) ?? homeworkStart(editing?.id)) : null,
         homework_note: form.homework ? form.homework_note.trim() || null : null,
       };
       const url = editing ? `/api/activities/${editing.id}` : "/api/activities";
@@ -190,7 +199,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
         title={editing ? "Edit Activity" : "Add Activity"}
       >
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)]">{error}</p>}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -198,7 +207,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               <select
                 value={form.child_id}
                 onChange={e => setForm(f => ({ ...f, child_id: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               >
                 <option value="">Select child</option>
                 {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -209,7 +218,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               <select
                 value={form.category_id}
                 onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               >
                 <option value="">Select category</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -224,7 +233,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.activity_name}
               onChange={e => setForm(f => ({ ...f, activity_name: e.target.value }))}
               placeholder="e.g. Taekwondo Class"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -235,7 +244,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.institution}
               onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
               placeholder="e.g. Jeong-in Taekwondo"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -246,7 +255,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.instructor_name}
               onChange={e => setForm(f => ({ ...f, instructor_name: e.target.value }))}
               placeholder="e.g. Coach Reuben"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -257,7 +266,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.level}
               onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
               placeholder="e.g. P2 (Distinction), Kids 4T, Red Belt"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
           </div>
 
@@ -269,7 +278,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               value={form.prep_task}
               onChange={e => setForm(f => ({ ...f, prep_task: e.target.value }))}
               placeholder="e.g. Pack swimming kit"
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             />
             <p className="mt-1 text-xs leading-4 text-[var(--ink-faint)]">Optional. Shows as a must-do on this class’s days.</p>
           </div>
@@ -282,19 +291,14 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
               Gives homework after each lesson
             </label>
             {form.homework && (
-              <>
-                <input
-                  type="text"
-                  aria-label="Homework note"
-                  value={form.homework_note}
-                  onChange={e => setForm(f => ({ ...f, homework_note: e.target.value }))}
-                  placeholder="What it usually is, optional (e.g. Worksheet and spelling)"
-                  className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
-                />
-                <p className="mt-1 text-xs leading-4 text-[var(--ink-faint)]">
-                  On My Day it’s due the day before the next lesson, and stays until it’s ticked. Lessons logged as absent or cancelled give none.
-                </p>
-              </>
+              <input
+                type="text"
+                aria-label="Homework note"
+                value={form.homework_note}
+                onChange={e => setForm(f => ({ ...f, homework_note: e.target.value }))}
+                placeholder="What it usually is, optional (e.g. Worksheet and spelling)"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              />
             )}
           </div>
 
@@ -303,7 +307,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
-              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+              className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20"
             >
               {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
@@ -316,7 +320,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                 type="date"
                 value={form.start_date}
                 onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
             <div>
@@ -325,7 +329,7 @@ export function ActivitiesTab({ activities, categories, children, onRefresh }: P
                 type="date"
                 value={form.end_date}
                 onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-[var(--rule)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-stone-900/20"
               />
             </div>
           </div>

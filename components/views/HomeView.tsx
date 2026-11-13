@@ -271,6 +271,15 @@ export default function AgendaPage() {
           guessPeople={() => usualPeople(allLogs, { activityId: a.id, childId: a.child_id, startTime: s.start_time })}
           onOpenActivity={() => router.push(`/activity/${a.id}`)}
           onOpenForm={() => log && openEditLog(log)}
+          onLogAttended={() => {
+            const people = usualPeople(allLogs, { activityId: a.id, childId: a.child_id, startTime: s.start_time });
+            setPrefill({
+              activity_id: a.id, child_id: a.child_id, date, status: "attended", lesson_type: "Normal",
+              start_time: s.start_time, end_time: s.end_time, instructor_name: a.instructor_name, location: s.location,
+              sent_by: people.sentBy.join(", ") || null, fetcher: people.fetcher.join(", ") || null,
+            });
+            setModalOpen(true);
+          }}
           onChanged={refetchLogs}
         />
       ),
@@ -314,7 +323,7 @@ export default function AgendaPage() {
             {format(parseISO(date), "EEEE")}
           </h2>
           <span className="text-sm leading-5 text-[var(--ink-soft)]">{format(parseISO(date), "d MMM yyyy")}</span>
-          {isToday && <span className="ml-auto h-6 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-bold uppercase tracking-wide">Today</span>}
+          {isToday && <span className="ml-auto h-6 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-bold">Today</span>}
         </div>
         <DateBar date={date} today={todayIso} markers={markers} onChange={chooseDay} />
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
@@ -348,9 +357,12 @@ export default function AgendaPage() {
 
         {isToday && <DueCheckpoints childIds={selectedChildren} />}
 
+        {/* Phones: routines, then the timetable below. Tablets in landscape and desktops (1024px+):
+            the timetable on the left, routines on the right, like the kids' My Day screen. */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(340px,420px)_minmax(0,1fr)] lg:items-start">
         {/* Each child's routine: tick for them, see when they ticked. Everyone selected gets a card. */}
         {kids.length > 0 && (
-          <section aria-labelledby="routines-heading" className="flex flex-col gap-2">
+          <section aria-labelledby="routines-heading" className="flex flex-col gap-2 min-w-0 lg:col-start-2 lg:row-start-1">
             <h3 id="routines-heading" className="font-semibold text-[var(--ink)]">
               Routines{my.tense === "future" ? " · planned" : ""}
             </h3>
@@ -374,8 +386,8 @@ export default function AgendaPage() {
           </section>
         )}
 
-        {/* At the bottom: the day's timetable — school, classes (log them here) and fixed times. */}
-        <section aria-labelledby="timetable-heading" className="flex flex-col gap-2">
+        {/* The day's timetable — school, classes (log them here) and fixed times. */}
+        <section aria-labelledby="timetable-heading" className="flex flex-col gap-2 min-w-0 lg:col-start-1 lg:row-start-1">
           <h3 id="timetable-heading" className="font-semibold text-[var(--ink)]">Timetable</h3>
           {loading ? (
             <div className="flex flex-col gap-2">
@@ -384,11 +396,12 @@ export default function AgendaPage() {
           ) : rows.length === 0 ? (
             <p className="text-sm leading-5 text-[var(--ink-soft)] py-4">Nothing planned this day.</p>
           ) : (
-            <div className="divide-y divide-[var(--rule)] border border-[var(--rule)] bg-[var(--sheet)]">
+            <div className="divide-y divide-[var(--rule)] border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
               {rows.map(r => r.node)}
             </div>
           )}
         </section>
+        </div>
       </PageBody>
 
       <Fab label="Add event" onClick={openAdhoc} />

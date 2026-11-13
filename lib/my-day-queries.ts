@@ -1,6 +1,7 @@
 // Server-side helpers shared by the My Day API routes (school hours, calendars,
 // routines, ticks) and the fields My Day adds to children, activities and goals.
 import type { CalendarDayKind, RoutineDayType, RoutineTier } from "./types";
+import { format } from "date-fns";
 import { parseDay } from "./goal-queries";
 
 export const DAY_TYPES: readonly RoutineDayType[] = ["school", "holiday", "any"];
@@ -64,22 +65,27 @@ export function parseUserDay(body: Record<string, unknown>) {
 
 /** Validates a routine line (create or update); returns Prisma data or an error message. */
 export function parseRoutineItem(body: Record<string, unknown>) {
-  const dayType = body.day_type as RoutineDayType;
   const tier = body.tier as RoutineTier;
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const atTime = parseTime(body.at_time ?? null);
   const weekdays = Array.isArray(body.weekdays) ? body.weekdays.map(Number) : [];
-  if (!DAY_TYPES.includes(dayType)) return "day_type must be school, holiday or any";
   if (!TIERS.includes(tier)) return "tier must be anchor, must, practice or free";
   if (!title) return "title is required";
   if (atTime === undefined) return "at_time must be HH:MM";
   if (tier === "anchor" && !atTime) return "a fixed time needs a time";
   if (weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) return "weekdays must be 0–6";
+  const startDate = body.start_date == null || body.start_date === "" ? parseDay(format(new Date(), "yyyy-MM-dd")) : parseDay(body.start_date);
+  const endDate = body.end_date == null || body.end_date === "" ? null : parseDay(body.end_date);
+  if (!startDate) return "start_date must be YYYY-MM-DD";
+  if (endDate === null && body.end_date != null && body.end_date !== "") return "end_date must be YYYY-MM-DD";
+  if (endDate && endDate < startDate) return "The end date can’t be before the start date";
+  const days = [...new Set(weekdays)].sort();
   return {
-    dayType,
     tier,
     title,
     atTime: tier === "anchor" ? atTime : null,
-    weekdays: [...new Set(weekdays)].sort(),
+    weekdays: days.length === 7 ? [] : days, // all seven = every day
+    startDate,
+    endDate,
   };
 }

@@ -32,12 +32,17 @@ export function ChildFilter({
             type="button"
             aria-pressed={active}
             onClick={() => onToggle(child.id)}
-            style={active ? { backgroundColor: child.color_code } : undefined}
+            // Selected: a soft tint and outline of the child's colour, dark text. The colour
+            // identifies the child without a block of saturated paint on every screen.
+            style={active ? {
+              backgroundColor: `color-mix(in srgb, ${child.color_code} 14%, var(--sheet))`,
+              borderColor: `color-mix(in srgb, ${child.color_code} 60%, var(--sheet))`,
+            } : undefined}
             className={cn(
               "relative inline-flex items-center gap-2 h-10 pl-2 pr-4 rounded-full text-sm font-medium border cursor-pointer",
               "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
               active
-                ? "text-white border-transparent"
+                ? "text-[var(--ink)] font-semibold"
                 : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)] hover:text-[var(--ink)]"
             )}
           >

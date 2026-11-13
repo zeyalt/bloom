@@ -1,5 +1,6 @@
 "use client";
 
+import { harmonize } from "@/lib/utils";
 import { Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useChildren } from "@/lib/api-hooks";
 import { formatValue, type ChartSpec, type ValueFormat } from "@/lib/chat-chart";
@@ -17,7 +18,10 @@ const axisProps = {
 
 function useChildColor() {
   const { data: children = [] } = useChildren();
-  return (name?: string) => (name ? children.find(c => c.name.toLowerCase() === name.toLowerCase())?.color_code : undefined);
+  return (name?: string) => {
+    const c = name ? children.find(x => x.name.toLowerCase() === name.toLowerCase())?.color_code : undefined;
+    return c ? harmonize(c) : undefined;
+  };
 }
 
 function Frame({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -32,7 +36,7 @@ function Frame({ title, children }: { title?: string; children: React.ReactNode 
 function Tip({ active, payload, label, format }: { active?: boolean; payload?: { name: string; value: number; color?: string; payload?: { fill?: string } }[]; label?: string; format: ValueFormat }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] px-3 py-2 text-xs">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] px-3 py-2 text-xs">
       {label != null && <p className="font-semibold text-[var(--ink)] mb-1">{label}</p>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
@@ -75,9 +79,9 @@ export default function ChatChart({ spec }: { spec: ChartSpec }) {
           {spec.items.map((it, i) => {
             const color = childColor(it.child) ?? "var(--stem)";
             return (
-              <div key={`${it.label}-${i}`} className="relative flex items-center h-7 rounded-[4px] bg-[var(--bg-secondary)] overflow-hidden" title={`${it.label} · ${formatValue(it.value, spec.format)}`}>
+              <div key={`${it.label}-${i}`} className="relative flex items-center h-7 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] overflow-hidden" title={`${it.label} · ${formatValue(it.value, spec.format)}`}>
                 <span
-                  className="absolute inset-y-0 left-0 rounded-[4px]"
+                  className="absolute inset-y-0 left-0 rounded-[var(--radius-sm)]"
                   style={{ width: `${max > 0 ? (Math.abs(it.value) / max) * 100 : 0}%`, backgroundColor: `color-mix(in srgb, ${color} 35%, transparent)` }}
                 />
                 <span className="relative flex-1 min-w-0 px-2 text-xs text-[var(--ink)] truncate">{it.label}</span>

@@ -89,8 +89,9 @@ export interface CalendarDayInput {
 
 export interface RoutineItemInput {
   child_id?: string;
-  day_type: RoutineItem["day_type"];
   weekdays: number[];
+  start_date: string;
+  end_date: string | null;
   tier: RoutineItem["tier"];
   title: string;
   at_time: string | null;

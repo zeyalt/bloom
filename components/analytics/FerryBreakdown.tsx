@@ -1,5 +1,6 @@
 "use client";
 
+import { harmonize } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Segmented } from "@/components/ui/Segmented";
@@ -85,7 +86,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
   });
 
   return (
-    <div className="border border-[var(--rule)] bg-[var(--sheet)] p-4 md:p-4 space-y-4">
+    <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 md:p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-semibold text-[var(--ink)]" style={{ fontFamily: DISPLAY_FONT }}>Who Ferries Whom</h3>
         <Segmented
@@ -104,7 +105,7 @@ export function FerryBreakdown({ logs, children }: { logs: LogWithDetails[]; chi
           return (
             <div key={child.id}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-2.5 h-2.5" style={{ backgroundColor: child.color_code }} />
+                <span className="w-2.5 h-2.5" style={{ backgroundColor: harmonize(child.color_code) }} />
                 <h4 className="text-sm font-semibold text-[var(--ink)]">{child.name}</h4>
               </div>
 
@@ -138,7 +139,7 @@ function FerryRow({ name, activityId, counts, people, maxCell, color }: { name: 
   return (
     <>
       <div className="col-span-full sm:col-span-1 pt-2 sm:pt-0 sm:h-8 flex items-center pr-1 text-xs leading-tight text-[var(--ink-soft)]">
-        <button onClick={() => router.push(`/activity/${activityId}`)} className="min-w-0 max-w-full text-left hover:underline hover:text-[var(--stem)] cursor-pointer relative before:absolute before:left-0 before:w-full before:min-w-12 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']" title={name}><span className="block truncate">{name}</span></button>
+        <button onClick={() => router.push(`/activity/${activityId}`)} className="min-w-0 max-w-full text-left hover:underline hover:text-[var(--stem)] cursor-pointer relative before:absolute before:left-0 before:w-full before:min-w-12 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']" title={name}><span className="block break-words">{name}</span></button>
       </div>
       {people.map(p => {
         const c = counts.get(p) || 0;
@@ -146,7 +147,7 @@ function FerryRow({ name, activityId, counts, people, maxCell, color }: { name: 
         return (
           <div
             key={p}
-            className="h-7 sm:h-8 rounded-[4px] flex items-center justify-center text-xs tabular-nums"
+            className="h-7 sm:h-8 rounded-[var(--radius-sm)] flex items-center justify-center text-xs tabular-nums"
             style={{
               backgroundColor: c === 0 ? "var(--bg-secondary)" : `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`,
               color: alpha > 0.55 ? "#fff" : "var(--ink-faint)",

@@ -16,7 +16,7 @@ export async function GET() {
   }
 }
 
-/** Body: { child_id, day_type, weekdays?, tier, title, at_time? } — added at the end of its list. */
+/** Body: { child_id, weekdays?, start_date?, end_date?, tier, title, at_time? } — added at the end of its list. */
 export async function POST(req: Request) {
   try {
     const body = await req.json();

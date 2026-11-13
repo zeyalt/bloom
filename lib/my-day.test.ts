@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDay, cheer, dayInfo, levelFor, levelName } from "./my-day";
+import { buildDay, cheer, dayInfo, latestLesson, levelFor, levelName } from "./my-day";
 import { MOE_PRIMARY, PUBLIC_HOLIDAYS, publicHolidayId } from "./calendar-sources";
 import type { Activity, CalendarDay, Child, Goal, OneOffTask, PlannedTask, RoutineItem, Schedule, SchoolHours, TaskTick } from "./types";
 
@@ -153,16 +153,17 @@ const schedules = [
 ];
 
 let order = 0;
-const item = (id: string, tier: RoutineItem["tier"], title: string, day_type: RoutineItem["day_type"], weekdays: number[] = [], at_time: string | null = null): RoutineItem =>
-  ({ id, child_id: "z", day_type, weekdays, tier, title, at_time, sort_order: order++, created_at: "", updated_at: "" });
+const item = (id: string, tier: RoutineItem["tier"], title: string, weekdays: number[] = [], at_time: string | null = null, over: Partial<RoutineItem> = {}): RoutineItem =>
+  ({ id, child_id: "z", weekdays, start_date: "2026-01-01", end_date: null, tier, title, at_time, sort_order: order++, created_at: "", updated_at: "", ...over });
+const WEEKDAYS = [1, 2, 3, 4, 5];
 const routine: RoutineItem[] = [
-  item("lunch", "must", "Lunch and shower", "school"),
-  item("hw", "must", "School homework", "school", [1, 2, 3, 4, 5]),
-  item("cca", "must", "Pack CCA kit", "school", [3]),
-  item("walk", "must", "Morning walk", "holiday"),
-  item("read", "practice", "Read a book · 20 min", "any"),
-  item("lego", "free", "Lego", "any"),
-  item("dinner", "anchor", "Dinner", "any", [], "18:30"),
+  item("lunch", "must", "Lunch and shower", WEEKDAYS),
+  item("hw", "must", "School homework", WEEKDAYS),
+  item("cca", "must", "Pack CCA kit", [3]),
+  item("walk", "must", "Morning walk", [0, 6]),
+  item("read", "practice", "Read a book · 20 min"),
+  item("lego", "free", "Lego"),
+  item("dinner", "anchor", "Dinner", [], "18:30"),
 ];
 
 const goal = (id: string, over: Partial<Goal> = {}): Goal => ({
@@ -240,10 +241,21 @@ describe("buildDay on a school day (Thu 12 Nov 2026)", () => {
 describe("buildDay on a holiday (Mon 23 Nov 2026)", () => {
   const d = build("2026-11-23");
 
-  it("uses the holiday routine and drops school-only lines", () => {
+  it("routines follow their weekdays, holiday or not", () => {
     expect(d.routineType).toBe("holiday");
-    expect(d.must.map(t => t.title)).toEqual(["Morning walk"]);
-    expect(d.practice.map(t => t.title)).toEqual(["Read a book · 20 min"]); // cube is school days only
+    expect(d.must.map(t => t.title)).toEqual(["Lunch and shower", "School homework"]); // Mon lines, no weekend walk
+    expect(d.practice.map(t => t.title)).toEqual(["Read a book · 20 min"]); // cube goal practice is school days only
+  });
+
+  it("a routine runs from its start date to its end date (none = goes on)", () => {
+    const dated = [
+      item("old", "must", "Old one", [], null, { start_date: "2026-01-01", end_date: "2026-11-22" }),
+      item("soon", "must", "Starts later", [], null, { start_date: "2026-11-24" }),
+      item("now", "must", "Runs today", [], null, { start_date: "2026-11-23", end_date: "2026-11-23" }),
+      item("open", "must", "Goes on", [], null, { start_date: "2026-11-01" }),
+    ];
+    const t = buildDay({ child: child(), iso: "2026-11-23", calendarDays, hours, routine: dated, schedules: [], goals: [], ticks: [] });
+    expect(t.must.map(x => x.title)).toEqual(["Runs today", "Goes on"]);
   });
 
   it("has no school on the timetable, but keeps that day's classes", () => {
@@ -294,9 +306,17 @@ describe("homework", () => {
     expect(hw(day("2026-11-14", { now: "11:30" })).map(t => t.homework!.lesson)).toEqual(["2026-11-07", "2026-11-14"]);
   });
 
-  it("a lesson logged absent or cancelled gives none", () => {
+  it("switching homework on counts from the latest lesson", () => {
+    const chinese = activity("cn", "Chinese Tuition", {});
+    const slots = [schedule("cn-sat", chinese, 6, "10:00", "11:30")];
+    expect(latestLesson("cn", slots, "2026-11-12")).toBe("2026-11-07"); // Thu → last Sat
+    expect(latestLesson("cn", slots, "2026-11-14")).toBe("2026-11-14"); // a lesson day counts
+    expect(latestLesson("other", slots, "2026-11-12")).toBeNull();
+  });
+
+  it("a cancelled lesson gives none; an absent one still gives homework", () => {
     const absent = day("2026-11-12", { attendance: [{ activity_id: "cn", child_id: "z", date: "2026-11-07", status: "absent" }] });
-    expect(hw(absent)).toEqual([]);
+    expect(hw(absent).map(h => h.homework!.lesson)).toContain("2026-11-07");
     const cancelled = day("2026-11-12", { attendance: [{ activity_id: "cn", child_id: "z", date: "2026-11-07", status: "cancelled_by_provider" }] });
     expect(hw(cancelled)).toEqual([]);
   });

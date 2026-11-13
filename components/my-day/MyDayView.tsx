@@ -218,7 +218,7 @@ function NowCard({ day, doFirstDue, onDone, nothingPlanned }: {
   if (!day.now) {
     return (
       <div className="p-6 bg-[var(--stem)] text-[var(--sheet)]">
-        <p className="m-0 text-sm font-bold uppercase tracking-wider opacity-85">All done</p>
+        <p className="m-0 text-base font-semibold opacity-85">All done</p>
         <p className="m-0 mt-1 text-[30px] leading-9 font-extrabold">Great work! Free Play is yours.</p>
       </div>
     );
@@ -227,7 +227,7 @@ function NowCard({ day, doFirstDue, onDone, nothingPlanned }: {
   return (
     <div className="p-5 md:p-6 bg-[var(--sheet)] border-2 border-[var(--stem)] flex flex-wrap items-center justify-between gap-5">
       <div className="min-w-0 flex-1 basis-64">
-        <p className="m-0 text-sm font-bold uppercase tracking-wider text-[var(--stem)]">
+        <p className="m-0 text-base font-semibold text-[var(--stem)]">
           Now · {isDoFirst ? `do first${doFirstDue ? `, ${doFirstDue}` : ""}` : "hobby time"}
         </p>
         <p className="m-0 mt-1 text-[28px] leading-9 md:text-[30px] font-extrabold tracking-tight break-words">{day.now.title}</p>
@@ -253,7 +253,7 @@ function TaskRow({ task, onToggle, quiet }: { task: DayTask; onToggle: (t: DayTa
     <button type="button" aria-pressed={done} onClick={() => onToggle(task)}
       className={cn("w-full min-h-16 box-border flex items-center gap-4 px-4 py-3 text-left border cursor-pointer",
         done ? "bg-[#eaf3ec] border-[#9cc5a8]" : quiet ? "bg-[var(--paper)] border-dashed border-[var(--rule)]" : "bg-[var(--sheet)] border-[var(--rule)]")}>
-      <span aria-hidden="true" className={cn("w-8 h-8 shrink-0 rounded-lg flex items-center justify-center box-border",
+      <span aria-hidden="true" className={cn("w-8 h-8 shrink-0 rounded-[var(--radius-md)] flex items-center justify-center box-border",
         done ? "bg-[var(--stem)] text-[var(--sheet)]" : "bg-white border-2 border-[var(--ink-faint)]")}>
         {done && <Check size={18} strokeWidth={3.2} />}
       </span>
@@ -276,7 +276,7 @@ function Timeline({ blocks, hhmm, className }: { blocks: TimelineBlock[]; hhmm: 
   const current = [...blocks].reverse().find(b => b.time <= hhmm);
   return (
     <section aria-label="Today’s timetable" className={cn("bg-[var(--sheet)] border border-[var(--rule)] p-4 md:p-5 flex flex-col gap-1 self-start w-full box-border", className)}>
-      <h2 className="m-0 mb-2 text-sm font-bold uppercase tracking-wider text-[var(--ink-soft)]">Today</h2>
+      <h2 className="m-0 mb-2 text-base font-semibold text-[var(--ink-soft)]">Today</h2>
       {blocks.length === 0 && <p className="m-0 text-base text-[var(--ink-soft)]">Nothing at a set time today.</p>}
       {blocks.map((b, i) => {
         const isNow = b === current;

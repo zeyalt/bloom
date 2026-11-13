@@ -71,13 +71,6 @@ export default function GoalsView() {
     }];
   })), [goals, children]);
 
-  const allActive = kids.flatMap(k => byChild.get(k.id)?.active ?? []);
-  const allAchieved = kids.flatMap(k => byChild.get(k.id)?.achieved ?? []);
-  const goalsLine = isLoading ? " "
-    : isError ? "Couldn’t load goals"
-    : !allActive.length && !allAchieved.length ? "No goals yet"
-    : countLine(allActive, allAchieved, today);
-
   const open = (g: Goal) => router.push(`/goals/${g.id}`);
   const newGoal = () => {
     if (kids.length === 1) setCreatingFor(kids[0]);
@@ -86,7 +79,7 @@ export default function GoalsView() {
 
   return (
     <Page>
-      <Header title="Goals" subtitle={goalsLine} />
+      <Header title="Goals" subtitle={null} />
 
       <Utilities>
         <ChildFilter childList={children} selected={selectedIds} onToggle={toggleChild} />
@@ -127,8 +120,8 @@ export default function GoalsView() {
 
                 {achieved.length > 0 && (
                   <div className="flex flex-col gap-1 mt-1">
-                    <h3 className="text-xs leading-4 font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Achieved</h3>
-                    <ul className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
+                    <h3 className="text-sm leading-5 font-semibold text-[var(--ink-soft)]">Achieved</h3>
+                    <ul className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden divide-y divide-[var(--rule)]">
                       {achieved.map(g => {
                         const done = achievedDate(g)!;
                         return (
@@ -179,7 +172,7 @@ function GoalCard({ goal, today, onOpen }: { goal: Goal; today: string; onOpen: 
   const target = day(goal.target_date);
   return (
     <button type="button" onClick={onOpen}
-      className="w-full min-w-0 text-left flex flex-col gap-1.5 px-3 py-2.5 bg-[var(--sheet)] border border-[var(--rule)] cursor-pointer hover:border-[var(--ink-faint)] active:bg-[var(--bg-secondary)] transition-colors duration-150">
+      className="w-full min-w-0 text-left flex flex-col gap-1.5 px-3 py-2.5 bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer hover:border-[var(--ink-faint)] active:bg-[var(--bg-secondary)] transition-colors duration-150">
       <span className="flex items-start justify-between gap-2">
         <span className="min-w-0 text-[15px] leading-5 font-semibold text-[var(--ink)] break-words">
           {goal.kind === "measured" ? `${goal.title} → ${fmtValue(goal.target_value ?? 0, goal.unit)}` : goal.title}

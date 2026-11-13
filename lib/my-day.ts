@@ -202,7 +202,7 @@ export interface BuildDayInput {
   goals: Goal[];
   /** Ticks for today, plus homework ticks for the lessons still in range (they're dated by lesson). */
   ticks: TaskTick[];
-  /** To leave out homework from lessons logged as absent or cancelled. */
+  /** To leave out homework from lessons the provider cancelled (absent still gets homework). */
   attendance?: Pick<AttendanceLog, "activity_id" | "child_id" | "date" | "status">[];
   /** The list saved for this day: used instead of today's routine, so a past day shows what it was. */
   plan?: PlannedTask[] | null;
@@ -216,7 +216,7 @@ export interface BuildDayInput {
 export const HOMEWORK_SOON_DAYS = 3;
 /** How far back homework is looked for — older open homework is dropped, not nagged about forever. */
 export const HOMEWORK_LOOKBACK_DAYS = 42;
-const NO_HOMEWORK: AttendanceLog["status"][] = ["absent", "cancelled_by_provider"];
+const NO_HOMEWORK: AttendanceLog["status"][] = ["cancelled_by_provider"];
 
 export const activityLabel = (a: Pick<Activity, "activity_name" | "institution">) =>
   a.activity_name || a.institution || "Class";
@@ -233,6 +233,16 @@ function slotOn(s: ScheduleWithActivity, iso: string): boolean {
   return true;
 }
 
+/**
+ * The most recent lesson of a class on or before `iso` (within two weeks), or null. Switching
+ * homework on counts from here, so the homework from the lesson just gone shows straight away.
+ */
+export function latestLesson(activityId: string, schedules: ScheduleWithActivity[], iso: string): string | null {
+  const slots = schedules.filter(s => s.activity_id === activityId);
+  for (let d = iso, i = 0; i < 14; d = shift(d, -1), i++) if (slots.some(s => slotOn(s, d))) return d;
+  return null;
+}
+
 function classesOn(iso: string, childId: string, schedules: ScheduleWithActivity[]) {
   return schedules
     .filter(s => s.activity?.child_id === childId && slotOn(s, iso))
@@ -247,7 +257,8 @@ const localDayOf = (timestamp: string) => isoOf(new Date(timestamp));
 /**
  * Open homework for a child on `iso`: one piece per lesson of each class that gives
  * homework, from the day it was switched on (and at most HOMEWORK_LOOKBACK_DAYS back).
- * A lesson logged absent or cancelled gives none; today's lesson counts once it's over.
+ * A lesson the provider cancelled gives none (missing it still means homework); today's
+ * lesson counts once it's over.
  * Due the day before the next lesson, or 6 days after when no next lesson is scheduled.
  * A tick (done, or a parent's "no homework this time") closes it for good — except that
  * homework finished today stays in the list, ticked, so today's progress shows it.
@@ -302,11 +313,11 @@ export function buildDay(input: BuildDayInput): BuiltDay {
   const dayTicks = ticks.filter(t => t.child_id === child.id && day(t.date) === iso);
   const tickOf = new Map(dayTicks.map(t => [t.item_key, t]));
 
-  // Routine lines for this kind of day and weekday, in the parent's order.
+  // Routine lines for this weekday, between their start and end dates, in the parent's order.
   const lines = routine
     .filter(r => r.child_id === child.id)
-    .filter(r => r.day_type === "any" || r.day_type === routineType)
     .filter(r => r.weekdays.length === 0 || r.weekdays.includes(weekday))
+    .filter(r => day(r.start_date) <= iso && (!r.end_date || day(r.end_date) >= iso))
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
 
   const task = (key: string, title: string, tier: DayTask["tier"], source: DayTask["source"]): DayTask => {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { goalApi, useRefreshGoals } from "@/lib/goal-api";
@@ -42,6 +43,7 @@ export function GoalFormModal({
   const [practiceTask, setPracticeTask] = useState(goal?.practice_task ?? "");
   const [practiceDays, setPracticeDays] = useState<"school" | "holiday" | "any">(goal?.practice_days ?? "any");
   const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const preset = METRICS.find(m => m.name === metric);
@@ -82,7 +84,8 @@ export function GoalFormModal({
   }
 
   async function remove() {
-    if (!goal || !window.confirm(`Delete “${goal.title}” and everything logged against it? This can’t be undone.`)) return;
+    if (!goal) return;
+    setConfirming(false);
     setSaving(true);
     try {
       await goalApi.remove(goal.id);
@@ -200,7 +203,7 @@ export function GoalFormModal({
 
         <div className="flex items-center gap-2 pt-1">
           {editing && (
-            <Button variant="danger" onClick={remove} disabled={saving}>Delete</Button>
+            <Button variant="danger" onClick={() => setConfirming(true)} disabled={saving}>Delete</Button>
           )}
           <div className="flex-1" />
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
@@ -210,6 +213,11 @@ export function GoalFormModal({
           <p className="text-xs text-[var(--ink-soft)]">Next you can have Claude draft an action plan for it.</p>
         )}
       </div>
+      {goal && (
+        <ConfirmDialog open={confirming} title="Delete goal?" busy={saving}
+          message={`“${goal.title}” and everything logged against it will be deleted. This can’t be undone.`}
+          onConfirm={remove} onCancel={() => setConfirming(false)} />
+      )}
     </Modal>
   );
 }

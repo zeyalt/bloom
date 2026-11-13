@@ -129,7 +129,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
               ? `Claude’s draft. Change any date or wording, add or remove checkpoints, then save.`
               : "Change any date or wording, add or remove checkpoints. Ticks on checkpoints already hit are kept."}
           </p>
-          <div className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
+          <div className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden divide-y divide-[var(--rule)]">
             {rows.map((r, i) => (
               <div key={r.key} className="p-3 space-y-2">
                 <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
 
       {shown === "view" && hasPlan && (
         <>
-          <ol className="border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)]">
+          <ol className="border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden divide-y divide-[var(--rule)]">
             {progress.checkpoints.map(c => {
               const hit = c.state === "hit", missed = c.state === "missed", next = c.state === "next";
               const meta = hit

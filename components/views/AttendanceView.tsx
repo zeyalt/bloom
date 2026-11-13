@@ -319,7 +319,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
             {sortedLogs.length === 0
               ? "No records"
               : sortedLogs.length > PAGE_SIZE
-                ? `Showing ${pageStart + 1}–${pageStart + pagedLogs.length} of ${sortedLogs.length} records`
+                ? `${pageStart + 1}–${pageStart + pagedLogs.length} of ${sortedLogs.length} records`
                 : `${sortedLogs.length} record${sortedLogs.length === 1 ? "" : "s"}`}
           </p>
           <div className="flex gap-2 shrink-0 ml-auto">
@@ -327,7 +327,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
               aria-pressed={showColumnPicker}
-              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
+              className={`relative hidden md:inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
             >
               <Columns3 size={16} /> Columns
             </button>
@@ -339,7 +339,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
 
         {/* Column picker */}
         {showColumnPicker && (
-          <div className="p-4 border border-[var(--rule)] rounded-lg bg-[var(--bg-secondary)]">
+          <div className="p-4 border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--bg-secondary)]">
             <p className="text-sm text-[var(--ink-faint)] mb-3">Visible columns</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
@@ -373,14 +373,42 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
         {/* Table */}
         {loading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-lg animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] rounded-[var(--radius-md)] animate-pulse" />)}
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="text-center py-12 text-[var(--ink-faint)]">
             <p className="text-sm">No attendance records</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+          <>
+          {/* Phones: one row per session, tap to edit. The wide table stays for tablets and desktops. */}
+          <ul className="md:hidden rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)] overflow-hidden">
+            {pagedLogs.map(log => {
+              const child = log.child ?? children.find(c => c.id === log.child_id);
+              const name = log.activity?.activity_name || log.activity?.institution || "Activity";
+              return (
+                <li key={log.id}>
+                  <button type="button" onClick={() => openEdit(log)} aria-label={`Edit ${name} on ${formatDate(log.date)}`}
+                    className="w-full text-left px-4 py-3 min-h-16 flex items-center gap-3 cursor-pointer active:bg-[var(--bg-secondary)]">
+                    {child && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} aria-hidden="true" />}
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-base leading-6 font-semibold text-[var(--ink)] break-words">{name}</span>
+                      <span className="block text-sm leading-5 text-[var(--ink-soft)]">
+                        {[child?.name, formatDate(log.date), log.start_time ? formatTime(log.start_time) : null].filter(Boolean).join(", ")}
+                      </span>
+                      {log.activity?.institution && log.activity.activity_name && (
+                        <span className="block text-sm leading-5 text-[var(--ink-soft)] break-words">{log.activity.institution}</span>
+                      )}
+                    </span>
+                    {hasReflection(log.learned, log.diary_notes) && <NotebookPen size={16} className="shrink-0 text-[var(--ink-soft)]" aria-label="Has a reflection" />}
+                    <Badge label={ATTENDANCE_STATUS_LABELS[log.status]}
+                      variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="hidden md:block overflow-x-auto rounded-[var(--radius-md)] border border-[var(--rule)]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">
@@ -464,14 +492,14 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => openEdit(log)}
-                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--ink-faint)] hover:bg-white hover:text-[var(--ink)] transition-colors"
                           title="Edit attendance"
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => { setDeleteError(""); setConfirmDelete(log); }}
-                          className="w-12 h-12 inline-flex items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--ink-faint)] hover:bg-white hover:text-[var(--margin)] transition-colors"
                           title="Delete attendance"
                         >
                           <Trash2 size={16} />
@@ -483,6 +511,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Pagination — only surfaces once the filtered set outgrows one page */}
@@ -511,7 +540,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
         )}
 
         <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete attendance?" size="sm">
-          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{deleteError}</p>}
+          {deleteError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-[var(--radius-md)] mb-3">{deleteError}</p>}
           <p className="text-sm text-[var(--ink-soft)] mb-4">
             Delete the {confirmDelete ? formatDate(confirmDelete.date) : ""}{" "}
             {confirmDelete?.start_time ? `at ${formatTime(confirmDelete.start_time)} ` : ""}
