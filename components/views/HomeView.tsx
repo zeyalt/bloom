@@ -243,9 +243,9 @@ export default function AgendaPage() {
     return [...byKey.values()];
   }, [kids, my.days]);
 
-  const rows: { time: string; order: number; node: ReactNode }[] = [];
+  const rows: { time: string; order: number; who: string[]; node: ReactNode }[] = [];
   for (const n of notes) {
-    rows.push({ time: n.time, order: 0, node: <NoteRow key={`n-${n.time}-${n.label}-${n.kind}`} line={n} /> });
+    rows.push({ time: n.time, order: 0, who: n.kids.map(k => k.id), node: <NoteRow key={`n-${n.time}-${n.label}-${n.kind}`} line={n} /> });
   }
   for (const { key, schedule: s } of occ) {
     const a = s.activity!;
@@ -254,7 +254,7 @@ export default function AgendaPage() {
     const isNext = upNext?.key === key;
     const underway = isNext && !!s.start_time && s.start_time.slice(0, 5) <= nowHHMM;
     rows.push({
-      time: (s.start_time ?? "").slice(0, 5), order: 1,
+      time: (s.start_time ?? "").slice(0, 5), order: 1, who: [a.child_id],
       node: (
         <ClassRow key={key}
           time={s.start_time} title={a.activity_name || a.institution} child={a.child}
@@ -288,7 +288,7 @@ export default function AgendaPage() {
   for (const log of adhoc) {
     const a = log.activity;
     rows.push({
-      time: (log.start_time ?? "").slice(0, 5), order: 1,
+      time: (log.start_time ?? "").slice(0, 5), order: 1, who: [log.child_id],
       node: (
         <ClassRow key={log.id}
           time={log.start_time} title={a?.activity_name || a?.institution || "Activity"} child={log.child}
@@ -304,6 +304,15 @@ export default function AgendaPage() {
   rows.sort((x, y) => (x.time || "99").localeCompare(y.time || "99") || x.order - y.order);
 
   const routineKids = kids.filter(k => hasRoutine(my.days.get(k.id)));
+  // One child's routine card (or the set-up prompt when they have none).
+  const cardFor = (kid: Child) => routineKids.includes(kid) ? (
+    <RoutineCard key={kid.id} child={kid} day={my.days.get(kid.id)!} date={date} tense={my.tense}
+      onTick={t => my.toggle(kid, t)} onSkip={t => my.skip(kid, t)}
+      onAdd={(title, tier) => my.addOneOff(kid, title, tier)} onRemove={my.removeOneOff} />
+  ) : (
+    <EmptyRoutineCard key={kid.id} child={kid} setUp={isSetUp(kid.id)} tense={my.tense}
+      onSetUp={() => openSettings("routines")} onAdd={(title, tier) => my.addOneOff(kid, title, tier)} />
+  );
   // Has anything ever been set up for this child: routine items, goal practice, class prep or homework?
   const isSetUp = (id: string) =>
     routineItems.some(r => r.child_id === id && r.tier !== "anchor") ||
@@ -359,48 +368,44 @@ export default function AgendaPage() {
 
         {/* Phones: routines, then the timetable below. Tablets in landscape and desktops (1024px+):
             the timetable on the left, routines on the right, like the kids' My Day screen. */}
-        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(340px,420px)_minmax(0,1fr)] lg:items-start">
-        {/* Each child's routine: tick for them, see when they ticked. Everyone selected gets a card. */}
-        {kids.length > 0 && (
-          <section aria-labelledby="routines-heading" className="flex flex-col gap-2 min-w-0 lg:col-start-2 lg:row-start-1">
-            <h3 id="routines-heading" className="font-semibold text-[var(--ink)]">
-              Routines{my.tense === "future" ? " · planned" : ""}
-            </h3>
-            {my.saveError && (
-              <p role="alert" className="flex items-start gap-2 p-3 text-sm leading-5 border border-[var(--margin)] bg-[var(--sheet)] text-[var(--margin)]">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-                <span className="flex-1">{my.saveError}</span>
-                <button type="button" onClick={my.clearSaveError} className="relative font-semibold underline cursor-pointer before:absolute before:-inset-3 before:content-['']">OK</button>
-              </p>
-            )}
-            <ul className="flex flex-col gap-3" aria-busy={!my.ready}>
-              {!my.ready ? kids.map(kid => <RoutineCardSkeleton key={kid.id} />) : kids.map(kid => routineKids.includes(kid) ? (
-                <RoutineCard key={kid.id} child={kid} day={my.days.get(kid.id)!} date={date} tense={my.tense}
-                  onTick={t => my.toggle(kid, t)} onSkip={t => my.skip(kid, t)}
-                  onAdd={(title, tier) => my.addOneOff(kid, title, tier)} onRemove={my.removeOneOff} />
-              ) : (
-                <EmptyRoutineCard key={kid.id} child={kid} setUp={isSetUp(kid.id)} tense={my.tense}
-                  onSetUp={() => openSettings("routines")} onAdd={(title, tier) => my.addOneOff(kid, title, tier)} />
-              ))}
-            </ul>
-          </section>
+        {my.saveError && (
+          <p role="alert" className="flex items-start gap-2 p-3 text-sm leading-5 border border-[var(--margin)] bg-[var(--sheet)] text-[var(--margin)]">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span className="flex-1">{my.saveError}</span>
+            <button type="button" onClick={my.clearSaveError} className="relative font-semibold underline cursor-pointer before:absolute before:-inset-3 before:content-['']">OK</button>
+          </p>
         )}
 
-        {/* The day's timetable — school, classes (log them here) and fixed times. */}
-        <section aria-labelledby="timetable-heading" className="flex flex-col gap-2 min-w-0 lg:col-start-1 lg:row-start-1">
-          <h3 id="timetable-heading" className="font-semibold text-[var(--ink)]">Timetable</h3>
-          {loading ? (
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] animate-pulse" />)}
-            </div>
-          ) : rows.length === 0 ? (
-            <p className="text-sm leading-5 text-[var(--ink-soft)] py-4">Nothing planned this day.</p>
-          ) : (
-            <div className="divide-y divide-[var(--rule)] border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
-              {rows.map(r => r.node)}
-            </div>
+        {/* Phones: routines first, then the day's timetable. Landscape and desktop: below. */}
+        <div className="flex flex-col gap-6 lg:hidden">
+          {kids.length > 0 && (
+            <section aria-labelledby="routines-heading" className="flex flex-col gap-2 min-w-0">
+              <h3 id="routines-heading" className="font-semibold text-[var(--ink)]">
+                Routines{my.tense === "future" ? " · planned" : ""}
+              </h3>
+              <ul className="flex flex-col gap-3" aria-busy={!my.ready}>
+                {!my.ready ? kids.map(kid => <RoutineCardSkeleton key={kid.id} />) : kids.map(cardFor)}
+              </ul>
+            </section>
           )}
-        </section>
+          <section aria-labelledby="timetable-heading" className="flex flex-col gap-2 min-w-0">
+            <h3 id="timetable-heading" className="font-semibold text-[var(--ink)]">Timetable</h3>
+            <TimetableBox items={rows} loading={loading} />
+          </section>
+        </div>
+
+        {/* Landscape and desktop: each child's timetable beside their own routine. */}
+        <div className="hidden lg:flex flex-col gap-6">
+          {kids.map(kid => (
+            <div key={kid.id} className="grid grid-cols-[minmax(0,1fr)_minmax(340px,420px)] gap-6 items-start">
+              <ul className="flex flex-col min-w-0" aria-busy={!my.ready}>
+                {!my.ready ? <RoutineCardSkeleton /> : cardFor(kid)}
+              </ul>
+              <section aria-label={`${kid.name}’s timetable`} className="flex flex-col gap-2 min-w-0">
+                <TimetableBox items={rows.filter(r => r.who.includes(kid.id))} loading={loading} />
+              </section>
+            </div>
+          ))}
         </div>
       </PageBody>
 
@@ -438,6 +443,21 @@ function NoteRow({ line }: { line: NoteLine }) {
           {line.sub && <span>· {line.sub}</span>}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** A timetable box: the rows, or a loading placeholder, or "nothing planned". */
+function TimetableBox({ items, loading }: { items: { node: ReactNode }[]; loading: boolean }) {
+  if (loading) {
+    return <div className="flex flex-col gap-2">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--bg-secondary)] animate-pulse" />)}</div>;
+  }
+  if (items.length === 0) {
+    return <p className="text-sm leading-5 text-[var(--ink-soft)] py-4">Nothing planned this day.</p>;
+  }
+  return (
+    <div className="divide-y divide-[var(--rule)] border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-lg)] overflow-hidden">
+      {items.map(r => r.node)}
     </div>
   );
 }
