@@ -255,12 +255,21 @@ homework. A date bar moves to any past or future day. The kids' tablet (`/my-day
 
 ## When the feature is done: merging
 
-- [ ] Ask you before committing or pushing anything.
-- [ ] Merge `feature/my-day` into `main`, and run the migration on production
+- [x] Ask you before committing or pushing anything.
+- [x] Merge `feature/my-day` into `main`, and run the migration on production
       (`prisma migrate deploy`).
-- [ ] Re-enter the setup on production (school hours, routines), or copy those rows across from
+- [x] Re-enter the setup on production (school hours, routines), or copy those rows across from
       the `my-day` branch with a script.
-- [ ] Switch `.env.local` back to production and delete the Neon `my-day` branch.
+- [x] Switch `.env.local` back to production (copy's settings kept in `.env.local.my-day-copy`).
+- [ ] Delete the Neon `my-day` branch (in the Neon console).
+
+### Merged 13 Nov
+- Production backed up first (JSON dump of every table), then `prisma migrate deploy` (5 migrations).
+- `scripts/copy-my-day-setup.js --apply`: 1 calendar, 54 calendar days, 14 school-hour rows,
+  3 routine items, 3 ticks, 2 day lists; updated Zayyan and Zara (school details), AQSA and Soccer
+  (prep, homework), the Rubik's Cube goal (daily practice); added the 12 Nov AQSA absent log.
+  The 2 goals added on production on 12 Nov were kept.
+- `main` fast-forwarded to `feature/my-day` and pushed; Vercel deployed it.
 
 ## Stage 1 review (12 Nov)
 
