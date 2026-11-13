@@ -262,4 +262,33 @@ export interface TaskTick {
   tier: RoutineTier | "homework";
   done_at: string;
   skipped: boolean; // homework a parent marked "No homework this time"
+  by: TickedBy;
+}
+
+export type TickedBy = "child" | "parent";
+
+/** One line of a saved day list (see DayPlan): what the child had to do that day. */
+export interface PlannedTask {
+  key: string;
+  title: string;
+  tier: "must" | "practice" | "free";
+  source: { kind: "routine" | "prep" | "goal" | "oneoff"; label: string | null };
+}
+
+/** A task for one child on one date only, added by a parent on Home. Ticked under `oneoff:<id>`. */
+export interface OneOffTask {
+  id: string;
+  child_id: string;
+  date: string;
+  title: string;
+  tier: "must" | "practice" | "free";
+  created_at: string;
+}
+
+export interface DayPlan {
+  id: string;
+  child_id: string;
+  date: string;
+  items: PlannedTask[];
+  saved_at: string;
 }

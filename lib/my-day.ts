@@ -10,8 +10,8 @@
  */
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import type {
-  Activity, AttendanceLog, CalendarDay, Child, Goal, RoutineDayType, RoutineItem, RoutineTier,
-  Schedule, SchoolHours, TaskTick,
+  Activity, AttendanceLog, CalendarDay, Child, Goal, OneOffTask, PlannedTask, RoutineDayType, RoutineItem, RoutineTier,
+  Schedule, SchoolHours, TaskTick, TickedBy,
 } from "./types";
 
 // ─── Levels ──────────────────────────────────────────────────────────────────
@@ -160,8 +160,10 @@ export interface DayTask {
   title: string;
   tier: Exclude<RoutineTier, "anchor"> | "homework";
   /** Where it came from, for the little tag: a weekly routine, a class's prep, a goal, homework. */
-  source: { kind: "routine" | "prep" | "goal" | "homework"; label: string | null };
+  source: { kind: "routine" | "prep" | "goal" | "homework" | "oneoff"; label: string | null };
   doneAt: string | null; // ISO timestamp of the tick
+  /** Who ticked it: the child on the tablet, or a parent on Home. */
+  doneBy?: TickedBy;
   /** Homework only: the lesson it's from (the date its tick is stored under), when it's due. */
   homework?: { lesson: string; due: string; overdue: boolean; note: string | null };
 }
@@ -182,6 +184,8 @@ export interface BuiltDay {
   done: number;
   total: number;
   freeUnlocked: boolean;
+  /** The day's list without homework, as saved in a DayPlan (only what the routine asked for). */
+  plan: PlannedTask[];
 }
 
 type ScheduleWithActivity = Schedule & { activity?: Activity };
@@ -200,6 +204,12 @@ export interface BuildDayInput {
   ticks: TaskTick[];
   /** To leave out homework from lessons logged as absent or cancelled. */
   attendance?: Pick<AttendanceLog, "activity_id" | "child_id" | "date" | "status">[];
+  /** The list saved for this day: used instead of today's routine, so a past day shows what it was. */
+  plan?: PlannedTask[] | null;
+  /** Include open homework (default true). Homework is about what's due now, so only today has it. */
+  homework?: boolean;
+  /** One-off tasks added for a single date (any children, any dates: only this child's on `iso` count). */
+  oneOffs?: OneOffTask[];
 }
 
 /** Homework due within this many days (or overdue) is a Do-first job. */
@@ -289,9 +299,8 @@ export function buildDay(input: BuildDayInput): BuiltDay {
   const info = dayInfo(child, iso, input.calendarDays, input.hours);
   const routineType = info.kind === "holiday" ? "holiday" : "school";
   const weekday = weekdayOf(iso);
-  const tickAt = new Map(
-    ticks.filter(t => t.child_id === child.id && day(t.date) === iso).map(t => [t.item_key, t.done_at])
-  );
+  const dayTicks = ticks.filter(t => t.child_id === child.id && day(t.date) === iso);
+  const tickOf = new Map(dayTicks.map(t => [t.item_key, t]));
 
   // Routine lines for this kind of day and weekday, in the parent's order.
   const lines = routine
@@ -300,8 +309,10 @@ export function buildDay(input: BuildDayInput): BuiltDay {
     .filter(r => r.weekdays.length === 0 || r.weekdays.includes(weekday))
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
 
-  const task = (key: string, title: string, tier: DayTask["tier"], source: DayTask["source"]): DayTask =>
-    ({ key, title, tier, source, doneAt: tickAt.get(key) ?? null });
+  const task = (key: string, title: string, tier: DayTask["tier"], source: DayTask["source"]): DayTask => {
+    const t = tickOf.get(key);
+    return { key, title, tier, source, doneAt: t?.done_at ?? null, ...(t ? { doneBy: t.by ?? "child" } : {}) };
+  };
   const fromRoutine = (tier: DayTask["tier"]) =>
     lines.filter(r => r.tier === tier).map(r => task(`routine:${r.id}`, r.title, tier, { kind: "routine", label: null }));
 
@@ -315,12 +326,37 @@ export function buildDay(input: BuildDayInput): BuiltDay {
     .filter(g => !g.practice_days || g.practice_days === "any" || g.practice_days === routineType)
     .map(g => task(`goal:${g.id}`, g.practice_task!, "practice", { kind: "goal", label: `Goal: ${g.title}` }));
 
-  const homework = homeworkFor(input);
+  // One-off tasks are always current (they can be added to or removed from any day), so
+  // they replace whatever one-offs a saved list holds.
+  const oneOffs = (input.oneOffs ?? [])
+    .filter(o => o.child_id === child.id && day(o.date) === iso)
+    .map(o => task(`oneoff:${o.id}`, o.title, o.tier, { kind: "oneoff", label: null }));
+
+  // The list: the saved one when given, else built from the routine, classes and goals.
+  const planned: DayTask[] = [
+    ...(input.plan
+      ? input.plan.filter(p => p.source.kind !== "oneoff").map(p => task(p.key, p.title, p.tier, p.source))
+      : [...fromRoutine("must"), ...prep, ...fromRoutine("practice"), ...practiceFromGoals, ...fromRoutine("free")]),
+    ...oneOffs,
+  ];
+  const plan: PlannedTask[] = planned.map(t => ({
+    key: t.key, title: t.title, tier: t.tier as PlannedTask["tier"], source: t.source as PlannedTask["source"],
+  }));
+  // Ticked, but no longer on the list (the item was removed since): still shown, as done.
+  const listed = new Set(planned.map(t => t.key));
+  const extra = dayTicks
+    .filter(t => !listed.has(t.item_key) && !t.skipped && (t.tier === "must" || t.tier === "practice" || t.tier === "free"))
+    .map(t => task(t.item_key, t.title, t.tier as DayTask["tier"], { kind: "routine", label: null }));
+  const byTier = (tier: DayTask["tier"]) => [...planned, ...extra].filter(t => t.tier === tier);
+
+  const homework = input.homework === false ? [] : homeworkFor(input);
   const soon = homework.filter(h => differenceInCalendarDays(parseISO(h.homework!.due), parseISO(iso)) <= HOMEWORK_SOON_DAYS);
   const homeworkLater = homework.filter(h => !soon.includes(h));
-  const must = [...fromRoutine("must"), ...soon, ...prep];
-  const practice = [...fromRoutine("practice"), ...practiceFromGoals];
-  const free = fromRoutine("free");
+  // Do first: routine must-dos, then homework due soon, then class prep — as before.
+  const mustList = byTier("must");
+  const must = [...mustList.filter(t => t.source.kind !== "prep"), ...soon, ...mustList.filter(t => t.source.kind === "prep")];
+  const practice = byTier("practice");
+  const free = byTier("free");
 
   // Timetable: school, home time, classes and fixed times, in time order.
   const timeline: TimelineBlock[] = [];
@@ -355,5 +391,47 @@ export function buildDay(input: BuildDayInput): BuiltDay {
     done: total - open.length,
     total,
     freeUnlocked: must.every(t => t.doneAt),
+    plan,
   };
+}
+
+// ─── The banner on Home: a short, encouraging line about a child's day ─────────
+
+export interface Cheer {
+  /** Small line above: where they are ("Keep going · before AQSA at 4:00 PM"). */
+  kicker: string;
+  /** The big line: short and kind. */
+  headline: string;
+  /** Optional line below: what's next. */
+  detail: string | null;
+  /** done = all ticked (green), go = under way today, plain = past or future. */
+  tone: "done" | "go" | "plain";
+}
+
+const clock = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+};
+
+export function cheer(day: BuiltDay, tense: "past" | "today" | "future", name: string): Cheer {
+  const { done, total } = day;
+  if (tense === "future") {
+    return { kicker: "Coming up", headline: total ? `${total} thing${total === 1 ? "" : "s"} planned` : "Free Play day", detail: null, tone: "plain" };
+  }
+  if (tense === "past") {
+    if (total === 0) return { kicker: "That day", headline: "A free day", detail: null, tone: "plain" };
+    if (done === total) return { kicker: "All done", headline: `${name} did it all. Well done!`, detail: null, tone: "done" };
+    if (done === 0) return { kicker: "That day", headline: "Nothing ticked that day", detail: null, tone: "plain" };
+    return { kicker: "That day", headline: `Good effort, ${name}!`, detail: null, tone: "plain" };
+  }
+  if (total === 0) return { kicker: "Today", headline: `Free Play day, ${name}!`, detail: null, tone: "go" };
+  if (done === total) {
+    return { kicker: "All done", headline: day.free.length ? `Great work, ${name}! Free Play is yours.` : `Great work, ${name}! All done.`, detail: null, tone: "done" };
+  }
+  const mustLeft = day.must.filter(t => !t.doneAt).length;
+  const next = day.now ? `Next: ${day.now.title}` : null;
+  const by = day.deadline ? ` · before ${day.deadline.label} at ${clock(day.deadline.time)}` : "";
+  if (mustLeft > 0 && done === 0) return { kicker: `Let’s go${by}`, headline: `First up: ${day.now!.title}`, detail: null, tone: "go" };
+  if (mustLeft > 0) return { kicker: `Keep going${by}`, headline: `Nice work! ${mustLeft} more to go.`, detail: next, tone: "go" };
+  return { kicker: "Do first done", headline: "Well done! Hobby time next.", detail: next, tone: "go" };
 }

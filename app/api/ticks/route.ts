@@ -28,8 +28,9 @@ export async function GET(req: Request) {
 
 /**
  * Ticks a task. Idempotent: ticking something already ticked keeps the original time.
- * Body: { child_id, date, item_key, title, tier, done_at?, skipped? } — done_at defaults to
- * now; skipped (homework only) records a parent's "No homework this time".
+ * Body: { child_id, date, item_key, title, tier, done_at?, skipped?, by? } — done_at defaults to
+ * now; skipped (homework only) records a parent's "No homework this time"; by is who ticked
+ * it, "child" (the default, the tablet) or "parent" (Home).
  */
 export async function POST(req: Request) {
   try {
@@ -43,10 +44,12 @@ export async function POST(req: Request) {
     const skipped = body.tier === "homework" && body.skipped === true;
     const doneAt = body.done_at ? new Date(body.done_at) : new Date();
     if (Number.isNaN(doneAt.getTime())) return badRequest("done_at must be a timestamp");
+    if (body.by !== undefined && body.by !== "child" && body.by !== "parent") return badRequest("by must be child or parent");
+    const by = body.by ?? "child";
 
     const tick = await prisma.taskTick.upsert({
       where: { childId_date_itemKey: { childId: body.child_id, date, itemKey } },
-      create: { childId: body.child_id, date, itemKey, title, tier: body.tier, doneAt, skipped },
+      create: { childId: body.child_id, date, itemKey, title, tier: body.tier, doneAt, skipped, by },
       update: body.skipped === undefined ? {} : { skipped },
     });
     return NextResponse.json(serialize(tick), { status: 201 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildDay, dayInfo, levelFor, levelName } from "./my-day";
+import { buildDay, cheer, dayInfo, levelFor, levelName } from "./my-day";
 import { MOE_PRIMARY, PUBLIC_HOLIDAYS, publicHolidayId } from "./calendar-sources";
-import type { Activity, CalendarDay, Child, Goal, RoutineItem, Schedule, SchoolHours, TaskTick } from "./types";
+import type { Activity, CalendarDay, Child, Goal, OneOffTask, PlannedTask, RoutineItem, Schedule, SchoolHours, TaskTick } from "./types";
 
 // ─── Fixtures: the real MOE and public-holiday data, plus a child set up like Zayyan ──
 
@@ -172,8 +172,8 @@ const goal = (id: string, over: Partial<Goal> = {}): Goal => ({
 });
 const goals = [goal("cube"), goal("done", { achieved_date: "2026-10-01", practice_task: "Already achieved" })];
 
-const tick = (key: string, date: string, at = "2026-11-12T06:05:00.000Z"): TaskTick =>
-  ({ id: key, child_id: "z", date, item_key: key, title: "", tier: "must", done_at: at, skipped: false });
+const tick = (key: string, date: string, at = "2026-11-12T06:05:00.000Z", over: Partial<TaskTick> = {}): TaskTick =>
+  ({ id: key, child_id: "z", date, item_key: key, title: "", tier: "must", done_at: at, skipped: false, by: "child", ...over });
 
 const build = (iso: string, ticks: TaskTick[] = []) =>
   buildDay({ child: child(), iso, calendarDays, hours, routine, schedules, goals, ticks });
@@ -259,7 +259,7 @@ describe("homework", () => {
   const chinese = activity("cn", "Chinese Tuition", { homework_from: "2026-11-01", homework_note: "Worksheet" });
   const sat = schedule("cn-sat", chinese, 6, "10:00", "11:30");
   const hwTick = (lesson: string, doneAt: string, skipped = false): TaskTick =>
-    ({ id: lesson, child_id: "z", date: lesson, item_key: `homework:cn:${lesson}`, title: "", tier: "homework", done_at: doneAt, skipped });
+    ({ id: lesson, child_id: "z", date: lesson, item_key: `homework:cn:${lesson}`, title: "", tier: "homework", done_at: doneAt, skipped, by: "child" });
   const day = (iso: string, opts: { ticks?: TaskTick[]; now?: string; attendance?: BuildDayInputAttendance; slots?: ReturnType<typeof schedule>[] } = {}) =>
     buildDay({
       child: child(), iso, now: opts.now ?? null, calendarDays, hours, routine, goals,
@@ -328,3 +328,131 @@ describe("homework", () => {
 });
 
 type BuildDayInputAttendance = NonNullable<Parameters<typeof buildDay>[0]["attendance"]>;
+
+// ─── Past days: the saved list, removed items, who ticked ────────────────────
+
+describe("a past day", () => {
+  const iso = "2026-11-12";
+  const saved: PlannedTask[] = [
+    { key: "routine:old", title: "Pray Zohor", tier: "must", source: { kind: "routine", label: null } },
+    { key: "routine:read", title: "Read 20 min", tier: "practice", source: { kind: "routine", label: null } },
+  ];
+
+  it("uses the list saved that day instead of today's routine", () => {
+    const d = buildDay({ child: child(), iso, calendarDays, hours, routine, schedules, goals, ticks: [], plan: saved });
+    expect(d.must.map(t => t.title)).toEqual(["Pray Zohor"]);
+    expect(d.practice.map(t => t.title)).toEqual(["Read 20 min"]);
+    expect(d.free).toEqual([]);
+  });
+
+  it("returns the list it was built from, without homework, for saving", () => {
+    const d = build(iso);
+    expect(d.plan.map(p => p.key)).toEqual(d.plan.map(p => p.key).filter(k => !k.startsWith("homework:")));
+    expect(d.plan.map(p => p.title)).toContain("Lunch and shower");
+    expect(d.plan.find(p => p.title === "Pack AQSA bag")?.source.kind).toBe("prep");
+  });
+
+  it("still shows a ticked item that has since been removed, as done", () => {
+    const gone = tick("routine:removed", iso, "2026-11-12T07:00:00.000Z", { title: "Feed the fish", tier: "practice" });
+    const d = build(iso, [gone]);
+    const t = d.practice.find(p => p.key === "routine:removed");
+    expect(t?.title).toBe("Feed the fish");
+    expect(t?.doneAt).toBe("2026-11-12T07:00:00.000Z");
+    expect(d.plan.some(p => p.key === "routine:removed")).toBe(false);
+  });
+
+  it("knows who ticked each item", () => {
+    const d = build(iso, [tick("routine:lunch", iso, undefined, { by: "parent" }), tick("routine:hw", iso)]);
+    expect(d.must.find(t => t.key === "routine:lunch")?.doneBy).toBe("parent");
+    expect(d.must.find(t => t.key === "routine:hw")?.doneBy).toBe("child");
+    expect(d.must.find(t => t.key === "prep:aqsa")?.doneBy).toBeUndefined();
+  });
+
+  it("leaves homework out when asked (only today shows it)", () => {
+    const chinese = activity("cn", "Chinese Tuition", { homework_from: "2026-11-01" });
+    const slots = [schedule("cn-sat", chinese, 6, "10:00", "11:30")];
+    const withHw = buildDay({ child: child(), iso: "2026-11-16", calendarDays, hours, routine, goals, schedules: slots, ticks: [] });
+    const without = buildDay({ child: child(), iso: "2026-11-16", calendarDays, hours, routine, goals, schedules: slots, ticks: [], homework: false });
+    expect([...withHw.must, ...withHw.homeworkLater].some(t => t.tier === "homework")).toBe(true);
+    expect([...without.must, ...without.homeworkLater].some(t => t.tier === "homework")).toBe(false);
+  });
+});
+
+// ─── The Home banner ─────────────────────────────────────────────────────────
+
+describe("one-off tasks", () => {
+  const iso = "2026-11-12";
+  const oneOff = (id: string, title: string, tier: OneOffTask["tier"], over: Partial<OneOffTask> = {}): OneOffTask => ({
+    id, child_id: "z", date: iso, title, tier, created_at: "", ...over,
+  });
+  const withOneOffs = (oneOffs: OneOffTask[], extra: Partial<Parameters<typeof buildDay>[0]> = {}) =>
+    buildDay({ child: child(), iso, calendarDays, hours, routine, schedules, goals, ticks: [], oneOffs, ...extra });
+
+  it("shows only this child's tasks for this date, in their tier, after the routine", () => {
+    const d = withOneOffs([
+      oneOff("bag", "Pack swimming bag", "must"),
+      oneOff("card", "Card for Grandma", "practice"),
+      oneOff("other", "Someone else's", "must", { child_id: "x" }),
+      oneOff("tmrw", "Tomorrow's", "must", { date: "2026-11-13" }),
+    ]);
+    const bag = d.must.find(t => t.key === "oneoff:bag");
+    expect(bag?.source.kind).toBe("oneoff");
+    expect(d.must.findIndex(t => t.key === "oneoff:bag")).toBeGreaterThan(d.must.findIndex(t => t.key === "routine:lunch"));
+    expect(d.practice.map(t => t.key)).toContain("oneoff:card");
+    expect([...d.must, ...d.practice].some(t => t.key === "oneoff:other" || t.key === "oneoff:tmrw")).toBe(false);
+  });
+
+  it("counts towards the day: Free Play waits for a Do-first one-off", () => {
+    const d = withOneOffs([oneOff("bag", "Pack swimming bag", "must")]);
+    expect(d.total).toBe(build(iso).total + 1);
+    const ticked = d.must.filter(t => t.key !== "oneoff:bag").map(t => tick(t.key, iso));
+    expect(withOneOffs([oneOff("bag", "Pack swimming bag", "must")], { ticks: ticked }).freeUnlocked).toBe(false);
+    expect(withOneOffs([oneOff("bag", "Pack swimming bag", "must")], { ticks: [...ticked, tick("oneoff:bag", iso)] }).freeUnlocked).toBe(true);
+  });
+
+  it("is saved with the day's list, and a saved list follows the current one-offs", () => {
+    const d = withOneOffs([oneOff("bag", "Pack swimming bag", "must")]);
+    expect(d.plan.find(p => p.key === "oneoff:bag")?.source.kind).toBe("oneoff");
+    const saved: PlannedTask[] = [
+      { key: "routine:old", title: "Pray Zohor", tier: "must", source: { kind: "routine", label: null } },
+      { key: "oneoff:removed", title: "Removed since", tier: "must", source: { kind: "oneoff", label: null } },
+    ];
+    const past = withOneOffs([oneOff("added", "Added later", "free")], { plan: saved });
+    expect(past.must.map(t => t.key)).toEqual(["routine:old"]);
+    expect(past.free.map(t => t.key)).toEqual(["oneoff:added"]);
+  });
+});
+
+describe("cheer", () => {
+  const iso = "2026-11-12";
+  const at = "2026-11-12T06:05:00.000Z";
+  const all = ["routine:lunch", "routine:hw", "prep:aqsa", "routine:read", "goal:cube"];
+
+  it("starts with the first job and the deadline", () => {
+    const c = cheer(build(iso), "today", "Zayyan");
+    expect(c.kicker).toBe("Let’s go · before AQSA at 4:00 PM");
+    expect(c.headline).toBe("First up: Lunch and shower");
+    expect(c.tone).toBe("go");
+  });
+  it("encourages once something's ticked", () => {
+    const c = cheer(build(iso, [tick("routine:lunch", iso, at)]), "today", "Zayyan");
+    expect(c.headline).toBe("Nice work! 2 more to go.");
+    expect(c.detail).toBe("Next: School homework");
+  });
+  it("moves on to Hobby when Do first is done", () => {
+    const c = cheer(build(iso, ["routine:lunch", "routine:hw", "prep:aqsa"].map(k => tick(k, iso, at))), "today", "Zayyan");
+    expect(c.headline).toBe("Well done! Hobby time next.");
+  });
+  it("celebrates when everything's done", () => {
+    const d = build(iso, all.map(k => tick(k, iso, at)));
+    expect(d.done).toBe(d.total);
+    const c = cheer(d, "today", "Zayyan");
+    expect(c.tone).toBe("done");
+    expect(c.headline).toMatch(/^Great work, Zayyan!/);
+  });
+  it("looks back kindly on past days, and ahead on future ones", () => {
+    expect(cheer(build(iso, [tick("routine:lunch", iso, at)]), "past", "Zayyan").headline).toBe("Good effort, Zayyan!");
+    expect(cheer(build(iso, all.map(k => tick(k, iso, at))), "past", "Zayyan").headline).toBe("Zayyan did it all. Well done!");
+    expect(cheer(build(iso), "future", "Zayyan").kicker).toBe("Coming up");
+  });
+});

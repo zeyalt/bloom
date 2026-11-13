@@ -154,6 +154,80 @@ is done). The same words are used in Settings › Routines.
       left before AQSA at 4:00"). Tapping a child opens their log of ticks with times.
 - [x] Hidden on days with no routine set up, so nothing changes for you until you configure it.
 
+## Stage 5 plan: Home becomes a day view (agreed and built 12 Nov)
+
+**Goal:** Home shows **one day at a time**, today by default. Everything for that day is on one
+screen: school, classes (log attendance in place), fixed times, and each child's routine and
+homework. A date bar moves to any past or future day. The kids' tablet (`/my-day`) is unchanged.
+
+### Date bar (replaces the week picker)
+- [x] ~~The chosen date lives in the URL~~ → changed: tab switches rewrite the URL, so the date is
+      kept in memory (Home stays loaded between tabs) and in session storage, so refresh keeps it.
+      It resets to today the next day.
+- [x] A strip of the 7 days of that week (Sun–Sat, as now), with ‹ › for the previous or next
+      week. Each day shows its letter and number; today is ringed and the chosen day filled.
+- [x] Day markers: a dot if anything is planned; an amber number for past sessions not logged.
+- [x] Tapping the month label opens a calendar to pick any date (past or future), plus a
+      "Today" button. It replaces the "Choose a week" dialog.
+
+### The day
+- [x] Header line: "Thu 12 Nov · 2 classes, 1 to log" (or "No school · Deepavali").
+- [x] "Not logged" reminder stays, per **day** instead of per week: "4 past sessions not logged"
+      with a chip per day (oldest first, last 6 weeks); a chip jumps to that day.
+- [x] Goal checkpoints due (today only, as now).
+- [x] **Timeline** for all selected children, in time order:
+  - School block per child ("Zayyan · School 7:20 AM – 1:40 PM", after-school activity, half
+    days), fixed times (dinner, bedtime), and classes tagged with the child.
+  - Today: "Now" / "Up next" marker, as now.
+- [x] **Log attendance in place** on each class row:
+  - One tap on Attended / Absent / Cancelled **saves straight away** (no form). Sender and
+    fetcher are filled with the same guess the form uses today (moved into a shared helper).
+  - The logged row then shows "Attended · Sent by Mum · Fetched by Dad"; tap sender or fetcher
+    to change them in a small picker.
+  - "Add reflection" opens a text box right under the row, saved with one button.
+  - Absent asks for an optional reason in the same way.
+  - The pencil still opens the full form for the rarer fields (lesson type, location, times).
+- [x] **Routine card per child** (what the Kids today card shows, always open):
+  - Do first, Hobby, Free Play picks and homework, each with the time ticked or "not yet".
+  - Parents can tick or untick any item, not only homework. Homework keeps Mark done /
+    No homework this time / Undo.
+- [x] The + button adds an event on the **chosen** date.
+
+### Past and future days
+- [x] **Past:** attendance as now. Routine ticks can be added late; they're saved as
+      **ticked by parent** and the time shown is when you ticked it, e.g. "ticked later by
+      parent · Fri 9:14 PM". Homework shows only on today (it's about what's due now).
+- [x] **Future:** classes and routines shown as the plan; routines can't be ticked yet.
+      Marking a class Cancelled ahead of time still works, as now.
+
+### Keeping each day's list (routine history)
+- [x] New table `DayPlan` (child, date, list of items: key, title, tier, time). When today's
+      routine is shown (Home or tablet), today's list is saved if it changed.
+- [x] A past day uses its saved list; days before this feature fall back to today's routine.
+      Ticks always keep their own title, so a removed item still shows as done.
+- [x] `TaskTick` gets `by` (`child` | `parent`): the tablet saves `child`, Home saves `parent`.
+- [x] One additive migration on the `my-day` copy only.
+
+### Code shape
+- [x] `useMyDays(now)` takes the chosen date: past days are built as "end of day", future as
+      "start of day".
+- [x] The Home page is split: `DateBar`, `DayTimeline`, `ClassRow` (inline logging) and
+      `RoutineCard` (from `KidsTodayCard`, which goes away), so `HomeView` stays readable.
+- [x] The week list and its helpers are removed; the not-logged count moves to per day.
+- [x] Not changed: the tablet, Settings, Activities, Goals, Journal, Analytics.
+
+### Tests and checks
+- [x] Vitest: not-logged per day, past/future rules, a saved day list vs. today's routine,
+      late parent ticks.
+- [x] Playwright, iPhone 13 with taps: move days with the bar and the calendar; one-tap
+      Attended, change the fetcher, add a reflection; tick a routine on a past day and see
+      "ticked later by parent"; a future day can't be ticked; the tablet still matches.
+- [x] `tsc`, tests, `next build`, no new lint errors; test data undone afterwards.
+
+### Not in this stage
+- A "Week" button to bring back the old list. Add it only if you miss the week view.
+- Completion rates and streaks in Analytics (phase 2).
+
 ## Build order (I'll check in with you after each stage)
 
 1. [x] Migration, seed and API routes, plus `lib/my-day.ts` with its tests.
@@ -161,7 +235,8 @@ is done). The same words are used in Settings › Routines.
        → *You set up Zayyan and Zara's real details from your phone.*
 3. [x] My Day on the tablet. → *You try it on the real tablet.*
 4. [x] The Kids today card on Home.
-5. [ ] Polish and the full verification pass.
+5. [x] Home becomes a day view (plan above). → *You try it on your phone.*
+6. [ ] Polish and the full verification pass.
 
 ## Verification (before calling it done)
 
@@ -286,6 +361,62 @@ is done). The same words are used in Settings › Routines.
 - 34 tests pass; `tsc` passes; `next build` succeeds; no new lint errors.
 - **Moved to stage 4** (it's a parent control on Home): "No homework this time", and ticking
   homework on a child's behalf.
+
+## Stage 5 review (12 Nov)
+
+- **Data:** migration `20261112150000_day_plans` (my-day copy only, additive): `task_ticks.by`
+  (child | parent) and a `day_plans` table. `GET/PUT /api/day-plans`; ticks accept `by`.
+- **Rules (`lib/my-day.ts`):** `buildDay` takes a saved `plan` and `homework: false`; returns
+  `plan` (the list to save) and `doneBy` per task; ticked items no longer on the list still show,
+  as done. 5 new tests, plus 5 for the banner (44 in all).
+- **Shared hook (`lib/use-my-day.ts`):** `useMyDays(now, { date, by })` — today live, past days
+  from their saved list as at end of day, future days read-only (`canTick`). Saves today's list
+  when it changes (compared field by field, since the database reorders JSON keys).
+- **Home (`components/views/HomeView.tsx` + `components/day/`):**
+  - `DateBar`: 7-day strip, ‹ › weeks, calendar ("Go") and Today; dots and amber not-logged counts.
+  - Timetable for the selected children: school, home time, fixed times (shared lines merged),
+    classes in time order with Now / Up next.
+  - `ClassRow`: one-tap Attended / Absent / Cancelled (sender and fetcher guessed as the form
+    does). Once logged, the row shows only the outcome and the pencil (full form). In-place
+    sender / fetcher / reflection chips were tried and removed at your request (12 Nov).
+  - `RoutineCard` per child (replaces `KidsTodayCard`): tick anything; "ticked by parent" or
+    "ticked later by parent · Thu 12 Nov, 8:35 PM"; future days can't be ticked.
+  - Not-logged reminder is per day; the + button adds on the chosen date.
+  - **Layout (changed at your request, 12 Nov):** under the day's name come the routines, then
+    the timetable at the bottom. Each child's routine card opens with a big banner and a short,
+    encouraging line (`cheer()` in `lib/my-day.ts`, 5 tests): "Let's go · before AQSA at
+    4:00 PM / First up: Eat lunch", "Nice work! 2 more to go.", "Well done! Hobby time next.",
+    "Great work, Zayyan! Free Play is yours." (green); past days "Zayyan did it all. Well done!"
+    or "Good effort, Zayyan!"; future days "Coming up · 3 things planned".
+  - **Top of Home (12 Nov):** title and subtitle, then the day's name, the date bar, then the
+    child pills. Date-bar dots: red = a session not logged, green = all logged so far, grey =
+    still to come. The "every past session is logged" line is gone (the amber reminder still
+    shows when something isn't logged). The "Open My Day" links on Home are removed; My Day is
+    still reachable from the sidebar on larger screens. The phone header's My Day icon (next to
+    the gear) was removed too, at your request; the tablet opens My Day from its own home-screen icon.
+  - **Every selected child gets a card (12 Nov):** a child with nothing set up (Zara) shows "No
+    routine yet" and **Set up {name}'s routine**, which opens Settings on Routines (the Settings
+    section now lives in the nav context, `openSettings("routines")`); a child with a routine but
+    nothing on that day shows "Nothing on the list this day".
+  - **No subtitle on Home (13 Nov):** the "Fri 13 Nov · 1 class" line under the title is gone
+    (`Header` takes `subtitle={null}` for no line); the day heading below already says the date.
+  - **One-off tasks (13 Nov):** "Add a task" on each child's card (also on the empty cards) adds
+    a task for that child on the day shown, in Do first, Hobby or Free Play. It shows on Home
+    ("Just this day", with a × to remove it) and on the tablet (polled each minute), counts
+    towards "x of y" and Free Play, and is saved in the day's list.
+    - New table `one_off_tasks` (migration `20261113090000_one_off_tasks`, applied to the copy
+      only); `GET/POST /api/one-off-tasks`, `DELETE /api/one-off-tasks/[id]` (also removes its tick).
+    - Ticked under `oneoff:<id>`. A saved past list takes its one-offs from the table, so adding
+      or removing one on a past day shows correctly. 3 new tests.
+    - Checked with taps: added one for Zara today, ticked it ("ticked by parent"), seen on Zara's
+      tablet screen, removed it; task, tick and the empty saved list my test left were cleaned up.
+- **Checked** on an iPhone 13 with taps: day strip and weeks; a late tick on Tue 10 Nov showed
+  "ticked later by parent"; Mon 16 Nov's boxes disabled; Soccer logged in one tap with sender and
+  fetcher filled, then only the pencil shown, which opens the form (test log deleted); today's list saved once and
+  not re-saved on reload; the tablet still loads, with no "by parent". No console errors.
+  Test tick and test log removed; your own ticks from this evening untouched.
+- `tsc` passes, 47 tests pass, `next build` succeeds; no new lint errors (the two left are the
+  attendance form's reset effect and Home's `children` prop, both from before).
 
 ## Stage 4 review (12 Nov)
 

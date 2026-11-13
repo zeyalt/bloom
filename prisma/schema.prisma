@@ -8,22 +8,22 @@ datasource db {
 }
 
 model Child {
-  id          String    @id @default(cuid())
-  name        String    @db.VarChar(255)
-  nickname    String?   @db.VarChar(255)
-  dateOfBirth DateTime? @map("date_of_birth") @db.Date
-  school      String?   @db.VarChar(255)
-  colorCode   String    @map("color_code") @db.VarChar(7)
-  avatarEmoji String    @map("avatar_emoji") @db.Char(2)
-  avatarKey   String?   @map("avatar_key") @db.VarChar(50)
+  id              String    @id @default(cuid())
+  name            String    @db.VarChar(255)
+  nickname        String?   @db.VarChar(255)
+  dateOfBirth     DateTime? @map("date_of_birth") @db.Date
+  school          String?   @db.VarChar(255)
+  colorCode       String    @map("color_code") @db.VarChar(7)
+  avatarEmoji     String    @map("avatar_emoji") @db.Char(2)
+  avatarKey       String?   @map("avatar_key") @db.VarChar(50)
   // School level as a code (K1, P2, S1…), the year it was true for, and whether it moves
   // up each January — so P2 in 2026 reads as P3 in 2027 without editing.
-  schoolLevel     String?  @map("school_level") @db.VarChar(20)
-  schoolLevelYear Int?     @map("school_level_year")
-  autoPromote     Boolean  @default(true) @map("auto_promote")
-  calendarId      String?  @map("calendar_id")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+  schoolLevel     String?   @map("school_level") @db.VarChar(20)
+  schoolLevelYear Int?      @map("school_level_year")
+  autoPromote     Boolean   @default(true) @map("auto_promote")
+  calendarId      String?   @map("calendar_id")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp()
 
   activities     Activity[]
   attendanceLogs AttendanceLog[]
@@ -33,6 +33,8 @@ model Child {
   calendar       SchoolCalendar? @relation(fields: [calendarId], references: [id], onDelete: SetNull)
   schoolHours    SchoolHours[]
   routineItems   RoutineItem[]
+  dayPlans       DayPlan[]
+  oneOffTasks    OneOffTask[]
   taskTicks      TaskTick[]
 
   @@map("children")
@@ -250,12 +252,12 @@ model GoalEntry {
 
 // A child's school hours for one weekday (0 = Sunday … 6 = Saturday).
 model SchoolHours {
-  id          String  @id @default(cuid())
-  childId     String  @map("child_id")
-  dayOfWeek   Int     @map("day_of_week")
-  isSchoolDay Boolean @default(false) @map("is_school_day")
-  startTime   String? @map("start_time") @db.VarChar(5)
-  endTime     String? @map("end_time") @db.VarChar(5)
+  id               String  @id @default(cuid())
+  childId          String  @map("child_id")
+  dayOfWeek        Int     @map("day_of_week")
+  isSchoolDay      Boolean @default(false) @map("is_school_day")
+  startTime        String? @map("start_time") @db.VarChar(5)
+  endTime          String? @map("end_time") @db.VarChar(5)
   // An after-school activity on this weekday (e.g. "CCA – Badminton") and when it ends:
   // My Day shows it on the timetable and counts "home from school" from that time.
   afterSchool      String? @map("after_school") @db.VarChar(255)
@@ -338,10 +340,42 @@ model TaskTick {
   doneAt  DateTime @map("done_at") @db.Timestamptz()
   // A parent marked this (homework) as not needed — "No homework this time".
   skipped Boolean  @default(false)
+  // Who ticked it: "child" (the tablet) or "parent" (Home).
+  by      String   @default("child") @db.VarChar(10)
 
   child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@unique([childId, date, itemKey])
   @@index([date])
   @@map("task_ticks")
+}
+
+// The list a child had to do on a day, saved as it's shown, so a past day shows the routine
+// as it was then rather than as it is now. items: [{ key, title, tier, source }].
+model DayPlan {
+  id      String   @id @default(cuid())
+  childId String   @map("child_id")
+  date    DateTime @db.Date
+  items   Json
+  savedAt DateTime @default(now()) @updatedAt @map("saved_at") @db.Timestamptz()
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, date])
+  @@map("day_plans")
+}
+
+/// A task for one child on one date only ("Pack swimming bag"), added from Home.
+model OneOffTask {
+  id        String   @id @default(cuid())
+  childId   String   @map("child_id")
+  date      DateTime @db.Date
+  title     String   @db.VarChar(255)
+  tier      String   @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@map("one_off_tasks")
 }

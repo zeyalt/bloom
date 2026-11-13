@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, CalendarDays, ListChecks, Shapes, Tags, Users, X, type LucideIcon } from "lucide-react";
-import { useSpaNav } from "@/components/layout/spa-nav";
+import { useSpaNav, type SettingsSection } from "@/components/layout/spa-nav";
 import { ChildrenTab } from "@/components/settings/ChildrenTab";
 import { ActivitiesTab } from "@/components/settings/ActivitiesTab";
 import { SchedulesTab } from "@/components/settings/SchedulesTab";
@@ -24,7 +24,7 @@ const SECTIONS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "routines",   label: "Routines",   icon: ListChecks },
   { key: "calendar",   label: "Calendar",   icon: CalendarDays },
 ];
-type Section = "children" | "activities" | "schedules" | "categories" | "routines" | "calendar";
+type Section = SettingsSection;
 
 /**
  * Settings, as a dialog over whichever tab is open. Desktop: a centred panel with
@@ -33,11 +33,11 @@ type Section = "children" | "activities" | "schedules" | "categories" | "routine
  * Edit forms open as their own dialogs on top; Escape closes those first.
  */
 export function SettingsDialog() {
-  const { settingsOpen, setSettingsOpen } = useSpaNav();
-  // Kept here, not in the body, so reopening returns to the last section.
-  const [section, setSection] = useState<Section>("children");
+  // The section lives in the nav context, so reopening returns to it and other screens
+  // can open Settings on a given section (e.g. Home's "Set up a routine").
+  const { settingsOpen, setSettingsOpen, settingsSection, setSettingsSection } = useSpaNav();
   if (!settingsOpen) return null;
-  return <SettingsBody section={section} setSection={setSection} onClose={() => setSettingsOpen(false)} />;
+  return <SettingsBody section={settingsSection} setSection={setSettingsSection} onClose={() => setSettingsOpen(false)} />;
 }
 
 function SettingsBody({ section, setSection, onClose }: { section: Section; setSection: (s: Section) => void; onClose: () => void }) {
