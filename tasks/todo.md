@@ -260,8 +260,8 @@ homework. A date bar moves to any past or future day. The kids' tablet (`/my-day
       (`prisma migrate deploy`).
 - [x] Re-enter the setup on production (school hours, routines), or copy those rows across from
       the `my-day` branch with a script.
-- [x] Switch `.env.local` back to production (copy's settings kept in `.env.local.my-day-copy`).
-- [ ] Delete the Neon `my-day` branch (in the Neon console).
+- [x] Switch `.env.local` back to production.
+- [x] Delete the Neon `my-day` branch (done by you, 13 Nov).
 
 ### Merged 13 Nov
 - Production backed up first (JSON dump of every table), then `prisma migrate deploy` (5 migrations).
