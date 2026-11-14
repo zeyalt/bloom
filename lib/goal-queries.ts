@@ -3,7 +3,10 @@ import type { Prisma } from "@prisma/client";
 
 /** Every goal response carries its checkpoints (plan order) and entries (oldest first). */
 export const GOAL_INCLUDE = {
-  checkpoints: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] },
+  checkpoints: {
+    orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }],
+    include: { focus: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+  },
   entries: { orderBy: [{ date: "asc" }, { createdAt: "asc" }] },
 } satisfies Prisma.GoalInclude;
 

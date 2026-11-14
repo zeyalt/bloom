@@ -160,6 +160,15 @@ export interface Milestone {
 
 export type GoalKind = "milestone" | "measured";
 
+/** The "how" under a checkpoint: a habit being worked on until it sticks (got_date set). */
+export interface GoalFocus {
+  id: string;
+  checkpoint_id: string;
+  text: string;
+  got_date: string | null;
+  sort_order: number;
+}
+
 export interface GoalCheckpoint {
   id: string;
   goal_id: string;
@@ -167,6 +176,7 @@ export interface GoalCheckpoint {
   text: string;
   hit_date: string | null;
   sort_order: number;
+  focus: GoalFocus[];
 }
 
 /** A dated update (note, milestone goals) or reading (value, measured goals). */

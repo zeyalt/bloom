@@ -26,7 +26,8 @@ export interface NewGoalInput {
   practice_days?: "school" | "holiday" | "any" | null;
 }
 
-export interface PlanCheckpointInput { due_date: string; text: string; hit_date?: string | null }
+/** `id` keeps an existing checkpoint (and its focus points); leave it out for a new one. */
+export interface PlanCheckpointInput { id?: string; due_date: string; text: string; hit_date?: string | null }
 
 export const goalApi = {
   create: (input: NewGoalInput) => send("/api/goals", "POST", input),
@@ -36,6 +37,9 @@ export const goalApi = {
   draftPlan: (id: string, context: string, today: string) =>
     send(`/api/goals/${id}/draft-plan`, "POST", { context, today }) as Promise<{ checkpoints: { due_date: string; text: string }[] }>,
   setCheckpointHit: (id: string, hit_date: string | null) => send(`/api/goal-checkpoints/${id}`, "PATCH", { hit_date }),
+  addFocus: (checkpointId: string, text: string) => send(`/api/goal-checkpoints/${checkpointId}/focus`, "POST", { text }),
+  updateFocus: (id: string, patch: { text?: string; got_date?: string | null }) => send(`/api/goal-focus/${id}`, "PATCH", patch),
+  removeFocus: (id: string) => send(`/api/goal-focus/${id}`, "DELETE"),
   addEntry: (goalId: string, entry: { date: string; note?: string; value?: number }) => send(`/api/goals/${goalId}/entries`, "POST", entry),
   updateEntry: (id: string, patch: { date?: string; note?: string | null; value?: number | null }) => send(`/api/goal-entries/${id}`, "PATCH", patch),
   removeEntry: (id: string) => send(`/api/goal-entries/${id}`, "DELETE"),

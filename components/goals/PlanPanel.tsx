@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Check, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Loader2, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
 import { cn, formatDate } from "@/lib/utils";
 import { goalApi, useRefreshGoals } from "@/lib/goal-api";
 import { day, milestoneProgress, timeLeftLabel } from "@/lib/goal-progress";
-import type { Goal } from "@/lib/types";
+import type { Goal, GoalCheckpoint } from "@/lib/types";
 import { inputCls, labelCls } from "./GoalFormModal";
 
 type Mode = "view" | "prompt" | "drafting" | "edit";
-interface DraftRow { key: string; due_date: string; text: string; hit_date: string | null }
+interface DraftRow { key: string; id?: string; due_date: string; text: string; hit_date: string | null }
 
 let keySeq = 0;
 const newKey = () => `row-${++keySeq}`;
@@ -35,11 +36,12 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const shown: Mode = mode === "view" && !hasPlan && open ? "prompt" : mode;
+  // Rows keep the checkpoint's id, so saving edits it in place and its focus points stay.
   const keptHits = (): DraftRow[] =>
-    progress.checkpoints.filter(c => c.hit_date).map(c => ({ key: newKey(), due_date: day(c.due_date), text: c.text, hit_date: day(c.hit_date!) }));
+    progress.checkpoints.filter(c => c.hit_date).map(c => ({ key: newKey(), id: c.id, due_date: day(c.due_date), text: c.text, hit_date: day(c.hit_date!) }));
 
   function startEdit() {
-    setRows(progress.checkpoints.map(c => ({ key: newKey(), due_date: day(c.due_date), text: c.text, hit_date: c.hit_date ? day(c.hit_date) : null })));
+    setRows(progress.checkpoints.map(c => ({ key: newKey(), id: c.id, due_date: day(c.due_date), text: c.text, hit_date: c.hit_date ? day(c.hit_date) : null })));
     setFromClaude(false); setError(null); setMode("edit");
   }
   function writeOwn() {
@@ -61,7 +63,7 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
     const clean = rows.filter(r => r.text.trim() && r.due_date);
     setSaving(true); setError(null);
     try {
-      await goalApi.savePlan(goal.id, clean.map(r => ({ due_date: r.due_date, text: r.text.trim(), hit_date: r.hit_date })));
+      await goalApi.savePlan(goal.id, clean.map(r => ({ id: r.id, due_date: r.due_date, text: r.text.trim(), hit_date: r.hit_date })));
       await refresh();
       setMode("view"); setRows([]); setContext("");
     } catch (e) {
@@ -178,23 +180,27 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
                 : missed ? `Missed — was due ${formatDate(day(c.due_date))}`
                 : `${next ? "Next · " : ""}by ${formatDate(day(c.due_date))}`;
               return (
-                <li key={c.id} className={cn("flex items-center gap-1 pr-3", next && "bg-[#eef5ef]")}>
-                  <button type="button" onClick={() => toggleHit(c.id, hit)} disabled={busyId === c.id || !open}
-                    aria-pressed={hit} aria-label={hit ? `Unmark: ${c.text}` : `Mark hit: ${c.text}`}
-                    className="w-12 h-12 shrink-0 flex items-center justify-center cursor-pointer disabled:cursor-default">
-                    <span className={cn(
-                      "w-[26px] h-[26px] rounded-full border-2 flex items-center justify-center text-white",
-                      hit ? "bg-[#16A34A] border-[#16A34A]"
-                        : missed ? "border-[#b45309]"
-                        : next ? "border-[var(--stem)]" : "border-dashed border-[#9aa9a0]"
-                    )}>
-                      {busyId === c.id ? <Loader2 size={16} className="animate-spin text-[var(--ink-soft)]" /> : hit && <Check size={16} strokeWidth={3.2} />}
-                    </span>
-                  </button>
-                  <div className="py-2 min-w-0">
-                    <p className={cn("text-sm text-[var(--ink)]", next ? "font-semibold" : "font-medium")}>{c.text}</p>
-                    <p className={cn("text-xs", missed ? "text-[#8a3f06]" : "text-[var(--ink-soft)]")}>{meta}</p>
+                <li key={c.id} className={cn(next && "bg-[#eef5ef]")}>
+                  <div className="flex items-center gap-1 pr-3">
+                    <button type="button" onClick={() => toggleHit(c.id, hit)} disabled={busyId === c.id || !open}
+                      aria-pressed={hit} aria-label={hit ? `Unmark: ${c.text}` : `Mark hit: ${c.text}`}
+                      className="w-12 h-12 shrink-0 flex items-center justify-center cursor-pointer disabled:cursor-default">
+                      <span className={cn(
+                        "w-[26px] h-[26px] rounded-full border-2 flex items-center justify-center text-white",
+                        hit ? "bg-[var(--stem)] border-[var(--stem)]"
+                          : missed ? "border-[#b45309]"
+                          : next ? "border-[var(--stem)]" : "border-dashed border-[#9aa9a0]"
+                      )}>
+                        {busyId === c.id ? <Loader2 size={16} className="animate-spin text-[var(--ink-soft)]" /> : hit && <Check size={16} strokeWidth={3.2} />}
+                      </span>
+                    </button>
+                    <div className="py-2 min-w-0">
+                      <p className={cn("text-sm text-[var(--ink)]", next ? "font-semibold" : "font-medium")}>{c.text}</p>
+                      <p className={cn("text-xs", missed ? "text-[#8a3f06]" : "text-[var(--ink-soft)]")}>{meta}</p>
+                    </div>
                   </div>
+                  {/* The how: focus points, open by default on the current checkpoint. */}
+                  <FocusList checkpoint={c} today={today} canEdit={open && !hit} startOpen={next} />
                 </li>
               );
             })}
@@ -203,5 +209,92 @@ export function PlanPanel({ goal, today }: { goal: Goal; today: string }) {
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The focus points under one checkpoint: what to work on to hit it ("plan during
+ * inspection"). Each is "working on it" until a parent marks it got. Collapsed on
+ * checkpoints other than the current one, so the plan stays short.
+ */
+function FocusList({ checkpoint, today, canEdit, startOpen }: {
+  checkpoint: GoalCheckpoint; today: string; canEdit: boolean; startOpen: boolean;
+}) {
+  const refresh = useRefreshGoals();
+  const [open, setOpen] = useState(startOpen);
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const items = checkpoint.focus ?? [];
+  const working = items.filter(f => !f.got_date).length;
+  if (items.length === 0 && !canEdit) return null;
+
+  async function run(id: string, fn: () => Promise<unknown>) {
+    setBusy(id);
+    try { await fn(); await refresh(); } finally { setBusy(null); }
+  }
+  async function add() {
+    const t = text.trim();
+    if (!t) { setAdding(false); return; }
+    await run("new", () => goalApi.addFocus(checkpoint.id, t));
+    setText("");
+  }
+
+  const summary = items.length === 0 ? "Add a focus point"
+    : working === 0 ? `${items.length} focus point${items.length === 1 ? "" : "s"}, all got`
+    : `${working} focus point${working === 1 ? "" : "s"}`;
+
+  return (
+    <div className="pl-12 pr-3 pb-2">
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)}
+          className="relative -ml-1 inline-flex items-center gap-1 min-h-8 px-1 text-xs font-semibold text-[var(--stem)] cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']">
+          <ChevronDown size={14} aria-hidden="true" /> {summary}
+        </button>
+      ) : (
+        <ul className="flex flex-col">
+          {items.map(f => {
+            const got = !!f.got_date;
+            return (
+              <li key={f.id} className="flex items-center gap-2 min-h-9">
+                <button type="button" disabled={!canEdit || busy === f.id} aria-pressed={got}
+                  aria-label={got ? `Still working on: ${f.text}` : `Got it: ${f.text}`}
+                  onClick={() => run(f.id, () => goalApi.updateFocus(f.id, { got_date: got ? null : today }))}
+                  className={cn("relative shrink-0 w-5 h-5 rounded-full border-2 inline-flex items-center justify-center cursor-pointer disabled:cursor-default",
+                    "before:absolute before:-inset-2.5 before:content-['']",
+                    got ? "bg-[var(--stem)] border-[var(--stem)] text-[var(--sheet)]" : "border-[var(--ink-faint)] bg-[var(--sheet)]")}>
+                  {got && <Check size={12} strokeWidth={3} aria-hidden="true" />}
+                </button>
+                <span className={cn("flex-1 min-w-0 text-sm leading-5 break-words", got ? "text-[var(--ink-soft)]" : "text-[var(--ink)]")}>
+                  {f.text}
+                  {got && <span className="ml-2 text-xs text-[var(--ink-soft)]">got {formatDate(day(f.got_date!))}</span>}
+                </span>
+                {canEdit && <IconButton icon={X} label={`Remove ${f.text}`} onClick={() => run(f.id, () => goalApi.removeFocus(f.id))} className="-mr-3 scale-75" />}
+              </li>
+            );
+          })}
+          {canEdit && (adding ? (
+            <li className="flex items-center gap-2 py-1">
+              <input autoFocus value={text} onChange={e => setText(e.target.value)} maxLength={300}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void add(); } if (e.key === "Escape") { setAdding(false); setText(""); } }}
+                onBlur={() => void add()} placeholder="e.g. plan properly during inspection" aria-label="New focus point"
+                className={cn(inputCls, "py-1.5 text-sm")} />
+            </li>
+          ) : (
+            <li>
+              <button type="button" onClick={() => setAdding(true)}
+                className="relative -ml-1 inline-flex items-center gap-1 min-h-8 px-1 text-xs font-semibold text-[var(--stem)] cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']">
+                <Plus size={14} aria-hidden="true" /> Add a focus point
+              </button>
+            </li>
+          ))}
+          {items.length > 0 && !startOpen && (
+            <li>
+              <button type="button" onClick={() => setOpen(false)} className="min-h-8 px-1 -ml-1 text-xs text-[var(--ink-soft)] cursor-pointer hover:text-[var(--ink)]">Hide</button>
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }

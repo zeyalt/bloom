@@ -187,6 +187,7 @@ function GoalCard({ goal, today, onOpen }: { goal: Goal; today: string; onOpen: 
 
 function MilestoneSummary({ goal, today }: { goal: Goal; today: string }) {
   const p = milestoneProgress(goal, today);
+  const working = (p.next?.focus ?? []).filter(f => !f.got_date);
   if (!p.checkpoints.length) {
     return (
       <span className="block h-2 rounded-full bg-[#d5ded4] overflow-hidden">
@@ -207,6 +208,12 @@ function MilestoneSummary({ goal, today }: { goal: Goal; today: string }) {
         <span className="text-[var(--ink-soft)]">{p.hitCount} of {p.checkpoints.length} · Next: </span>
         {p.next ? p.next.text : "all checkpoints done"}
       </span>
+      {/* What they're working on to get there, from the next checkpoint's focus points. */}
+      {working.length > 0 && (
+        <span className="text-xs leading-4 text-[var(--ink-soft)] break-words">
+          Working on: {working.slice(0, 2).map(f => f.text).join(", ")}{working.length > 2 ? ` +${working.length - 2}` : ""}
+        </span>
+      )}
     </span>
   );
 }

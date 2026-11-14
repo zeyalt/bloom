@@ -227,10 +227,27 @@ model GoalCheckpoint {
   hitDate   DateTime? @map("hit_date") @db.Date
   sortOrder Int       @default(0) @map("sort_order")
 
-  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goal   Goal        @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  focus  GoalFocus[]
 
   @@index([goalId])
   @@map("goal_checkpoints")
+}
+
+// A focus point under a checkpoint: the "how" of hitting it ("plan during inspection").
+// A habit being worked on, not a daily task: gotDate is set once a parent sees it stick.
+model GoalFocus {
+  id           String    @id @default(cuid())
+  checkpointId String    @map("checkpoint_id")
+  text         String    @db.VarChar(300)
+  gotDate      DateTime? @map("got_date") @db.Date
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  checkpoint GoalCheckpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+
+  @@index([checkpointId])
+  @@map("goal_focus")
 }
 
 // A dated update (note, milestone goals) or reading (value, measured goals).
