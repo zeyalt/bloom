@@ -25,7 +25,7 @@ export function Fab({ label, onClick, icon: Icon = Plus }: { label: string; onCl
       aria-label={label}
       title={label}
       className={cn(
-        "w-14 h-14 rounded-full bg-[var(--ink)] text-[var(--sheet)] flex items-center justify-center cursor-pointer shadow-[0_4px_12px_rgba(26,44,34,0.25)] hover:bg-[var(--stem)] active:scale-95",
+        "w-14 h-14 rounded-full bg-[var(--stem)] text-[var(--sheet)] flex items-center justify-center cursor-pointer shadow-[0_4px_12px_rgba(26,44,34,0.25)] hover:bg-[#285f43] active:scale-95",
         slot
           ? "pointer-events-auto"
           : "fixed z-40 right-4 bottom-[calc(72px+env(safe-area-inset-bottom))] md:right-8 md:bottom-8"

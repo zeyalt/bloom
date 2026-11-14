@@ -54,7 +54,7 @@ export function RoutineCard({ child, day, date, tense, onTick, onSkip, onAdd, on
         <div className="flex items-center gap-3">
           <Avatar avatarKey={child.avatar_key} fallbackEmoji={child.avatar_emoji} size={40} />
           <h4 className="flex-1 min-w-0 text-xl leading-7 font-bold tracking-tight text-inherit">{child.name}</h4>
-          {day.total > 0 && tense !== "future" && <span className="text-sm font-semibold tabular-nums">{day.done} of {day.total}</span>}
+          {day.total > 0 && tense !== "future" && <span className="text-sm tabular-nums"><span className="text-lg font-bold">{day.done}</span><span className="opacity-70"> of {day.total}</span></span>}
         </div>
         <p className={cn("mt-2 text-sm leading-5 font-semibold", filled ? "opacity-85" : "text-[var(--stem)]")}>
           {c.kicker}

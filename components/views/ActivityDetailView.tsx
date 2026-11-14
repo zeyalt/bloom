@@ -188,18 +188,18 @@ export function ActivityDetailView({ activityId }: { activityId: string }) {
         {/* 1–3: stat row */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
-            <div className="text-2xl font-bold text-[var(--ink)]">{stats.sessionsAttended}</div>
-            <div className="text-xs text-[var(--ink-faint)] mt-1">sessions attended</div>
+            <div className="text-[28px] leading-8 font-extrabold tracking-tight tabular-nums text-[var(--ink)]">{stats.sessionsAttended}</div>
+            <div className="text-xs leading-4 text-[var(--ink-soft)] mt-1.5">sessions attended</div>
           </div>
           <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
-            <div className="text-2xl font-bold text-[var(--ink)]">{Math.round(stats.attendanceRate)}%</div>
-            <div className="text-xs text-[var(--ink-faint)] mt-1">attendance rate</div>
+            <div className="text-[28px] leading-8 font-extrabold tracking-tight tabular-nums text-[var(--ink)]">{Math.round(stats.attendanceRate)}%</div>
+            <div className="text-xs leading-4 text-[var(--ink-soft)] mt-1.5">attendance rate</div>
           </div>
           <div className="bg-[var(--sheet)] rounded-[var(--radius-lg)] p-4 text-center">
-            <div className="text-2xl font-bold text-[var(--ink)]">
+            <div className="text-[28px] leading-8 font-extrabold tracking-tight tabular-nums text-[var(--ink)]">
               {price ? formatCurrency(price.perHour) : "—"}
             </div>
-            <div className="text-xs text-[var(--ink-faint)] mt-1">per hour</div>
+            <div className="text-xs leading-4 text-[var(--ink-soft)] mt-1.5">per hour</div>
             {price ? (
               <div className="text-xs text-[var(--ink-faint)] mt-1 leading-tight">
                 {formatCurrency(price.perLesson)} per {Math.round(price.sessionMinutes)}-min lesson

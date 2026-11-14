@@ -15,7 +15,6 @@ export function Sidebar() {
           <span className="block text-xl font-extrabold tracking-tight text-[var(--ink)] leading-none">
             Bloom
           </span>
-          <span className="mt-1 block text-sm text-[var(--ink-faint)]">Class register</span>
         </button>
       </div>
 

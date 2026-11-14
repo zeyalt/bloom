@@ -113,7 +113,7 @@ export default function GoalsView() {
                     <Button size="sm" variant="secondary" onClick={() => setCreatingFor(kid)}><Plus size={16} /> Add a goal</Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
                     {active.map(g => <GoalCard key={g.id} goal={g} today={today} onOpen={() => open(g)} />)}
                   </div>
                 )}

@@ -109,7 +109,7 @@ function SettingsBody({ section, setSection, onClose }: { section: Section; setS
         className={cn(
           "settings-panel relative flex flex-col w-full bg-[var(--sheet)] border border-[var(--rule)] outline-none overflow-hidden",
           "h-[calc(100dvh-48px)] rounded-t-[16px] border-b-0",
-          "md:h-[min(760px,100%)] md:max-w-[960px] md:rounded-[var(--radius-lg)] md:border-b md:shadow-[0_16px_48px_rgba(26,44,34,0.2)]"
+          "md:h-auto md:min-h-[480px] md:max-h-[min(760px,100%)] md:max-w-[960px] md:rounded-[var(--radius-lg)] md:border-b md:shadow-[0_16px_48px_rgba(26,44,34,0.2)]"
         )}
       >
         {/* Grab handle and title bar: drag down to close on phones. */}

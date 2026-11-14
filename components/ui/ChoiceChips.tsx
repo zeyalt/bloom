@@ -44,9 +44,9 @@ export function ChoiceChips({
             aria-pressed={on}
             onClick={() => toggle(opt)}
             className={cn(
-              "relative h-10 px-3 text-sm font-medium border cursor-pointer",
+              "relative h-10 px-3 text-sm font-medium border rounded-[var(--radius-md)] cursor-pointer",
               "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
-              on ? "bg-[var(--ink)] text-[var(--sheet)] border-[var(--ink)]" : "bg-[var(--sheet)] text-[var(--ink-soft)] border-[var(--rule)]"
+              on ? "bg-[var(--stem)] text-[var(--sheet)] border-[var(--stem)]" : "bg-[var(--sheet)] text-[var(--ink)] border-[var(--rule)]"
             )}
           >
             {opt}
@@ -61,7 +61,7 @@ export function ChoiceChips({
         onBlur={addCustom}
         placeholder="+ Add other"
         aria-label={`${ariaLabel}: add other`}
-        className="w-28 h-10 px-3 text-sm border border-dashed border-[var(--rule)] bg-[var(--sheet)] focus:outline-none focus:border-[var(--stem)]"
+        className="w-32 h-10 px-3 text-sm font-medium border border-[var(--rule)] rounded-[var(--radius-md)] bg-[var(--sheet)] text-[var(--ink)] placeholder:text-[var(--stem)] focus:outline-none focus:border-[var(--stem)]"
       />
     </div>
   );

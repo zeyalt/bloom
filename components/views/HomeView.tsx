@@ -327,6 +327,7 @@ export default function AgendaPage() {
 
       {/* Which day: its name, the date bar, then whose day. */}
       <Utilities>
+        <div className="flex flex-col gap-3 lg:max-w-3xl">
         <div className="flex items-center gap-2">
           <h2 id="day-heading" className={cn("text-xl leading-7 font-extrabold tracking-tight", isToday ? "text-[var(--stem)]" : "text-[var(--ink)]")}>
             {format(parseISO(date), "EEEE")}
@@ -335,6 +336,7 @@ export default function AgendaPage() {
           {isToday && <span className="ml-auto h-6 px-2 inline-flex items-center rounded-full bg-[var(--stem)] text-[var(--sheet)] text-xs leading-4 font-bold">Today</span>}
         </div>
         <DateBar date={date} today={todayIso} markers={markers} onChange={chooseDay} />
+        </div>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
       </Utilities>
 

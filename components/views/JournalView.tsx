@@ -27,12 +27,6 @@ interface LogWithDetails extends AttendanceLog {
 
 type SubTab = "reflections" | "highlights" | "chat";
 
-const JOURNAL_LINES: Record<SubTab, string> = {
-  reflections: "What they learned, session by session",
-  highlights: "Claude's read on progress across the notes",
-  chat: "Ask anything about the classes and notes",
-};
-
 export default function JournalPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -209,7 +203,7 @@ export default function JournalPage() {
                               <span className="text-sm font-semibold text-[var(--ink)] break-words">{title}</span>
                               <span className="text-xs text-[var(--ink-soft)] tabular-nums shrink-0 ml-auto">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
                             </span>
-                            {!isOpen && <span className="text-sm leading-5 text-[var(--ink-soft)] line-clamp-2 break-words">{snippet}</span>}
+                            {!isOpen && <span className="text-[14px] leading-5 text-[var(--ink-soft)] line-clamp-2 break-words">{snippet}</span>}
                           </button>
                           {isOpen && (
                             <div className="px-1 pb-3">

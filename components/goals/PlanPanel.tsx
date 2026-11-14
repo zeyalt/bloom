@@ -247,9 +247,10 @@ function FocusList({ checkpoint, today, canEdit, startOpen }: {
   return (
     <div className="pl-12 pr-3 pb-2">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)}
+        // Empty: one tap straight into adding. Folded with items: show how many.
+        <button type="button" onClick={() => { setOpen(true); if (items.length === 0) setAdding(true); }}
           className="relative -ml-1 inline-flex items-center gap-1 min-h-8 px-1 text-xs font-semibold text-[var(--stem)] cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']">
-          <ChevronDown size={14} aria-hidden="true" /> {summary}
+          {items.length === 0 ? <Plus size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />} {summary}
         </button>
       ) : (
         <ul className="flex flex-col">
