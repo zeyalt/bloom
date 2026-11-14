@@ -54,7 +54,10 @@ goals(id, child_id, kind, title, target_date DATE, achieved_date DATE NULLABLE, 
 goal_checkpoints(id, goal_id, due_date DATE, text, hit_date DATE NULLABLE, sort_order)
   -- A milestone goal's action plan. Hit when hit_date is set; missed when due_date < today and hit_date is null.
 goal_entries(id, goal_id, date DATE, note TEXT NULLABLE, value FLOAT NULLABLE)
-  -- Dated updates (note) on milestone goals and readings (value, in the goal's unit) on measured goals.`;
+  -- Dated updates (note) on milestone goals and readings (value, in the goal's unit) on measured goals.
+school_notes(id, child_id, date DATE, source NULLABLE, text)
+  -- Feedback from the child's regular school (not an enrichment class): source is who it's from,
+  -- e.g. 'Mrs Tan, form teacher'; text is what they said about progress, behaviour or development.`;
 
 function systemPrompt() {
   const today = new Date().toISOString().slice(0, 10);
@@ -78,7 +81,7 @@ How to write the answer:
 - Money is in SGD; write it like $1,234.50. Write dates like 12 Oct 2026.
 - If the question is ambiguous (which child, which period), make a sensible assumption and say what you assumed.
 - If the records can't answer the question, say so plainly and say what is missing.
-- Only answer questions about this family's activities, schedules, attendance, spending, reflections and the children's goals.`;
+- Only answer questions about this family's activities, schedules, attendance, spending, reflections, school feedback and the children's goals.`;
 }
 
 const TOOLS: Anthropic.Tool[] = [

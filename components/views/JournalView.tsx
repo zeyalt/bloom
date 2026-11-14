@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, NotebookPen, Sparkles, ExternalLink } from "lucide-react";
+import { Pencil, NotebookPen, Sparkles, ExternalLink, GraduationCap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
@@ -14,10 +14,13 @@ import { ChildFilter } from "@/components/ui/ChildFilter";
 import { AttendanceModal, AttendancePrefill } from "@/components/attendance/AttendanceModal";
 import { SummaryCard } from "@/components/journal/SummaryCard";
 import { ChatPanel } from "@/components/journal/ChatPanel";
+import { SchoolNoteModal } from "@/components/journal/SchoolNoteModal";
+import { Fab } from "@/components/ui/Fab";
+import { useSchoolNotes } from "@/lib/school-notes-api";
 import { cn } from "@/lib/utils";
 import { getReflectionText, hasReflection } from "@/lib/reflection";
 import { useChildren, useActivities, useAttendanceLogs } from "@/lib/api-hooks";
-import type { AttendanceLog, Activity, ActivityCategory, Child } from "@/lib/types";
+import type { AttendanceLog, Activity, ActivityCategory, Child, SchoolNote } from "@/lib/types";
 
 interface LogWithDetails extends AttendanceLog {
   activity?: Activity & { category?: ActivityCategory };
@@ -26,6 +29,14 @@ interface LogWithDetails extends AttendanceLog {
 
 
 type SubTab = "reflections" | "highlights" | "chat";
+
+/** The activity filter's value for "only school feedback". */
+const SCHOOL = "__school";
+
+/** One row in the Journal: a class reflection, or feedback from school. */
+type Entry =
+  | { kind: "log"; id: string; date: string; log: LogWithDetails }
+  | { kind: "school"; id: string; date: string; note: SchoolNote };
 
 export default function JournalPage() {
   const router = useRouter();
@@ -42,10 +53,13 @@ export default function JournalPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
   const [prefill, setPrefill] = useState<AttendancePrefill | undefined>(undefined);
+  // School feedback form: null = closed, "new" = adding, a note = editing it.
+  const [schoolForm, setSchoolForm] = useState<SchoolNote | "new" | null>(null);
 
   const { data: childrenData = [] } = useChildren();
   const { data: activitiesData = [] } = useActivities();
   const { data: logsData = [], isLoading } = useAttendanceLogs({ limit: 300 });
+  const { data: schoolNotes = [] } = useSchoolNotes();
 
   const children = childrenData;
   const activities = activitiesData;
@@ -105,8 +119,10 @@ export default function JournalPage() {
   // Each child has their own record of a shared class (two "Swimming"s), so with more than
   // one child in view every option names its child.
   const multiChild = selectedChildren.length > 1;
+  const hasSchool = schoolNotes.some(n => selectedChildren.includes(n.child_id));
   const activityFilterOptions = [
     { value: "", label: "All Activities" },
+    ...(hasSchool ? [{ value: SCHOOL, label: "School feedback" }] : []),
     ...scopeActivities.map(a => {
       const child = children.find(c => c.id === a.child_id);
       const name = a.activity_name || a.institution;
@@ -114,26 +130,31 @@ export default function JournalPage() {
     }),
   ];
 
-  // Matching entries, grouped by month for a light, scannable structure. The
-  // date parsing here runs per entry, so it stays out of the render path.
+  // Reflections and school feedback together, newest first, grouped by month.
   const { entries, groups } = useMemo(() => {
-    const entries = (logsData as LogWithDetails[])
+    const logs: Entry[] = filterActivity === SCHOOL ? [] : (logsData as LogWithDetails[])
       .filter(l => hasReflection(l.learned, l.diary_notes))
       .filter(l => selectedChildren.includes(l.child_id))
       .filter(l => !filterActivity || l.activity_id === filterActivity)
-      .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time || "").localeCompare(a.start_time || ""));
+      .map(l => ({ kind: "log" as const, id: l.id, date: l.date.slice(0, 10), log: l }));
+    const school: Entry[] = filterActivity && filterActivity !== SCHOOL ? [] : schoolNotes
+      .filter(n => selectedChildren.includes(n.child_id))
+      .map(n => ({ kind: "school" as const, id: n.id, date: n.date.slice(0, 10), note: n }));
+    const entries = [...logs, ...school].sort((x, y) =>
+      y.date.localeCompare(x.date) ||
+      (y.kind === "log" ? y.log.start_time || "" : "").localeCompare(x.kind === "log" ? x.log.start_time || "" : ""));
 
-    const groups: { label: string; items: LogWithDetails[] }[] = [];
-    for (const log of entries) {
-      const label = format(parseISO(log.date.slice(0, 10)), "MMMM yyyy");
+    const groups: { label: string; items: Entry[] }[] = [];
+    for (const e of entries) {
+      const label = format(parseISO(e.date), "MMMM yyyy");
       const last = groups[groups.length - 1];
-      if (last && last.label === label) last.items.push(log);
-      else groups.push({ label, items: [log] });
+      if (last && last.label === label) last.items.push(e);
+      else groups.push({ label, items: [e] });
     }
     return { entries, groups };
-  }, [logsData, selectedChildren, filterActivity]);
+  }, [logsData, schoolNotes, selectedChildren, filterActivity]);
 
-  const selectedActivity = filterActivity ? activities.find(a => a.id === filterActivity) : undefined;
+  const selectedActivity = filterActivity && filterActivity !== SCHOOL ? activities.find(a => a.id === filterActivity) : undefined;
   const singleChild = selectedChildren.length === 1 ? selectedChildren[0] : "";
   const summaryTitle = selectedActivity
     ? `${childName(selectedActivity.child_id)}’s ${selectedActivity.activity_name || selectedActivity.institution} journey`
@@ -178,8 +199,8 @@ export default function JournalPage() {
           ) : entries.length === 0 ? (
             <div className="text-center py-16 text-[var(--ink-faint)]">
               <NotebookPen size={32} className="mx-auto mb-3 opacity-60" />
-              <p className="text-sm">No reflections yet.</p>
-              <p className="text-xs mt-1">Add a reflection when confirming a session.</p>
+              <p className="text-sm">No reflections or school feedback yet.</p>
+              <p className="text-xs mt-1">Add a reflection when confirming a session, or tap + to add feedback from school.</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -187,21 +208,29 @@ export default function JournalPage() {
                 <div key={group.label}>
                   <p className="text-sm text-[var(--ink-faint)] mb-2">{group.label}</p>
                   <div className="space-y-2">
-                    {group.items.map(log => {
-                      const child = log.child ?? children.find(c => c.id === log.child_id);
-                      const title = log.activity?.activity_name || log.activity?.institution || "Activity";
-                      const isOpen = expanded.has(log.id);
-                      const snippet = getReflectionText(log.learned, log.diary_notes);
+                    {group.items.map(entry => {
+                      const isOpen = expanded.has(entry.id);
+                      const childId = entry.kind === "log" ? entry.log.child_id : entry.note.child_id;
+                      const child = (entry.kind === "log" ? entry.log.child : undefined) ?? children.find(c => c.id === childId);
+                      const title = entry.kind === "log"
+                        ? entry.log.activity?.activity_name || entry.log.activity?.institution || "Activity"
+                        : entry.note.source || "School";
+                      const snippet = entry.kind === "log" ? getReflectionText(entry.log.learned, entry.log.diary_notes) : entry.note.text;
                       return (
-                        <div key={log.id} className="border-b border-[var(--rule)] overflow-hidden">
-                          {/* The date and class on one line, then the reflection itself: two lines, faded,
-                              and the whole row opens to read it all. No chevron to find. */}
-                          <button onClick={() => toggle(log.id)} aria-expanded={isOpen}
+                        <div key={`${entry.kind}-${entry.id}`} className="border-b border-[var(--rule)] overflow-hidden">
+                          {/* The date and class (or who at school) on one line, then the note: two lines,
+                              faded, and the whole row opens to read it all. School feedback is tagged. */}
+                          <button onClick={() => toggle(entry.id)} aria-expanded={isOpen}
                             className="w-full text-left px-1 py-3 min-h-12 flex flex-col gap-1 cursor-pointer active:bg-[var(--bg-secondary)]">
-                            <span className="flex items-center gap-2">
+                            <span className="flex items-center gap-2 min-w-0">
                               {child && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} />}
-                              <span className="text-sm font-semibold text-[var(--ink)] break-words">{title}</span>
-                              <span className="text-xs text-[var(--ink-soft)] tabular-nums shrink-0 ml-auto">{format(parseISO(log.date.slice(0, 10)), "d MMM")}</span>
+                              {entry.kind === "school" && (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2 rounded-full bg-[#e3ebf7] text-[#1d3f78] text-xs leading-5 font-semibold">
+                                  <GraduationCap size={12} aria-hidden="true" /> School
+                                </span>
+                              )}
+                              <span className="text-sm font-semibold text-[var(--ink)] break-words min-w-0">{title}</span>
+                              <span className="text-xs text-[var(--ink-soft)] tabular-nums shrink-0 ml-auto">{format(parseISO(entry.date), "d MMM")}</span>
                             </span>
                             {!isOpen && <span className="text-[14px] leading-5 text-[var(--ink-soft)] line-clamp-2 break-words">{snippet}</span>}
                           </button>
@@ -209,12 +238,15 @@ export default function JournalPage() {
                             <div className="px-1 pb-3">
                               <p className="text-sm leading-6 text-[var(--ink)] whitespace-pre-wrap break-words">{snippet}</p>
                               <div className="mt-3 flex items-center gap-4">
-                                <button onClick={() => openEdit(log)} className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--stem)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
+                                <button onClick={() => entry.kind === "log" ? openEdit(entry.log) : setSchoolForm(entry.note)}
+                                  className="relative inline-flex items-center gap-2 h-10 text-sm font-semibold text-[var(--stem)] hover:opacity-80 cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']">
                                   <Pencil size={16} /> Edit
                                 </button>
-                                <button onClick={() => router.push(`/activity/${log.activity_id}`)} className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
-                                  <ExternalLink size={16} /> Open activity
-                                </button>
+                                {entry.kind === "log" && (
+                                  <button onClick={() => router.push(`/activity/${entry.log.activity_id}`)} className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--stem)] hover:underline cursor-pointer">
+                                    <ExternalLink size={16} /> Open activity
+                                  </button>
+                                )}
                               </div>
                             </div>
                           )}
@@ -246,10 +278,10 @@ export default function JournalPage() {
                   : "An overview and key highlights across everyone. Select one child, or an activity, to focus it."}
               </p>
               <SummaryCard
-                key={filterActivity || singleChild || "all"}
+                key={(selectedActivity ? filterActivity : "") || singleChild || "all"}
                 kind={selectedActivity ? "journey" : "overview"}
-                activityId={filterActivity || undefined}
-                childId={!filterActivity ? (singleChild || undefined) : undefined}
+                activityId={selectedActivity ? filterActivity : undefined}
+                childId={!selectedActivity ? (singleChild || undefined) : undefined}
                 title={summaryTitle}
               />
             </div>
@@ -259,6 +291,13 @@ export default function JournalPage() {
         <div className={subTab === "chat" ? "" : "hidden"}>
           <ChatPanel />
         </div>
+
+        {subTab === "reflections" && <Fab label="Add school feedback" onClick={() => setSchoolForm("new")} />}
+        {schoolForm && (
+          <SchoolNoteModal open onClose={() => setSchoolForm(null)} childList={children}
+            note={schoolForm === "new" ? undefined : schoolForm}
+            defaultChildId={singleChild || undefined} />
+        )}
 
         <AttendanceModal
           open={modalOpen}

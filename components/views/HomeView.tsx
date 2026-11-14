@@ -327,7 +327,7 @@ export default function AgendaPage() {
 
       {/* Which day: its name, the date bar, then whose day. */}
       <Utilities>
-        <div className="flex flex-col gap-3 lg:max-w-3xl">
+        <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <h2 id="day-heading" className={cn("text-xl leading-7 font-extrabold tracking-tight", isToday ? "text-[var(--stem)]" : "text-[var(--ink)]")}>
             {format(parseISO(date), "EEEE")}
@@ -343,7 +343,7 @@ export default function AgendaPage() {
       <PageBody>
         {/* Sessions not logged, per day: tap one to go there. */}
         {!loading && unlogged.total > 0 && (
-          <section aria-labelledby="unlogged-heading" className="border border-[#e9c79c] bg-[#fdf6ec] p-4 flex flex-col gap-3">
+          <section aria-labelledby="unlogged-heading" className="border border-[#e9c79c] bg-[#fdf6ec] rounded-[var(--radius-lg)] p-4 flex flex-col gap-3">
             <div>
               <h2 id="unlogged-heading" className="flex items-center gap-2 font-semibold text-[#8a3f06]">
                 <AlertCircle size={16} aria-hidden="true" /> {plural(unlogged.total, "past session")} not logged
@@ -354,7 +354,7 @@ export default function AgendaPage() {
               {reminderDays.map(([iso, n]) => (
                 <button key={iso} type="button" onClick={() => chooseDay(iso)} aria-pressed={iso === date}
                   className={cn(
-                    "relative inline-flex items-center gap-2 h-10 px-3 text-sm border cursor-pointer",
+                    "relative inline-flex items-center gap-2 h-10 px-3 text-sm border rounded-[var(--radius-md)] cursor-pointer",
                     "before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-['']",
                     iso === date ? "bg-[#8a3f06] border-[#8a3f06] text-white" : "bg-[var(--sheet)] border-[#e9c79c] text-[var(--ink)] hover:border-[#8a3f06]"
                   )}>
@@ -399,7 +399,7 @@ export default function AgendaPage() {
         {/* Landscape and desktop: each child's timetable beside their own routine. */}
         <div className="hidden lg:flex flex-col gap-6">
           {kids.map(kid => (
-            <div key={kid.id} className="grid grid-cols-[minmax(0,1fr)_minmax(340px,420px)] gap-6 items-start">
+            <div key={kid.id} className="grid grid-cols-[minmax(0,1fr)_minmax(380px,480px)] gap-6 items-start">
               <ul className="flex flex-col min-w-0" aria-busy={!my.ready}>
                 {!my.ready ? <RoutineCardSkeleton /> : cardFor(kid)}
               </ul>

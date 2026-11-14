@@ -35,6 +35,7 @@ model Child {
   routineItems   RoutineItem[]
   dayPlans       DayPlan[]
   oneOffTasks    OneOffTask[]
+  schoolNotes    SchoolNote[]
   taskTicks      TaskTick[]
 
   @@map("children")
@@ -397,4 +398,21 @@ model OneOffTask {
 
   @@index([date])
   @@map("one_off_tasks")
+}
+
+// Feedback from a child's regular school (a teacher's note on progress or behaviour),
+// added whenever it comes. Not tied to a class or session. Shown in the Journal.
+model SchoolNote {
+  id        String   @id @default(cuid())
+  childId   String   @map("child_id")
+  date      DateTime @db.Date
+  source    String?  @db.VarChar(120)
+  text      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, date])
+  @@map("school_notes")
 }

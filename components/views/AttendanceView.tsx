@@ -430,7 +430,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
                         {log.activity ? (
                           <button
                             onClick={e => { e.stopPropagation(); router.push(`/activity/${log.activity_id}`); }}
-                            className="font-medium text-[var(--stem)] hover:underline cursor-pointer text-left"
+                            className="font-medium text-[var(--stem)] hover:underline cursor-pointer text-left whitespace-nowrap"
                           >
                             {log.activity.activity_name || log.activity.institution}
                           </button>

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 export const GUTTER = "px-4 md:px-8";
 
 export function Page({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("max-w-[1200px] mx-auto w-full", className)}>{children}</div>;
+  return <div className={cn("max-w-[1560px] mx-auto w-full", className)}>{children}</div>;
 }
 
 /** Row 2: child pills, then the tab switch, then filter fields — always in that order. */

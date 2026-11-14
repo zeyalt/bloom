@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowUp, RotateCcw } from "lucide-react";
+import { format } from "date-fns";
+import { ArrowUp, RotateCcw, Sparkles } from "lucide-react";
 import { ChatMarkdown } from "@/components/journal/ChatMarkdown";
+import { cn } from "@/lib/utils";
 import type { ChartSpec } from "@/lib/chat-chart";
 
 // Charts pull in recharts; load it only once an answer actually has a chart.
@@ -12,18 +14,32 @@ const ChatChart = dynamic(() => import("@/components/journal/ChatChart"), {
   loading: () => <div className="h-28 w-full rounded-[var(--radius-md)] bg-[var(--bg-secondary)] animate-pulse" />,
 });
 
-type Message = { role: "user" | "assistant"; content: string; charts?: ChartSpec[] };
+type Message = { role: "user" | "assistant"; content: string; charts?: ChartSpec[]; at: number };
 
 const SUGGESTIONS = [
   "How much have we spent on each child this year?",
   "Which activity did Zara miss the most this year?",
   "What does Zayyan's week look like right now?",
-  "Who usually picks Zayyan up from soccer?",
+  "What has school said about Zara lately?",
 ];
 
+/** Bloom's side of the conversation: a small round mark beside each reply. */
+function BloomAvatar() {
+  return (
+    <span aria-hidden="true" className="shrink-0 w-8 h-8 rounded-full bg-[var(--stem)] text-[var(--sheet)] inline-flex items-center justify-center">
+      <Sparkles size={16} />
+    </span>
+  );
+}
+
+const time = (at: number) => format(at, "h:mm a");
+/** When a message was sent (called from the send handler, never during render). */
+const stamp = () => new Date().getTime();
+
 /**
- * Ask-anything chat over the family's records. The conversation lives in memory
- * only — it survives switching Journal tabs but not a page reload.
+ * Ask-anything chat over the family's records, laid out like a messaging app: your
+ * questions on the right, Bloom's answers on the left with charts under them. The
+ * conversation lives in memory only (it survives switching Journal tabs, not a reload).
  */
 export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,7 +56,7 @@ export function ChatPanel() {
   async function send(text: string) {
     const question = text.trim();
     if (!question || loading) return;
-    const next: Message[] = [...messages, { role: "user", content: question }];
+    const next: Message[] = [...messages, { role: "user", content: question, at: stamp() }];
     setMessages(next);
     setInput("");
     setError("");
@@ -53,7 +69,7 @@ export function ChatPanel() {
       });
       const data = await res.json();
       if (!res.ok || !data.answer) throw new Error(data.error || "Something went wrong.");
-      setMessages([...next, { role: "assistant", content: data.answer, charts: Array.isArray(data.charts) ? data.charts : [] }]);
+      setMessages([...next, { role: "assistant", content: data.answer, charts: Array.isArray(data.charts) ? data.charts : [], at: stamp() }]);
     } catch (e) {
       // Drop the unanswered question back into the box so it can be resent as-is.
       setMessages(messages);
@@ -72,97 +88,104 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex flex-col">
-      {messages.length > 0 && (
-        <div className="flex justify-end mb-3">
-          <button onClick={reset} disabled={loading} className="inline-flex items-center gap-2 text-xs font-medium text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer disabled:opacity-50">
-            <RotateCcw size={16} /> New chat
-          </button>
-        </div>
-      )}
-
-      {/* Messages stack up from the input box, newest at the bottom, like a messaging app. */}
-      <div className="flex flex-col justify-end gap-3 min-h-[55dvh] pb-3">
-        {messages.length === 0 && (
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--ink-soft)]">
-              Ask anything about attendance, schedules, spending or reflections. Answers come from your own records.
-            </p>
-            <div className="flex flex-wrap gap-2">
+    // A centred reading column on wide screens, like a messaging app.
+    <div className="flex flex-col w-full max-w-3xl mx-auto">
+      {/* Messages stack up from the message bar, newest at the bottom. */}
+      <div className="flex flex-col gap-4 pb-20">
+        {messages.length === 0 ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-end gap-2">
+              <BloomAvatar />
+              <div className="max-w-[85%] px-4 py-3 rounded-[18px] rounded-bl-[6px] bg-[var(--sheet)] border border-[var(--rule)] text-sm leading-6 text-[var(--ink)]">
+                Hi! Ask me anything about the kids: classes, attendance, spending, reflections or school feedback. I answer from your own records.
+              </div>
+            </div>
+            <div className="pl-10 flex flex-wrap gap-2" role="group" aria-label="Suggested questions">
               {SUGGESTIONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  disabled={loading}
-                  className="text-left text-sm px-3 py-2 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] text-[var(--ink)] hover:border-[var(--stem)] cursor-pointer disabled:opacity-50"
-                >
+                <button key={s} type="button" onClick={() => send(s)} disabled={loading}
+                  className="text-left text-sm leading-5 px-3.5 py-2 rounded-full border border-[var(--stem)]/40 bg-[var(--sheet)] text-[var(--stem)] font-medium hover:bg-[#e8f2eb] cursor-pointer disabled:opacity-50">
                   {s}
                 </button>
               ))}
             </div>
           </div>
+        ) : (
+          <div className="flex justify-center">
+            <button type="button" onClick={reset} disabled={loading}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-50">
+              <RotateCcw size={14} aria-hidden="true" /> New chat
+            </button>
+          </div>
         )}
 
         {messages.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <div className="max-w-[88%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)]">
+            <div key={i} className="flex flex-col items-end gap-1">
+              <div className="max-w-[85%] md:max-w-[70%] px-4 py-2.5 rounded-[18px] rounded-br-[6px] bg-[var(--stem)] text-[var(--sheet)] text-sm leading-6 whitespace-pre-wrap break-words">
                 {m.content}
               </div>
+              <span className="pr-1 text-xs text-[var(--ink-soft)]">{time(m.at)}</span>
             </div>
           ) : (
-            <div key={i} className="space-y-2">
-              <div className="max-w-[95%] px-4 py-3 text-sm leading-relaxed rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--ink)]">
-                <ChatMarkdown text={m.content} />
+            <div key={i} className="flex items-end gap-2">
+              <BloomAvatar />
+              <div className="min-w-0 max-w-[85%] md:max-w-[75%] flex flex-col gap-2">
+                <div className="px-4 py-3 rounded-[18px] rounded-bl-[6px] bg-[var(--sheet)] border border-[var(--rule)] text-sm leading-6 text-[var(--ink)]">
+                  <ChatMarkdown text={m.content} />
+                </div>
+                {m.charts?.map((c, j) => <ChatChart key={j} spec={c} />)}
+                <span className="pl-1 text-xs text-[var(--ink-soft)]">{time(m.at)}</span>
               </div>
-              {m.charts?.map((c, j) => <ChatChart key={j} spec={c} />)}
             </div>
           ),
         )}
 
+        {/* Typing indicator while Bloom looks things up. */}
         {loading && (
-          <div className="flex justify-start" aria-live="polite">
-            <div className="px-4 py-3 text-sm rounded-[var(--radius-md)] bg-[var(--sheet)] border border-[var(--rule)] text-[var(--ink-faint)]">
-              Looking through your records…
+          <div className="flex items-end gap-2" role="status" aria-label="Bloom is looking through your records">
+            <BloomAvatar />
+            <div className="px-4 py-3.5 rounded-[18px] rounded-bl-[6px] bg-[var(--sheet)] border border-[var(--rule)] inline-flex items-center gap-1.5">
+              {[0, 150, 300].map(d => (
+                <span key={d} className="w-2 h-2 rounded-full bg-[var(--ink-faint)] motion-safe:animate-bounce" style={{ animationDelay: `${d}ms` }} />
+              ))}
             </div>
           </div>
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-[var(--margin)]">
-            {error} Your question is back in the box — press send to try again.
+          <p role="alert" className="self-center max-w-[90%] text-center text-sm text-[var(--margin)]">
+            {error} Your question is back in the box, so press send to try again.
           </p>
         )}
       </div>
 
-      {/* Pinned to the bottom of the screen: just above the bottom nav on phones, the
-          window's edge on desktop. The page-coloured backing hides messages scrolling under it. */}
-      <div className="sticky z-10 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-2 pb-3 bg-[var(--paper)]">
-        <form
-          onSubmit={e => { e.preventDefault(); send(input); }}
-          className="flex items-end gap-2 border border-[var(--rule)] bg-[var(--sheet)] rounded-[var(--radius-md)] p-2 focus-within:border-[var(--stem)]"
-        >
+      {/* The message bar stays at the bottom of the screen, however short the chat: above
+          the tab bar on phones, at the window's edge on desktop (beside the sidebar), lined
+          up with the centred column. Messages scroll under its page-coloured backing. */}
+      <div className="fixed z-20 inset-x-0 md:left-52 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 bg-[var(--paper)]">
+       <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-2 pb-3">
+        <form onSubmit={e => { e.preventDefault(); send(input); }}
+          className="flex items-end gap-2 pl-4 pr-1.5 py-1.5 rounded-[26px] border border-[var(--rule)] bg-[var(--sheet)] focus-within:border-[var(--stem)] shadow-[0_2px_10px_rgba(26,44,34,0.06)]">
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
-            }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
             rows={1}
-            placeholder="Ask about your children's activities…"
+            placeholder="Message Bloom…"
             aria-label="Your question"
-            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none max-h-32 [field-sizing:content]"
+            // The bar's own border shows focus, so the global focus outline is turned off here.
+            style={{ outline: "none" }}
+            className="flex-1 resize-none bg-transparent py-2.5 text-sm leading-6 text-[var(--ink)] placeholder:text-[var(--ink-faint)] max-h-32 [field-sizing:content]"
           />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            aria-label="Send"
-            className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-[var(--radius-md)] bg-[var(--ink)] text-[var(--sheet)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ArrowUp size={16} />
+          <button type="submit" disabled={loading || !input.trim()} aria-label="Send"
+            className={cn("shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full cursor-pointer disabled:cursor-not-allowed",
+              "relative before:absolute before:-inset-1 before:content-['']",
+              input.trim() && !loading ? "bg-[var(--stem)] text-[var(--sheet)]" : "bg-[var(--bg-secondary)] text-[var(--ink-faint)]")}>
+            <ArrowUp size={18} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </form>
+       </div>
       </div>
       <div ref={endRef} />
     </div>

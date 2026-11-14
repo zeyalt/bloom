@@ -89,11 +89,19 @@ export async function POST(req: Request) {
         orderBy: { date: "desc" },
         take: 40,
       });
-      if (logs.length === 0) return NextResponse.json({ error: "Add some reflections first." }, { status: 400 });
+      // Feedback from the children's regular school counts too.
+      const school = await prisma.schoolNote.findMany({
+        where: child_id ? { childId: child_id } : {},
+        include: { child: true },
+        orderBy: { date: "desc" },
+        take: 20,
+      });
+      if (logs.length === 0 && school.length === 0) return NextResponse.json({ error: "Add some reflections or school feedback first." }, { status: 400 });
       const chrono = [...logs].reverse();
       const multiChild = !child_id;
-      const who = child_id ? (logs[0].child?.name ?? "This child") : "the children";
-      heading = child_id ? `${logs[0].child?.name ?? "Child"}'s learning overview` : "Learning overview";
+      const childNameOf = logs[0]?.child?.name ?? school[0]?.child?.name;
+      const who = child_id ? (childNameOf ?? "This child") : "the children";
+      heading = child_id ? `${childNameOf ?? "Child"}'s learning overview` : "Learning overview";
       system =
         `You are helping a parent see what ${who} have been learning across activities. Write a warm, concise summary grounded ONLY in the notes provided — do not invent anything. Use these exact plain-text section headers on their own lines:\nOverview\nKey highlights\n` +
         `Under 'Overview' write 2–4 sentences on recent learning themes and progress${multiChild ? " (mention each child)" : ""}. Under 'Key highlights' give 4–8 '- ' bullets of genuine standout moments — each naming the activity${multiChild ? " and child" : ""} and roughly when.`;
@@ -103,6 +111,12 @@ export async function POST(req: Request) {
           const act = l.activity?.activityName || l.activity?.institution || "Activity";
           return `- ${iso(l.date)} · ${multiChild ? `${l.child?.name ?? "?"} · ` : ""}${act} — ${getReflectionText(l.learned, l.diaryNotes)}`;
         }),
+        ...(school.length ? [
+          "",
+          "Feedback from their regular school (date · " + (multiChild ? "child · " : "") + "from — feedback). Treat it as part of the picture, labelled as school:",
+          ...[...school].reverse().map(n =>
+            `- ${iso(n.date)} · ${multiChild ? `${n.child?.name ?? "?"} · ` : ""}${n.source || "School"} — ${n.text}`),
+        ] : []),
       ].join("\n");
     }
 

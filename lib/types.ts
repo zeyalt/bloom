@@ -303,3 +303,14 @@ export interface DayPlan {
   items: PlannedTask[];
   saved_at: string;
 }
+
+/** Feedback from a child's regular school, added whenever it comes. Shown in the Journal. */
+export interface SchoolNote {
+  id: string;
+  child_id: string;
+  date: string;
+  source: string | null; // who it's from, e.g. "Mrs Tan, form teacher"
+  text: string;
+  created_at: string;
+  updated_at: string;
+}

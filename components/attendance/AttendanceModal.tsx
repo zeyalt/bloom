@@ -468,7 +468,7 @@ export function AttendanceModal({ open, onClose, children, activities, prefill, 
             </div>
           </div>
         ) : (
-          <div className="sticky bottom-0 -mx-4 md:-mx-6 -mb-5 md:-mb-6 px-4 md:px-6 py-3 flex gap-2 bg-[var(--sheet)] border-t border-[var(--rule)]">
+          <div className="flex gap-2 pt-1">
             {prefill?.id && (
               <button onClick={() => setConfirmDelete(true)} className="flex-1 h-13 px-4 rounded-[var(--radius-md)] text-base font-semibold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors">Delete</button>
             )}
