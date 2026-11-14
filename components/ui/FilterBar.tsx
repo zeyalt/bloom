@@ -35,6 +35,7 @@ export function FilterBar({
   children,
   trailing,
   stretch,
+  equal,
   className,
 }: {
   children: React.ReactNode;
@@ -50,14 +51,22 @@ export function FilterBar({
    * too narrow to read, so the row keeps natural widths and scrolls instead.
    */
   stretch?: boolean;
+  /**
+   * Split the row into equal columns at every width — no scrolling, no fixed widths.
+   * With two filters this puts the gap exactly under the divider of a two-option
+   * `Segmented` above, so the controls and the tab switch share the same edges.
+   */
+  equal?: boolean;
   className?: string;
 }) {
   return (
     <div className={cn("flex flex-col sm:flex-row sm:items-end gap-2", className)}>
       <div
         className={cn(
-          "flex flex-nowrap items-end gap-2 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          stretch
+          equal
+            ? "grid grid-flow-col auto-cols-fr items-end gap-2 w-full min-w-0 [&>*]:min-w-0 [&>*>div]:w-full"
+            : "flex flex-nowrap items-end gap-2 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          equal ? "" : stretch
             // Once stretched the row fits, so it must NOT carry the bleed padding —
             // that padding sits inside `w-full` and would leave the last filter
             // short of the content edge. Bleed only below the stretch threshold,

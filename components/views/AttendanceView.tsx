@@ -283,7 +283,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
       <Utilities>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
         {tabs}
-        <FilterBar stretch>
+        <FilterBar stretch equal>
           <FilterField label="Year">
             <MultiSelect
               className="w-32"
@@ -327,7 +327,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               title="Show or hide table columns"
               aria-pressed={showColumnPicker}
-              className={`relative hidden md:inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
+              className={`relative inline-flex items-center gap-2 h-10 px-4 rounded-[var(--radius-md)] text-sm font-medium border transition-colors cursor-pointer before:absolute before:inset-x-0 before:top-1/2 before:h-12 before:-translate-y-1/2 before:content-[''] ${showColumnPicker ? "bg-[var(--stem)]/10 border-[var(--stem)]/30 text-[var(--stem)]" : "border-[var(--rule)] text-[var(--ink-soft)] hover:bg-[var(--bg-secondary)]"}`}
             >
               <Columns3 size={16} /> Columns
             </button>
@@ -381,34 +381,7 @@ export default function AttendancePage({ embedded = false, tabs }: { embedded?: 
           </div>
         ) : (
           <>
-          {/* Phones: one row per session, tap to edit. The wide table stays for tablets and desktops. */}
-          <ul className="md:hidden rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--sheet)] divide-y divide-[var(--rule)] overflow-hidden">
-            {pagedLogs.map(log => {
-              const child = log.child ?? children.find(c => c.id === log.child_id);
-              const name = log.activity?.activity_name || log.activity?.institution || "Activity";
-              return (
-                <li key={log.id}>
-                  <button type="button" onClick={() => openEdit(log)} aria-label={`Edit ${name} on ${formatDate(log.date)}`}
-                    className="w-full text-left px-4 py-3 min-h-16 flex items-center gap-3 cursor-pointer active:bg-[var(--bg-secondary)]">
-                    {child && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: child.color_code }} aria-hidden="true" />}
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-base leading-6 font-semibold text-[var(--ink)] break-words">{name}</span>
-                      <span className="block text-sm leading-5 text-[var(--ink-soft)]">
-                        {[child?.name, formatDate(log.date), log.start_time ? formatTime(log.start_time) : null].filter(Boolean).join(", ")}
-                      </span>
-                      {log.activity?.institution && log.activity.activity_name && (
-                        <span className="block text-sm leading-5 text-[var(--ink-soft)] break-words">{log.activity.institution}</span>
-                      )}
-                    </span>
-                    {hasReflection(log.learned, log.diary_notes) && <NotebookPen size={16} className="shrink-0 text-[var(--ink-soft)]" aria-label="Has a reflection" />}
-                    <Badge label={ATTENDANCE_STATUS_LABELS[log.status]}
-                      variant={log.status === "attended" ? "success" : log.status === "absent" ? "danger" : "default"} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="hidden md:block overflow-x-auto rounded-[var(--radius-md)] border border-[var(--rule)]">
+          <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--rule)]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--bg-secondary)] text-[var(--ink-soft)]">

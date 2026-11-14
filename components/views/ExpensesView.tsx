@@ -298,7 +298,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
       <Utilities>
         <ChildFilter childList={children} selected={selectedChildren} onToggle={toggleChild} />
         {tabs}
-        <FilterBar stretch>
+        <FilterBar stretch equal>
           <FilterField label="Year">
             <MultiSelect
               className="w-32"
@@ -324,7 +324,7 @@ export default function ExpensesPage({ embedded = false, tabs }: { embedded?: bo
             />
           </FilterField>
         </FilterBar>
-        <FilterBar stretch>
+        <FilterBar stretch equal>
           <FilterField label="Expense Category">
             <MultiSelect
               className="w-40"

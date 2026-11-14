@@ -33,7 +33,7 @@ function DropdownShell({
   children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; width: number; maxHeight: number; maxWidth: number; alignRight: boolean; right: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -42,10 +42,19 @@ function DropdownShell({
     const box = ref.current?.getBoundingClientRect();
     if (!box) return null;
     const top = box.bottom + 8;
+    // Keep the panel inside the window: long labels wrap instead of running off the edge.
+    // A trigger in the right half opens leftward from its right edge, so a long list gets
+    // the room to the left rather than being squeezed against the screen edge.
+    const alignRight = box.left + box.width / 2 > window.innerWidth / 2;
+    const left = Math.max(8, box.left);
+    const right = Math.max(8, window.innerWidth - box.right);
     return {
       top,
-      left: box.left,
+      left,
+      right,
+      alignRight,
       width: box.width,
+      maxWidth: alignRight ? box.right - 8 : window.innerWidth - left - 8,
       // Never run past the bottom of the window on short viewports.
       maxHeight: Math.min(288, window.innerHeight - top - 16),
       triggerVisible: box.bottom > 0 && box.top < window.innerHeight,
@@ -111,7 +120,7 @@ function DropdownShell({
         <div
           ref={panelRef}
           role="listbox"
-          style={{ top: anchor.top, left: anchor.left, minWidth: anchor.width, maxHeight: anchor.maxHeight }}
+          style={{ top: anchor.top, ...(anchor.alignRight ? { right: anchor.right } : { left: anchor.left }), minWidth: Math.min(anchor.width, anchor.maxWidth), maxWidth: anchor.maxWidth, maxHeight: anchor.maxHeight }}
           // A always-visible slim scrollbar: macOS overlay scrollbars render
           // nothing until you scroll, which makes a long list look truncated.
           className="fixed z-50 w-max overflow-y-auto p-1 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--sheet)] [scrollbar-width:thin] [scrollbar-color:var(--rule)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-[var(--rule)]"
@@ -125,7 +134,7 @@ function DropdownShell({
 }
 
 const optionRow =
-  "flex items-center gap-2 w-full px-3 min-h-12 rounded-[var(--radius-md)] text-sm text-left text-[var(--ink)] cursor-pointer hover:bg-[var(--bg-secondary)]";
+  "flex items-center gap-2 w-full px-3 py-2 min-h-12 rounded-[var(--radius-md)] text-sm text-left text-[var(--ink)] cursor-pointer hover:bg-[var(--bg-secondary)]";
 
 /** Single-value filter dropdown. Picking an option closes the panel. */
 export function SingleSelect({
@@ -162,7 +171,7 @@ export function SingleSelect({
             {opt.colorCode && (
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} aria-hidden="true" />
             )}
-            <span className="whitespace-nowrap">{opt.label}</span>
+            <span className="break-words min-w-0">{opt.label}</span>
           </button>
         );
       })}
@@ -249,7 +258,7 @@ export function MultiSelect({
                 {opt.colorCode && (
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.colorCode }} aria-hidden="true" />
                 )}
-                <span className="whitespace-nowrap">{opt.label}</span>
+                <span className="break-words min-w-0">{opt.label}</span>
               </button>
             );
           })}
